@@ -33941,6 +33941,16 @@ $ astscript-fits-view radial-tmp/values.fits \
 @end example
 
 
+@item -g
+@itemx --polar
+To generate 2D polar-plot, as a table.
+Which is contained azimuthal angle, radius and mean vlues of each pixel.
+Using @option{--azimuth} option is mandatory with it.
+This option can not to be used with @option{--oversample} and @option{--undersample} options.
+If the output is not a FITS file, the polar output will be saved in another table with the same name of output with polar.
+Otherwise, if the output is a FITS, in second extension of the output of polar-plot is existed as a table and in third extension the image.
+
+
 @item -m STR
 @itemx --measure=STR
 The operator for measuring the values over each radial distance.

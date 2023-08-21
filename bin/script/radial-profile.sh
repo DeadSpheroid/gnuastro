@@ -40,6 +40,7 @@ export LC_NUMERIC=C
 # Default option values (can be changed with options on the command-line).
 hdu=1
 rmax=""
+polar=0
 quiet=""
 instd=""
 stdhdu=1
@@ -113,6 +114,7 @@ $scriptname options:
   -Q, --axis-ratio=FLT     Axis ratio for ellipse profiles (A/B).
   -a, --azimuth=FLT,FLT    Azimuthal angles range (from the major axis).
   -p, --position-angle=FLT Position angle for ellipse profiles.
+  -g, --polar              Polar grid (Radius vs Azimuth angle).
   -s, --sigmaclip=FLT,FLT  Sigma-clip multiple and tolerance.
   -z, --zeropoint=FLT      Zeropoint magnitude of input dataset.
   -Z, --zeroisnotblank     0.0 in float or double images are not blank.
@@ -286,33 +288,35 @@ while [ $# -gt 0 ]
 do
     case "$1" in
         # Input parameters.
-        -h|--hdu)           hdu="$2";                                  check_v "$1" "$hdu";  shift;shift;;
-        -h=*|--hdu=*)       hdu="${1#*=}";                             check_v "$1" "$hdu";  shift;;
-        -h*)                hdu=$(echo "$1"  | sed -e's/-h//');        check_v "$1" "$hdu";  shift;;
-        -O|--mode)          mode="$2";                                 check_v "$1" "$mode";  shift;shift;;
-        -O=*|--mode=*)      mode="${1#*=}";                            check_v "$1" "$mode";  shift;;
-        -O*)                mode=$(echo "$1"  | sed -e's/-O//');       check_v "$1" "$mode";  shift;;
-        -c|--center)        center="$2";                               check_v "$1" "$center";  shift;shift;;
-        -c=*|--center=*)    center="${1#*=}";                          check_v "$1" "$center";  shift;;
-        -c*)                center=$(echo "$1"  | sed -e's/-c//');     check_v "$1" "$center";  shift;;
-        -R|--rmax)          rmax="$2";                                 check_v "$1" "$rmax";  shift;shift;;
-        -R=*|--rmax=*)      rmax="${1#*=}";                            check_v "$1" "$rmax";  shift;;
-        -R*)                rmax=$(echo "$1"  | sed -e's/-R//');       check_v "$1" "$rmax";  shift;;
-        -Q|--axis-ratio)     axisratio="$2";                            check_v "$1" "$axisratio";  shift;shift;;
-        -Q=*|--axis-ratio=*) axisratio="${1#*=}";                       check_v "$1" "$axisratio";  shift;;
-        -Q*)                 axisratio=$(echo "$1"  | sed -e's/-Q//');  check_v "$1" "$axisratio";  shift;;
-        -a|--azimuth)       azimuth="$2";                               check_v "$1" "$azimuth";  shift;shift;;
-        -a=*|--azimuth=*)   azimuth="${1#*=}";                          check_v "$1" "$azimuth";  shift;;
-        -a*)                azimuth=$(echo "$1"  | sed -e's/-a//');     check_v "$1" "$azimuth";  shift;;
-        -p|--position-angle)     positionangle="$2";                        check_v "$1" "$positionangle";  shift;shift;;
-        -p=*|--position-angle=*) positionangle="${1#*=}";               check_v "$1" "$positionangle";  shift;;
+        -h|--hdu)                hdu="$2";                                     check_v "$1" "$hdu";  shift;shift;;
+        -h=*|--hdu=*)            hdu="${1#*=}";                                check_v "$1" "$hdu";  shift;;
+        -h*)                     hdu=$(echo "$1"  | sed -e's/-h//');           check_v "$1" "$hdu";  shift;;
+        -O|--mode)               mode="$2";                                    check_v "$1" "$mode";  shift;shift;;
+        -O=*|--mode=*)           mode="${1#*=}";                               check_v "$1" "$mode";  shift;;
+        -O*)                     mode=$(echo "$1"  | sed -e's/-O//');          check_v "$1" "$mode";  shift;;
+        -c|--center)             center="$2";                                  check_v "$1" "$center";  shift;shift;;
+        -c=*|--center=*)         center="${1#*=}";                             check_v "$1" "$center";  shift;;
+        -c*)                     center=$(echo "$1"  | sed -e's/-c//');        check_v "$1" "$center";  shift;;
+        -R|--rmax)               rmax="$2";                                    check_v "$1" "$rmax";  shift;shift;;
+        -R=*|--rmax=*)           rmax="${1#*=}";                               check_v "$1" "$rmax";  shift;;
+        -R*)                     rmax=$(echo "$1"  | sed -e's/-R//');          check_v "$1" "$rmax";  shift;;
+        -Q|--axis-ratio)         axisratio="$2";                               check_v "$1" "$axisratio";  shift;shift;;
+        -Q=*|--axis-ratio=*)     axisratio="${1#*=}";                          check_v "$1" "$axisratio";  shift;;
+        -Q*)                     axisratio=$(echo "$1"  | sed -e's/-Q//');     check_v "$1" "$axisratio";  shift;;
+        -a|--azimuth)            azimuth="$2";                                 check_v "$1" "$azimuth";  shift;shift;;
+        -a=*|--azimuth=*)        azimuth="${1#*=}";                            check_v "$1" "$azimuth";  shift;;
+        -a*)                     azimuth=$(echo "$1"  | sed -e's/-a//');       check_v "$1" "$azimuth";  shift;;
+        -p|--position-angle)     positionangle="$2";                           check_v "$1" "$positionangle";  shift;shift;;
+        -p=*|--position-angle=*) positionangle="${1#*=}";                      check_v "$1" "$positionangle";  shift;;
         -p*)                     positionangle=$(echo "$1"  | sed -e's/-p//'); check_v "$1" "$positionangle";  shift;;
-        -s|--sigmaclip)     sigmaclip="$2";                            check_v "$1" "$sigmaclip";  shift;shift;;
-        -s=*|--sigmaclip=*) sigmaclip="${1#*=}";                       check_v "$1" "$sigmaclip";  shift;;
-        -s*)                sigmaclip=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$sigmaclip";  shift;;
-        -z|--zeropoint)     zeropoint="$2";                            check_v "$1" "$zeropoint";  shift;shift;;
-        -z=*|--zeropoint=*) zeropoint="${1#*=}";                       check_v "$1" "$zeropoint";  shift;;
-        -z*)                zeropoint=$(echo "$1"  | sed -e's/-z//');  check_v "$1" "$zeropoint";  shift;;
+        -s|--sigmaclip)          sigmaclip="$2";                               check_v "$1" "$sigmaclip";  shift;shift;;
+        -s=*|--sigmaclip=*)      sigmaclip="${1#*=}";                          check_v "$1" "$sigmaclip";  shift;;
+        -s*)                     sigmaclip=$(echo "$1"  | sed -e's/-s//');     check_v "$1" "$sigmaclip";  shift;;
+        -z|--zeropoint)          zeropoint="$2";                               check_v "$1" "$zeropoint";  shift;shift;;
+        -z=*|--zeropoint=*)      zeropoint="${1#*=}";                          check_v "$1" "$zeropoint";  shift;;
+        -z*)                     zeropoint=$(echo "$1"  | sed -e's/-z//');     check_v "$1" "$zeropoint";  shift;;
+        -g|--polar)              polar=1; shift;;
+        -g*|--polar=*)           on_off_option_error --polar -g;;
 
         # Output parameters
         -k|--keeptmp)     keeptmp=1; shift;;
@@ -395,9 +399,7 @@ if [ x"$center" != x ]; then
                                   {for(i=1;i<=NF;++i) c+=$i!=""} \
                                   END{print c}')
     if [ x$ncenter != x2 ]; then
-        cat <<EOF
-$scriptname: '--center' (or '-c') only takes two values, but $ncenter were given in 'center'
-EOF
+        echo "$scriptname: '--center' (or '-c') only takes two values, but $ncenter were given in '$center'"
         exit 1
     fi
 fi
@@ -433,6 +435,22 @@ fi
 
 # If no specific measurement has been requested, use the mean.
 if [ x"$measure" = x ]; then measure=mean; fi
+
+# For polar-plot azimuth option is mandatory. Because without azimuthal, we
+# can not create a polar-plot.
+if [ x"$azimuth" = x ] && [ x$polar != x0 ]; then
+    azimuth="0,360"
+fi
+
+# If the user call the '--undersample' and '--oversample' option. On the
+# other hand, they use '--polar' option with these options
+if [ x$polar != x0 ] && [ x"$undersample" != x ] ; then
+    echo "If you want to use the --undersample, please remove the --polar option."; exit 1
+fi
+
+if [ x$polar != x0 ] && [ x"$oversample" != x ] ; then
+    echo "If you want to use the --oversample, please remove the --polar option."; exit 1
+fi
 
 
 
@@ -479,7 +497,7 @@ fi
 
 
 
-# Calculate the maximum radius
+# Calculate the maximum radiusf
 # ----------------------------
 #
 # If the user didn't set the '--rmax' parameter, then compute the maximum
@@ -769,6 +787,30 @@ fi
 
 
 
+# MakeCatalog configuration options
+# ---------------------------------
+#
+# If not given, don't use anything and just let MakeCatalog use its default
+# values.
+if [ x"$sigmaclip" = x ]; then finalsigmaclip=""
+else                           finalsigmaclip="--sigmaclip=$sigmaclip";
+fi
+if [ x"$zeropoint" = x ]; then finalzp=""
+else                           finalzp="--zeropoint=$zeropoint";
+fi
+if [ x$polar = x0 ]; then polaropt=""
+else
+    intazimuthapertures=$tmpdir/azimuth-raw-int.fits
+    astarithmetic $azimuthapertures uint32 --output=$intazimuthapertures
+    polaropt="--clumpsfile=$intazimuthapertures --clumpshdu=1 --clumpscat"
+fi
+
+
+
+
+
+
+
 # Undersampling the aperture image
 # --------------------------------
 #
@@ -814,22 +856,6 @@ finalmeasure=$(echo "$measure" \
 
 
 
-# MakeCatalog configuration options
-# ---------------------------------
-#
-# If not given, don't use anything and just let MakeCatalog use its default
-# values.
-if [ x"$sigmaclip" = x ]; then finalsigmaclip=""
-else                           finalsigmaclip="--sigmaclip=$sigmaclip";
-fi
-if [ x"$zeropoint" = x ]; then finalzp=""
-else                           finalzp="--zeropoint=$zeropoint";
-fi
-
-
-
-
-
 # Obtain the radial profile
 # -------------------------
 #
@@ -854,8 +880,9 @@ fi
 #   consistent with the scatter in the mock profiles at central radii.
 cat=$tmpdir/catalog.fits
 astmkcatalog $apertures --hdu=1 --valuesfile=$values --valueshdu=1 --ids \
-             $finalinstd $finalmeasure $finalsigmaclip $finalzp \
+             $finalinstd $finalmeasure $finalsigmaclip $finalzp $polaropt \
 	     --spatialresolution=0.0 --output=$cat $quiet
+
 
 
 
@@ -891,6 +918,7 @@ fi
 
 
 
+
 # Prepare the final output columns
 # --------------------------------
 #
@@ -918,6 +946,81 @@ asttable $radraw --catcolumnfile=$cat $restcols --output=$outraw \
 # over/under sampling), we should make sure that the final output doesn't
 # contain radii larger than what the user asked for.
 asttable $outraw --range=RADIUS,0,$rmax --output=$output
+
+# If the polar option is called by the user then the second extension of
+# the catalog that is created based on the azimuth (as clump) and radial
+# (as objects) will be added to the final PSF.
+if [ x$polar != x0 ]; then
+
+    # Limit the radius and change the metadata.
+    polarcat=$tmpdir/polar-catalog.fits
+    asttable $cat -hCLUMPS --range=HOST_OBJ_ID,0,$rmax \
+             --colmetadata=HOST_OBJ_ID,RADIUS,pix,"Radial distance" \
+             --colmetadata=ID_IN_HOST_OBJ,AZIMUTH,degree,"Azimuth angel" \
+             --output=$polarcat
+
+    # If polar option call then check the output is FITS file or not. The
+    # output should be a FITS file because just in fits files we can write
+    # the outputs of the polar option in the second extenction.
+    if astfits $output &> /dev/null; then
+
+        # Find the maximum value of radius and azimuth angel.
+        maxrad=$(aststatistics $polarcat -h1 -cRADIUS --maximum)
+        maxazim=$(aststatistics $polarcat -h1 -cAZIMUTH --maximum)
+
+        # Check if we have zero value in the measurement column replace
+        # them with maximum value of measurment plus one.
+        numzero=$(asttable $polarcat --equal=3,0 | wc -l)
+        if ! [ $numzero = 0 ]; then
+            mv $polarcat $polarcat.fits
+            maxmesure=$(aststatistics $polarcat.fits -h1 -c3 --maximum -q)
+            placeholder=$(astarithmetic $maxmesure 1 + -q)
+            asttable $polarcat.fits -cRADIUS,AZIMUTH \
+                     -c'arith $3 set-m m m 0 eq '$placeholder' where' \
+                     --output=$polarcat
+        fi
+
+
+        # Add the polar-plot to the third extension of the output.
+        mkprof=$tmpdir/polar-plot-profile.fits
+        asttable $polarcat -h1 -cRADIUS,AZIMUTH -c3  \
+            | awk '{print(1, $2, $1, 4, 0, 0, 0, 0, $3, 0)}' \
+            | astmkprof --mforflatpix --mode=img --oversample=1 \
+                        --mergedsize=$maxazim,$maxrad --clearcanvas --replace --quiet \
+                        --output=$mkprof
+
+        # In polar-plot image replavce the zero pixels with NAN value and
+        # replace pixels that have maximum value plus one with zero value.
+        if  [ $numzero = 0 ]; then
+            mv $mkprof $mkprof.fits
+            astarithmetic $mkprof.fits set-p \
+                          p p 0 eq nan where \
+                          --output=$mkprof
+        else
+            mv $mkprof $mkprof.fits
+            astarithmetic $mkprof.fits                  set-p \
+                          p p 0            eq nan where set-z \
+                          z z $placeholder eq 0   where \
+                          --output=$mkprof
+        fi
+
+        # Add second extension to the final outpu that is the polar-plot
+        # table and in third extension is the polar-plot image.
+        astfits $polarcat --copy=1 --output=$output
+        astfits $mkprof --copy=1 --output=$output
+
+    else
+
+        # IF the output is not a FITS file save it in another files with
+        # name of the output that has polar in it name and save exatcly in
+        # the output directory.
+        suffix=$(echo $output | awk 'BEGIN{FS="."}{print $NF}')
+        polar_catalog=$(echo $output | sed 's|.'$suffix'|-polar.'$suffix'|')
+        asttable $polarcat --output=$polar_catalog
+
+    fi
+fi
+
 
 
 

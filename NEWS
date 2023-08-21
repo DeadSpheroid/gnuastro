@@ -48,6 +48,14 @@ See the end of the file for license conditions.
     out-of-image regions; making the pixels with the largest value
     invisible.
 
+*** astscript-radial-profile
+  --polar: generate a 2D polar plot in the same region of the image that
+    the 1D radial profile has been calculate over. The polar plot is a
+    mapping/projection of pixels into an azimuthal angle vs. radius grid,
+    highlighting features that have polar symmetry (for example spiral arms
+    in galaxies or diffractinon spikes in the PSF). This feature was
+    implemented by Sepideh Eskdandarlou.
+
 *** astscript-psf-scale-factor
   --nocentering: disable sub-pixel centering of the desired star before
     finding the scale factor; added by Sepideh Eskandarlou and Raul
