@@ -48,12 +48,13 @@ keeptmp=0
 tmpdir=""
 segment=""
 normradii=""
-widthinpix=""
-nocentering=0
 sigmaclip="3,0.1"
+xshifts="-0.0,0.1,+0.0"
+yshifts="-0.0,0.1,+0.0"
+
+
 version=@VERSION@
 scriptname=@SCRIPT_NAME@
-
 
 
 
@@ -97,13 +98,12 @@ $scriptname options:
   -P, --psfhdu=STR        HDU/extension of the PSF image.
   -O, --mode=STR          Coordinates mode ('wcs' or 'img').
   -c, --center=FLT,FLT    Center coordinates of the object.
-  -W, --widthinpix=INT,INT Width of the stamp in pixels.
-  -n, --normradii=INT,INT Minimum and maximum radii (in pixels)
-                          for computing the scaling factor value.
-  -S, --segment=STR       Output of Segment (with OBJECTS and CLUMPS).
-  -s, --sigmaclip=FLT,FLT Sigma-clip multiple and tolerance.
-  -d, --nocentering       Do not do the sub-pixel centering to new pix
-                          grid.
+  -n, --normradii=INT,INT   Minimum and maximum radii (in pixels)
+                            for computing the scaling factor value.
+  -S, --segment=STR         Output of Segment (OBJECTS and CLUMPS).
+  -s, --sigmaclip=FLT,FLT   Sigma-clip multiple and tolerance.
+  -x  --xshifts=FLT,FLT,FLT Grid of x-shifts (seq; min,step,max).
+  -y  --yshifts=FLT,FLT,FLT Grid of y-shifts (seq; min,step,max).
 
  Output:
   -t, --tmpdir            Directory to keep temporary files.
@@ -287,9 +287,6 @@ do
         -n|--normradii)      normradii="$2";                            check_v "$1" "$normradii";  shift;shift;;
         -n=*|--normradii=*)  normradii="${1#*=}";                       check_v "$1" "$normradii";  shift;;
         -n*)                 normradii=$(echo "$1"  | sed -e's/-n//');  check_v "$1" "$normradii";  shift;;
-        -W|--widthinpix)     widthinpix="$2";                           check_v "$1" "$widthinpix";  shift;shift;;
-        -W=*|--widthinpix=*) widthinpix="${1#*=}";                      check_v "$1" "$widthinpix";  shift;;
-        -W*)                 widthinpix=$(echo "$1"  | sed -e's/-W//'); check_v "$1" "$widthinpix";  shift;;
         -S|--segment)        segment="$2";                              check_v "$1" "$segment";  shift;shift;;
         -S=*|--segment=*)    segment="${1#*=}";                         check_v "$1" "$segment";  shift;;
         -S*)                 segment=$(echo "$1"  | sed -e's/-S//');    check_v "$1" "$segment";  shift;;
@@ -302,8 +299,13 @@ do
         -s|--sigmaclip)      sigmaclip="$2";                            check_v "$1" "$sigmaclip";  shift;shift;;
         -s=*|--sigmaclip=*)  sigmaclip="${1#*=}";                       check_v "$1" "$sigmaclip";  shift;;
         -s*)                 sigmaclip=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$sigmaclip";  shift;;
-        -d|--nocentering)     nocentering=1; shift;;
-        -d*|--nocentering=*)  on_off_option_error --nocentering -d;;
+
+        -x|--xshifts)        xshifts="$2";                               check_v "$1" "$xshifts";  shift;shift;;
+        -x=*|--xshifts=*)    xshifts="${1#*=}";                          check_v "$1" "$xshifts";  shift;;
+        -x*)                 xshifts=$(echo "$1"  | sed -e's/-x//');     check_v "$1" "$xshifts";  shift;;
+        -y|--yshifts)        yshifts="$2";                               check_v "$1" "$yshifts";  shift;shift;;
+        -y=*|--yshifts=*)    yshifts="${1#*=}";                          check_v "$1" "$yshifts";  shift;;
+        -y*)                 yshifts=$(echo "$1"  | sed -e's/-y//');     check_v "$1" "$yshifts";  shift;;
 
         # Output parameters
         -k|--keeptmp)     keeptmp=1; shift;;
@@ -472,13 +474,8 @@ fi
 # Otherwise, make the stamp width of the same size than two times the
 # maximum radius for computing the flux factor. This is the maximum radius
 # that is needed for computing the scaling flux factor.
-if [ x"$widthinpix" = x ]; then
-    xwidthinpix=$(astarithmetic $normradiusmax float32 2.0 x 1.0 + --quiet)
-    ywidthinpix=$(astarithmetic $normradiusmax float32 2.0 x 1.0 + --quiet)
-else
-    xwidthinpix=$(echo $widthinpix | awk '{print $1}')
-    ywidthinpix=$(echo $widthinpix | awk '{print $2}')
-fi
+xwidth=$(astarithmetic $normradiusmax float32 2.0 x 1.0 + --quiet)
+ywidth=$(astarithmetic $normradiusmax float32 2.0 x 1.0 + --quiet)
 
 
 
@@ -490,10 +487,10 @@ fi
 # In principle, the PSF does not have WCS information. Here, fake WCS info
 # is included in order to use warp and center/re-size the PSF to the same
 # size than the warped image. Fake WCS is constructed as follow: reference
-# pixel is the center pixel. This pixel is assigned to be RA, Dec = 0.5,
-# 0.5 deg. Pixel scale is set to 1.0 arcsec/pixel in both axis.
-crval1=0.5
-crval2=0.5
+# pixel is the center pixel. This pixel is assigned to be RA, Dec = 180.0,
+# 0.0 deg. Pixel scale is set to 1.0 arcsec/pixel in both axis.
+crval1=180.0
+crval2=0.0
 cdelt1=1.0
 cdelt2=1.0
 psfnaxis1=$(astfits $psf --hdu=$psfhdu --keyval NAXIS1 --quiet)
@@ -526,11 +523,12 @@ psfxywcs=$(echo "$psfcenter1,$psfcenter2" \
 
 # Warp the PSF image around its center with the same size than the image
 psf_warped=$tmpdir/psf-warped.fits
-astwarp $psf_wcs --hdu=1 \
+astwarp $psf_wcs \
+        --hdu=1 \
         --widthinpix \
         --center=$psfxywcs \
+        --width=$xwidth,$ywidth \
         --output=$psf_warped $quiet \
-        --width=$xwidthinpix,$ywidthinpix
 
 
 
@@ -544,7 +542,7 @@ xradcenter=$(astfits $psf_warped --keyval NAXIS1 --quiet \
                      | awk '{print $1/2+0.5}')
 yradcenter=$(astfits $psf_warped --keyval NAXIS2 --quiet \
                      | awk '{print $1/2+0.5}')
-maxradius=$(printf "$xwidthinpix\n$ywidthinpix" \
+maxradius=$(printf "$xwidth\n$ywidth" \
                    | aststatistics --maximum --quiet)
 rad_warped=$tmpdir/warped-radial-$objectid.fits
 echo "1 $xradcenter $yradcenter 7 $maxradius 0 0 1 1 1" \
@@ -615,14 +613,31 @@ fi
 
 
 
-xrecenter="-0.000194444 0.000194444 0.000194444"
-yrecenter="-0.000194444 0.000194444 0.000194444"
-for xs in $(seq $xrecenter | awk '{printf "%.10f\n", $1}'); do
-    for ys in $(seq $yrecenter | awk '{printf "%.10f\n", $1}'); do
+
+# Shifts grid
+# -----------
+#
+# Here, a grid of center positions are defined
+pscales=$(astfits $inputs_wcs --hdu $hdu --pixelscale --quiet)
+xpscale=$(echo $pscales | awk '{print $1}')
+ypscale=$(echo $pscales | awk '{print $2}')
+
+xshiftswcs=$(echo $xshifts \
+                    | awk -v p="$xpscale" -F ","\
+                      '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
+yshiftswcs=$(echo $yshifts \
+                    | awk -v p="$ypscale" -F ","\
+                      '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
+
+for xs in $(seq $xshiftswcs); do
+    for ys in $(seq $yshiftswcs); do
+
+	xspix=$(astarithmetic $xs $xpscale / --quiet)
+	yspix=$(astarithmetic $ys $ypscale / --quiet)
+        label_shift=xs_"$xspix"_ys_"$yspix"
 
         xcwcs_shift=$(astarithmetic $xcwcs $xs + --quiet)
         ycwcs_shift=$(astarithmetic $ycwcs $ys + --quiet)
-        label_shift=xs_"$xs"_ys_"$ys"
 
 
 
@@ -635,8 +650,8 @@ for xs in $(seq $xrecenter | awk '{printf "%.10f\n", $1}'); do
         astwarp $inputs_wcs \
                 --hdu=$hdu\
                 --widthinpix \
+                --width=$xwidth,$ywidth \
                 --output=$warped $quiet \
-                --width=$xwidthinpix,$ywidthinpix \
                 --center=$xcwcs_shift,$ycwcs_shift
 
 
@@ -731,13 +746,13 @@ EOF
                 warped_obj=$tmpdir/warped-objects-$objectid-$label_shift.fits
                 astwarp $clumps_wcs \
                         --widthinpix \
+                        --width=$xwidth,$ywidth \
                         --output=$warped_clp $quiet \
-                        --width=$xwidthinpix,$ywidthinpix \
                         --center=$xcwcs_shift,$ycwcs_shift
                 astwarp $objects_wcs \
                         --widthinpix \
+                        --width=$xwidth,$ywidth \
                         --output=$warped_obj $quiet \
-                        --width=$xwidthinpix,$ywidthinpix \
                         --center=$xcwcs_shift,$ycwcs_shift
 
                 # Mask all the undesired regions.
@@ -770,29 +785,34 @@ EOF
 
         values=$tmpdir/stats-$objectid-$label_shift.txt
 
-        x_shift=$xcenter_shift
-        y_shift=$ycenter_shift
-	if [ x"$mode" = x"wcs" ]; then
-            radec_shift=$(echo "$xcwcs_shift,$ycwcs_shift" \
-                           | asttable  --column='arith $1 $2 img-to-wcs' \
-                                       --wcsfile=$inputs --wcshdu=$hdu $quiet)
-            x_shift=$(echo "$radec_shift" | awk '{print $1}')
-            y_shift=$(echo "$radec_shift" | awk '{print $2}')
+        xc_out=$xcwcs_shift
+        yc_out=$ycwcs_shift
+	if [ x"$mode" = x"img" ]; then
+            xcyc_shift=$(echo "$xcwcs_shift,$ycwcs_shift" \
+                           | asttable  --column='arith $1 $2 wcs-to-img' \
+                                       --wcsfile=$inputs_wcs --wcshdu=1 $quiet)
+            xc_out=$(echo "$xcyc_shift" | awk '{print $1}')
+            yc_out=$(echo "$xcyc_shift" | awk '{print $2}')
         fi
-        echo $x_shift $y_shift $stats $xs $ys > $values
+        echo $xc_out $yc_out $stats $xs $ys $xspix $yspix > $values
 
     done
 done
 
+
+
+
+
 # Collect the statistics of all shifted images
 stats_all=$tmpdir/stats-all-$objectid.fits
-cat $tmpdir/stats-$objectid-*.txt | asttable --output $stats_all
+cat $tmpdir/stats-$objectid-*.txt \
+    | asttable --sort=4 --output $stats_all
 
 # Get the shift with the minimum STD value (4th column)
 minstd=$(aststatistics $stats_all -c4 --minimum --quiet)
 
-# Keep the new coordinates and the multiplicative factor
-outvalues=$(asttable $stats_all -c1,2,3 --equal=4,$minstd --quiet)
+# Keep the multiplicative factor and the new coordinates
+outvalues=$(asttable $stats_all -c3,1,2 --equal=4,$minstd --quiet)
 
 
 
