@@ -47,10 +47,10 @@ center=""
 keeptmp=0
 tmpdir=""
 segment=""
+xshifts=""
+yshifts=""
 normradii=""
 sigmaclip="3,0.1"
-xshifts="-0.0,0.1,+0.0"
-yshifts="-0.0,0.1,+0.0"
 
 
 version=@VERSION@
@@ -102,8 +102,8 @@ $scriptname options:
                             for computing the scaling factor value.
   -S, --segment=STR         Output of Segment (OBJECTS and CLUMPS).
   -s, --sigmaclip=FLT,FLT   Sigma-clip multiple and tolerance.
-  -x  --xshifts=FLT,FLT,FLT Grid of x-shifts (seq; min,step,max).
-  -y  --yshifts=FLT,FLT,FLT Grid of y-shifts (seq; min,step,max).
+  -x, --xshifts=FLT,FLT,FLT To re-center: min,step,max (in pixels).
+  -y, --yshifts=FLT,FLT,FLT To re-center: min,step,max (in pixels).
 
  Output:
   -t, --tmpdir            Directory to keep temporary files.
@@ -381,6 +381,56 @@ EOF
     fi
 fi
 
+# If x-shifts is provided.
+if [ x"$xshifts" != x ]; then
+    nxshifts=$(echo $xshifts | awk 'BEGIN{FS=","} \
+                                   {for(i=1;i<=NF;++i) c+=$i!=""} \
+                                   END{print c}')
+    if [ x$nxshifts != x3 ]; then
+        cat <<EOF
+$scriptname: '--xshifts' (or '-x') takes three values (xmin,xstep,xmax), but $nxshifts were given in '$xshifts'
+EOF
+        exit 1
+    fi
+    xstep=""
+    xstep=$(echo $xshifts | awk 'BEGIN{FS=","} {if ($2 <= 0.0) print "xstep <= 0.0"}')
+    if [ x"$xstep" != x ]; then
+        cat <<EOF
+$scriptname: the 'xstep' from the option --xshifts=xmin,xstep,xmax (or '-x') is equal or lower than zero ($xshifts), but it has to be a value above zero
+EOF
+        exit 1
+    fi
+else
+# If x-shifts is not provided, set it to zero with a step different of zero
+# to prevent seq chrashing
+xshifts="-0.0,0.1,+0.0"
+fi
+
+# If y-shifts is provided.
+if [ x"$yshifts" != x ]; then
+    nyshifts=$(echo $yshifts | awk 'BEGIN{FS=","} \
+                                   {for(i=1;i<=NF;++i) c+=$i!=""} \
+                                   END{print c}')
+    if [ x$nyshifts != x3 ]; then
+        cat <<EOF
+$scriptname: '--yshifts' (or '-x') takes three values (xmin,xstep,xmax), but $nyshifts were given in '$yshifts'
+EOF
+        exit 1
+    fi
+    xstep=""
+    xstep=$(echo $yshifts | awk 'BEGIN{FS=","} {if ($2 <= 0.0) print "ystep <= 0.0"}')
+    if [ x"$xstep" != x ]; then
+        cat <<EOF
+$scriptname: the 'ystep' from the option --yshifts=xmin,ystep,xmax (or '-y') is equal or lower than zero ($yshifts), but it has to be a value above zero
+EOF
+        exit 1
+    fi
+else
+# If y-shifts is not provided, set it to zero with a step different of zero
+# to prevent seq chrashing
+yshifts="-0.0,0.1,+0.0"
+fi
+
 # If a normalization range is not given at all.
 if [ x"$normradii" = x ]; then
     cat <<EOF
@@ -617,27 +667,34 @@ fi
 # Shifts grid
 # -----------
 #
-# Here, a grid of center positions are defined
+# Here, a grid of center positions are defined. The image will be warped
+# using each center, at the end, the one that has the smaller standard
+# deviation within the ring of computing the flux scaling factor will be
+# provided as the best option. The shifts are specified in pixels, so, they
+# need to be transformed to WCS shifts by using the pixel scale in deg/pix.
 pscales=$(astfits $inputs_wcs --hdu $hdu --pixelscale --quiet)
 xpscale=$(echo $pscales | awk '{print $1}')
 ypscale=$(echo $pscales | awk '{print $2}')
-
 xshiftswcs=$(echo $xshifts \
-                    | awk -v p="$xpscale" -F ","\
-                      '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
+                  | awk -v p="$xpscale" -F ","\
+                    '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
 yshiftswcs=$(echo $yshifts \
-                    | awk -v p="$ypscale" -F ","\
-                      '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
+                  | awk -v p="$ypscale" -F ","\
+                    '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
 
 for xs in $(seq $xshiftswcs); do
     for ys in $(seq $yshiftswcs); do
 
+        # Compute the shifts in WCS
 	xspix=$(astarithmetic $xs $xpscale / --quiet)
 	yspix=$(astarithmetic $ys $ypscale / --quiet)
-        label_shift=xs_"$xspix"_ys_"$yspix"
 
+        # New shifted center in wcs
         xcwcs_shift=$(astarithmetic $xcwcs $xs + --quiet)
         ycwcs_shift=$(astarithmetic $ycwcs $ys + --quiet)
+
+	# To ease the filename reading, put the offsets in pixels
+        label_shift=xs_"$xspix"_ys_"$yspix"
 
 
 
@@ -697,13 +754,10 @@ for xs in $(seq $xshiftswcs); do
         #   - Crop the original mask image to a central region (core), in order to
         #     compute what is the central object id. This is necessary to unmask
         #     this object.
-        #   - Compute what is the central object value, using the median value.
-        #   - In the original cropped mask, convert all pixels belonging to the
-        #     central object to zeros. By doing this, the central object becomes as
-        #     sky.
+	#   - In the original cropped mask, convert pixels belonging to the central
+        #     object to zeros. By doing this, the central object becomes as sky.
         #   - Mask all non zero pixels in the mask image as nan values.
         if [ x"$segment" != x ]; then
-
             # Find the object and clump labels of the target.
             clab=$(astcrop $segment --hdu=CLUMPS --mode=img --width=1,1 \
                            --oneelemstdout --center=$xcimg,$ycimg --quiet)
@@ -757,7 +811,7 @@ EOF
 
                 # Mask all the undesired regions.
                 warped_masked=$tmpdir/warped-masked-$objectid-$label_shift.fits
-                astarithmetic $warped --hdu=1 set-i  \
+                astarithmetic $warped     --hdu=1 set-i  \
                               $warped_obj --hdu=1 set-o \
                               $warped_clp --hdu=1 set-c \
                               \
@@ -772,21 +826,25 @@ EOF
 
 
 
-        # Find the multiplication factor
+        # Mask all but the wanted pixels of the ring.
         multipimg=$tmpdir/for-factor-$objectid-$label_shift.fits
         astarithmetic $warped_masked -h1 set-i \
                       $psf_warped    -h1 set-p \
                       $rad_warped    -h1 set-r \
                       r $normradiusmin lt r $normradiusmax ge or set-m \
                       i p / m nan where --output $multipimg $quiet
+
+        # Find the multiplication factor, and the STD
         stats=$(aststatistics $multipimg --quiet \
                               --sclipparams=$sigmaclip \
                               --sigclip-median --sigclip-std)
 
-        values=$tmpdir/stats-$objectid-$label_shift.txt
-
+	# Set the used the center position for the output. If the original
+	# mode requested was IMG, the current center postion (that is in
+	# WCS) needs to be transformed to IMG.
         xc_out=$xcwcs_shift
         yc_out=$ycwcs_shift
+        values=$tmpdir/stats-$objectid-$label_shift.txt
 	if [ x"$mode" = x"img" ]; then
             xcyc_shift=$(echo "$xcwcs_shift,$ycwcs_shift" \
                            | asttable  --column='arith $1 $2 wcs-to-img' \
@@ -794,6 +852,8 @@ EOF
             xc_out=$(echo "$xcyc_shift" | awk '{print $1}')
             yc_out=$(echo "$xcyc_shift" | awk '{print $2}')
         fi
+
+        # Save the data: center position, stats, and shifts.
         echo $xc_out $yc_out $stats $xs $ys $xspix $yspix > $values
 
     done
@@ -811,8 +871,8 @@ cat $tmpdir/stats-$objectid-*.txt \
 # Get the shift with the minimum STD value (4th column)
 minstd=$(aststatistics $stats_all -c4 --minimum --quiet)
 
-# Keep the multiplicative factor and the new coordinates
-outvalues=$(asttable $stats_all -c3,1,2 --equal=4,$minstd --quiet)
+# Keep the new coordiantes and the multiplicative flux factor
+outvalues=$(asttable $stats_all -c1,2,3 --equal=4,$minstd --quiet)
 
 
 
