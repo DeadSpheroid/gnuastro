@@ -684,7 +684,6 @@ yshiftswcs=$(echo $yshifts \
 
 for xs in $(seq $xshiftswcs); do
     for ys in $(seq $yshiftswcs); do
-
         # Compute the shifts in WCS
 	xspix=$(astarithmetic $xs $xpscale / --quiet)
 	yspix=$(astarithmetic $ys $ypscale / --quiet)

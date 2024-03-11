@@ -387,23 +387,48 @@ fi
 
 
 
+# Fake WCS info for no-WCS inputs and PSF image
+# ---------------------------------------------
+#
+# This fake WCS information is used if the input image does not have
+# astrometric information. In the same way, it is used for the PSF because
+# in principle the PSF image never has WCS information.
+
+# For the input image with no WCS info. The WCS injected is the following:
+# - crpix1,crpix2 is the center of the object to be PSF-modeled/subtracted.
+# - That pixel position is assigned to the crval1,crval2 sky position.
+# - The pixel scale is defined by cdelt1,cdelt2 (in arcsec).
+#
+# For PSF image, we assume it does not have WCS information. In this case:
+# - crpix1,crpix2 is the center of the image (i.e., the center of the PSF).
+# - That pixel position is assigned to the crval1,crval2 sky position.
+# - The pixel scale is defined by cdelt1,cdelt2 (in arcsec).
+
+crval1=180.0
+crval2=0.0
+cdelt1=1.0
+cdelt2=1.0
+cunits="deg,deg"
+
+
+
+
+
 # Center coordinates and default object label
 # -------------------------------------------
 #
-# Obtain the coordinates of the center.
+# Obtain the coordinates of the center and generate a specific label for
+# the object consisting in its coordinates.
 xcoord=$(echo "$center" | awk 'BEGIN{FS=","} {print $1}')
 ycoord=$(echo "$center" | awk 'BEGIN{FS=","} {print $2}')
-
-# With the center coordinates, generate a specific label for the object
-# consisting in its coordinates.
 objectid="$xcoord"_"$ycoord"
 
 
 
 
 
-# Define a temporal directory and thefinal output file
-# ----------------------------------------------------
+# Define a temporal directory and the final output file
+# -----------------------------------------------------
 #
 # Construct the temporary directory. If the user does not specify any
 # directory, then a default one with the base name of the input image will
@@ -442,43 +467,6 @@ fi
 
 
 
-# Transform WCS to IMG center coordinates
-# ---------------------------------------
-#
-# If the original coordinates have been given in WCS or celestial units
-# (RA/DEC), then transform them to IMG (pixel). Here, this is done by using
-# the WCS information from the original input image. If the original
-# coordinates were done in IMG, then just use them.
-if [ "$mode" = wcs ]; then
-  xycenter=$(echo "$xcoord,$ycoord" \
-                  | asttable  --column='arith $1 $2 wcs-to-img' \
-                              --wcsfile=$inputs --wcshdu=$hdu $quiet)
-  xcenter=$(echo "$xycenter" | awk '{print $1}')
-  ycenter=$(echo "$xycenter" | awk '{print $2}')
-else
-  xcenter=$xcoord
-  ycenter=$ycoord
-fi
-
-
-
-
-
-# Scale the PSF with the given factor
-# -----------------------------------
-#
-# The PSF absolute pixel values are not relevant since they are used to be
-# normalized somehow. Here, the input PSF is scaled (multiplied) by the
-# specified factor (--fluxfactor) in order to appropiately obtain the PSF
-# brightness.
-psffluxscaled=$tmpdir/psf-flux-scaled-$objectid.fits
-astarithmetic $psf --hdu=$psfhdu $scale float32 x \
-              --output=$psffluxscaled $quiet
-
-
-
-
-
 # Get the original inputs size
 # ----------------------------
 #
@@ -499,13 +487,81 @@ naxises=$(echo $axises \
                | sed 's/n\/a//g' \
                | awk '{print NF}')
 if [ x$naxises = x4 ]; then
-    xaxis=$(echo $axises | awk '{print $1}')
-    yaxis=$(echo $axises | awk '{print $2}')
+    naxis1=$(echo $axises | awk '{print $1}')
+    naxix2=$(echo $axises | awk '{print $2}')
 else
-    xaxis=$(echo $axises | awk '{print $3}')
-    yaxis=$(echo $axises | awk '{print $4}')
+    naxis1=$(echo $axises | awk '{print $3}')
+    naxis2=$(echo $axises | awk '{print $4}')
 fi
 
+
+
+
+
+# Transform WCS to IMG center coordinates
+# ---------------------------------------
+#
+# If the original coordinates have been given in WCS or celestial units
+# (RA/DEC), then transform them to IMG (pixel). Here, this is done by using
+# the WCS information from the original input image. If the original
+# coordinates were done in IMG, then just use them.
+if [ "$mode" = wcs ]; then
+    xycenter=$(echo "$xcoord,$ycoord" \
+                   | asttable  --column='arith $1 $2 wcs-to-img' \
+                               --wcsfile=$inputs --wcshdu=$hdu $quiet)
+
+    # Center coordinates in WCS and IMG
+    xcwcs=$xcoord
+    ycwcs=$ycoord
+    xcimg=$(echo "$xycenter" | awk '{print $1}')
+    ycimg=$(echo "$xycenter" | awk '{print $2}')
+    inputs_wcs=$inputs
+
+    # If the mode is WCS, the output should have WCS information
+    wcsoutputinfo=""
+    crval1=$xcoord
+    crval2=$ycoord
+    cdelt1=$(astfits $inputs --hdu $hdu --pixelscale --quiet | awk '{print $1}')
+    cdelt2=$(astfits $inputs --hdu $hdu --pixelscale --quiet | awk '{print $2}')
+
+
+else
+    # Fake WCS for the image is constructed by setting the center (in IMG)
+    # to the center of the WCS information.
+    center1=$xcoord
+    center2=$ycoord
+
+    fake_wcs=$tmpdir/fake-wcs-$objectid.fits
+    echo "1 $center1 $center2 1 1 1 1 1 1 1" \
+        | astmkprof --oversample=1 \
+                    --type=uint8 \
+                    --cunit=$cunits \
+                    --output=$fake_wcs \
+                    --cdelt=$cdelt1,$cdelt2 \
+                    --crval=$crval1,$crval2 \
+                    --crpix=$center1,$center2 \
+                    --mergedsize=$naxis1,$naxis2
+
+    # Inject the fake WCS into the original image, its HDU becomes 1.
+    hdu=1
+    inputs_wcs=$tmpdir/input-wcsed-$objectid.fits
+    astarithmetic $inputs --hdu $hdu \
+                  --wcsfile=$fake_wcs --output $inputs_wcs
+
+    # Center coordinates in IMG and WCS
+    xycenter=$(echo "$xcoord,$ycoord" \
+                   | asttable  --column='arith $1 $2 img-to-wcs' \
+                               --wcsfile=$inputs_wcs --wcshdu=1 $quiet)
+
+    xcimg=$xcoord
+    ycimg=$ycoord
+    xcwcs=$(echo "$xycenter" | awk '{print $1}')
+    ycwcs=$(echo "$xycenter" | awk '{print $2}')
+
+    # If the mode is IMG, the output should not have WCS information
+    wcsoutputinfo="--wcsfile=none"
+
+fi
 
 
 
@@ -523,71 +579,68 @@ psfnaxises=$(echo $psfaxises \
                   | sed 's/n\/a//g' \
                   | awk '{print NF}')
 if [ x$psfnaxises = x4 ]; then
-    xpsfaxis=$(echo $psfaxises | awk '{print $1}')
-    ypsfaxis=$(echo $psfaxises | awk '{print $2}')
+    psfnaxis1=$(echo $psfaxises | awk '{print $1}')
+    psfnaxis2=$(echo $psfaxises | awk '{print $2}')
 else
-    xpsfaxis=$(echo $psfaxises | awk '{print $3}')
-    ypsfaxis=$(echo $psfaxises | awk '{print $4}')
+    psfnaxis1=$(echo $psfaxises | awk '{print $3}')
+    psfnaxis2=$(echo $psfaxises | awk '{print $4}')
 fi
 
-# To obtain the center of the PSF (in pixels), just divide by 2 the size of
-# the PSF image.
-xpsfcenter=$(astarithmetic $xpsfaxis float32 2.0 / --quiet)
-ypsfcenter=$(astarithmetic $ypsfaxis float32 2.0 / --quiet)
 
 
 
 
-
-# Translate the PSF image
-# -----------------------
+# WCS for the PSF image
+# ---------------------
 #
-# In order to allocate the PSF into the center coordinates provided by the
-# user, it is necessary to compute the appropiate offsets along the X and Y
-# axis. After that, the PSF image is warped using that offsets.
-xdiff=$(astarithmetic $xcenter float32 $xpsfcenter float32 - --quiet)
-ydiff=$(astarithmetic $ycenter float32 $ypsfcenter float32 - --quiet)
+# We assume that the PSF does not have WCS information. Here, fake WCS info
+# is included in order to use warp and center/re-size the PSF to the same
+# size than the warped image. Fake WCS is constructed from the information
+# defined above. In short: Center is the center of the PSF, but assignetd
+# to the center of the object/star in WCS coordinates.
+psfcenter1=$(echo $psfnaxis1 | awk '{print $1/2+0.5}')
+psfcenter2=$(echo $psfnaxis2 | awk '{print $1/2+0.5}')
 
-psftranslated=$tmpdir/psf-translated-$objectid.fits
-astwarp $psffluxscaled --translate=$xdiff,$ydiff \
-                       --output=$psftranslated $quiet
+# Create the fake WCS image. No data, just WCS.
+psf_fake_wcs=$tmpdir/psf-fake-wcs.fits
+echo "1 $psfcenter1 $psfcenter2 1 1 1 1 1 1 1" \
+    | astmkprof --oversample=1 \
+                --type=uint8 \
+                --cunit=$cunits \
+                --output=$psf_fake_wcs \
+                --cdelt=$cdelt1,$cdelt2 \
+                --crval=$crval1,$crval2 \
+                --crpix=$psfcenter1,$psfcenter2 \
+                --mergedsize=$psfnaxis1,$psfnaxis2
 
 
 
 
 
-# Crop the PSF image
-# ------------------
+# Inject fake WCS and scale the PSF by the given factor
+# -----------------------------------------------------
 #
-# Once the PSF has been situated appropiately into the right position, it
-# is necessary to crop it with a sub-pixel precision as well as with the
-# same size than the original input image. Otherwise the subtraction of the
-# PSF or scattered light field model would not be possible. Here, this
-# cropping is done.
-xrange=$(echo "$xdiff $xaxis $xcenter" \
-              | awk '{if($1<0) \
-                       {i=int($1); \
-                        d=-1*i+1; \
-                        min=d; max=$2+d-1;} \
-                      else {min=1; max=$2} \
-                      i=int($3); {min=min+1; max=max+1}
-                      printf "%d:%d", min, max}')
+# The PSF absolute pixel values are not relevant since they are used to be
+# normalized somehow. Here, the input PSF is scaled (multiplied) by the
+# specified factor (--fluxfactor) in order to appropiately obtain the PSF
+# brightness. The fake WCS information is also added into the header.
+psf_wcs_scaled=$tmpdir/psf-wcsed-scaled-$objectid.fits
+astarithmetic $psf --hdu=$psfhdu $scale float32 x \
+              --wcsfile=$psf_fake_wcs --output=$psf_wcs_scaled
 
-yrange=$(echo "$ydiff $yaxis $ycenter" \
-              | awk '{if($1<0) \
-                       {i=int($1); \
-                        d=-1*i+1; \
-                        min=d; max=$2+d-1;} \
-                      else {min=1; max=$2} \
-                      i=int($3); {min=min+1; max=max+1}
-                      printf "%d:%d", min, max}')
 
-# Once the necessary crop parameters have been computed, use the option
-# '--section' to get the PSF image with the correct size and the center
-# situated where the user has specified.
-psfcropped=$tmpdir/psf-cropped-$objectid.fits
-astcrop $psftranslated --mode=img --section=$xrange,$yrange \
-        --output=$psfcropped $quiet
+
+
+
+# Warp the PSF to into the correct position
+# -----------------------------------------
+#
+# Once the PSF contains the WCS information to be properly positioned and
+# it has been flux scaled, here it is warped. The output is the model of
+# the object in the right position and with the appropriate flux level.
+psf_warped=$tmpdir/psf-warped-$objectid.fits
+astwarp $psf_wcs_scaled --gridfile=$inputs_wcs \
+        --gridhdu $hdu --output=$psf_warped $quiet
 
 
 
@@ -607,12 +660,14 @@ astcrop $psftranslated --mode=img --section=$xrange,$yrange \
 # stars (using the PSF) or the subtraction without having nan values in the
 # final subtracted image.
 if [ x"$modelonly" = x0 ]; then
-  astarithmetic $psfcropped --hdu=1 set-i \
+  astarithmetic $psf_warped --hdu=1 set-i \
                 i i isblank 0 where set-psf \
-                $inputs --hdu=$hdu psf - --output=$output $quiet
+                $inputs --hdu=$hdu psf - float32 \
+                $wcsoutputinfo --output=$output $quiet
 else
-  astarithmetic $psfcropped --hdu=1 set-i \
-                i i isblank 0 where --output=$output $quiet
+  astarithmetic $psf_warped --hdu=1 set-i \
+                i i isblank 0 where float32 \
+                $wcsoutputinfo --output=$output $quiet
 
 fi
 
@@ -628,3 +683,4 @@ fi
 if [ $keeptmp = 0 ]; then
     rm -r $tmpdir
 fi
+
