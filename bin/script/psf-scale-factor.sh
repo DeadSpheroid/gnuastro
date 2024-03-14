@@ -823,13 +823,46 @@ EOF
             warped_masked=$warped
         fi
 
+#################################################################
+        vback=0.0
+        back=1
+        if [ x$back = x1 ]; then
+        # Generate the profiles
+        rprofile_psf=$tmpdir/rprofile-psf-$objectid-$label_shift.fits
+        rprofile_img=$tmpdir/rprofile-img-$objectid-$label_shift.fits
+        astscript-radial-profile $psf_warped --output $rprofile_psf
+        astscript-radial-profile $warped_masked --output $rprofile_img
 
+        for i in $(seq $(asttable $rprofile_img --tail 1 -cRADIUS)); do
+            for j in $(seq $(asttable $rprofile_psf --tail 1 -cRADIUS)); do
 
-        # Mask all but the wanted pixels of the ring.
+            psf_i=$(asttable $rprofile_psf --equal=RADIUS,$i -c2)
+            psf_j=$(asttable $rprofile_psf --equal=RADIUS,$j -c2)
+            star_i=$(asttable $rprofile_img --equal=RADIUS,$i -c2)
+            star_j=$(asttable $rprofile_img --equal=RADIUS,$j -c2)
+
+            f_ij=$(astarithmetic $star_i $star_j - $psf_i $psf_j - / --quiet)
+            c_ij=$(astarithmetic $star_i $psf_i $f_ij x - --quiet)
+
+            stats=$tmpdir/rprofile-stats-$objectid-$label_shift-R_$i-$j.txt
+            echo $i $j $star_i $star_j $psf_i $psf_j $f_ij $c_ij > $stats
+
+            done
+        done
+        fi
+
+        statsfits=$tmpdir/rprofile-stats.fits
+        cat $tmpdir/rprofile-stats-$objectid-$label_shift-R_*.txt \
+            | asttable --output $statsfits
+        vback=$(aststatistics $statsfits -c8 --sigclip-mean --quiet)
+        vbackstd=$(aststatistics $statsfits -c8 --sigclip-std --quiet)
+
+	# Mask all but the wanted pixels of the ring. Subtract the
+	# background value computed above (or vback=0.0 if not estimated)
         multipimg=$tmpdir/for-factor-$objectid-$label_shift.fits
-        astarithmetic $warped_masked -h1 set-i \
-                      $psf_warped    -h1 set-p \
-                      $rad_warped    -h1 set-r \
+        astarithmetic $warped_masked -h1 $vback - set-i \
+                      $psf_warped    -h1          set-p \
+                      $rad_warped    -h1          set-r \
                       r $normradiusmin lt r $normradiusmax ge or set-m \
                       i p / m nan where --output $multipimg $quiet
 
@@ -837,6 +870,8 @@ EOF
         stats=$(aststatistics $multipimg --quiet \
                               --sclipparams=$sigmaclip \
                               --sigclip-median --sigclip-std)
+
+#################################################################
 
 	# Set the used the center position for the output. If the original
 	# mode requested was IMG, the current center postion (that is in
@@ -853,7 +888,8 @@ EOF
         fi
 
         # Save the data: center position, stats, and shifts.
-        echo $xc_out $yc_out $stats $xs $ys $xspix $yspix > $values
+        echo "#xcenter ycenter fscale fscalestd backval backstd   xshift yshift xshiftpix yshiftpix"   > $values
+        echo "$xc_out  $yc_out $stats           $vback  $vbackstd $xs    $ys    $xspix    $yspix    " >> $values
 
     done
 done
@@ -871,7 +907,7 @@ cat $tmpdir/stats-$objectid-*.txt \
 minstd=$(aststatistics $stats_all -c4 --minimum --quiet)
 
 # Keep the new coordiantes and the multiplicative flux factor
-outvalues=$(asttable $stats_all -c1,2,3 --equal=4,$minstd --quiet)
+outvalues=$(asttable $stats_all --equal=4,$minstd --quiet)
 
 
 
