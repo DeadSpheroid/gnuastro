@@ -50,6 +50,7 @@ segment=""
 xshifts=""
 yshifts=""
 normradii=""
+nobackground=0
 sigmaclip="3,0.1"
 
 
@@ -102,8 +103,9 @@ $scriptname options:
                             for computing the scaling factor value.
   -S, --segment=STR         Output of Segment (OBJECTS and CLUMPS).
   -s, --sigmaclip=FLT,FLT   Sigma-clip multiple and tolerance.
-  -x, --xshifts=FLT,FLT,FLT To re-center: min,step,max (in pixels).
-  -y, --yshifts=FLT,FLT,FLT To re-center: min,step,max (in pixels).
+  -x, --xshifts=FLT,FLT,FLT Min,Step,Max (in pixels) for re-centering in x.
+  -y, --yshifts=FLT,FLT,FLT Min,Step,Max (in pixels) for re-centering in y.
+  -b, --nobackground        Do not consider a constant background component.
 
  Output:
   -t, --tmpdir            Directory to keep temporary files.
@@ -306,6 +308,8 @@ do
         -y|--yshifts)        yshifts="$2";                               check_v "$1" "$yshifts";  shift;shift;;
         -y=*|--yshifts=*)    yshifts="${1#*=}";                          check_v "$1" "$yshifts";  shift;;
         -y*)                 yshifts=$(echo "$1"  | sed -e's/-y//');     check_v "$1" "$yshifts";  shift;;
+        -b|--nobackground)     nobackground=1; shift;;
+        -b*|--nobackground=*)  on_off_option_error --background -b;;
 
         # Output parameters
         -k|--keeptmp)     keeptmp=1; shift;;
@@ -668,7 +672,7 @@ fi
 # -----------
 #
 # Here, a grid of center positions are defined. The image will be warped
-# using each center, at the end, the one that has the smaller standard
+# using each center. At the end, the one that has the smaller standard
 # deviation within the ring of computing the flux scaling factor will be
 # provided as the best option. The shifts are specified in pixels, so, they
 # need to be transformed to WCS shifts by using the pixel scale in deg/pix.
@@ -682,20 +686,22 @@ yshiftswcs=$(echo $yshifts \
                   | awk -v p="$ypscale" -F ","\
                     '{printf "%.10f %.10f %.10f\n", p*$1,p*$2,p*$3}')
 
+# For each offset in the x and y direction
 for xs in $(seq $xshiftswcs); do
     for ys in $(seq $yshiftswcs); do
-        # Compute the shifts in WCS
-	xspix=$(astarithmetic $xs $xpscale / --quiet)
-	yspix=$(astarithmetic $ys $ypscale / --quiet)
 
-        # New shifted center in wcs
+        # Compute the shifts in WCS
+	xspix=$(astarithmetic $xs $xpscale / --quiet \
+                              | awk '{printf "%.10f\n", $1}')
+	yspix=$(astarithmetic $ys $ypscale / --quiet \
+                              | awk '{printf "%.10f\n", $1}')
+
+        # New shifted center in WCS
         xcwcs_shift=$(astarithmetic $xcwcs $xs + --quiet)
         ycwcs_shift=$(astarithmetic $ycwcs $ys + --quiet)
 
 	# To ease the filename reading, put the offsets in pixels
-        label_shift=xs_"$xspix"_ys_"$yspix"
-
-
+        label_shift=xs_ys_"$xspix"_"$yspix"
 
 
         # Warp (WCS) the original image around the object
@@ -716,14 +722,17 @@ for xs in $(seq $xshiftswcs); do
         # continue.
         if ! [ -f $warped ]; then
 
-            multifactor=nan
+            outvalues="nan nan nan"
 
             # Let the user know what happened.
             if [ x"$quiet" = x ]; then all_nan_warning; fi
 
-            # Print the multiplication factor in standard output or in a given file
-            if [ x"$output" = x ]; then echo $multifactor
-            else                        echo $multifactor > $output
+            # Print the values in standard output or in a given file
+            if [ x"$output" = x ]; then echo $outvalues
+            else
+                echo "# factor xcenter ycenter" > $output
+                echo $outvalues                >> $output
+
             fi
 
             # If the user does not specify to keep the temporal files with the option
@@ -735,9 +744,6 @@ for xs in $(seq $xshiftswcs); do
             exit 0
 
         fi
-
-
-
 
 
         # Crop and unlabel the segmentation image
@@ -780,9 +786,10 @@ EOF
                     echo "$scriptname: $segment: at $center, found clump $clab in object $olab"
                 fi
 
-        	# Warp the object and clump images to same size as desired stamp.
-        	# If mode is in img (no wcs info), it is necessary to inject the
-        	# fake WCS information in advance.
+		# In order to warp the objects and clumps image, WCS
+		# information is needed. If mode is wcs, just copy the HDU.
+		# If mode is img (no wcs info), it is necessary to inject
+		# the fake WCS information in advance.
                 clumps_wcs=$tmpdir/clumps-wcs-$objectid-$label_shift.fits
                 objects_wcs=$tmpdir/objects-wcs-$objectid-$label_shift.fits
                 if [ "$mode" = wcs ]; then
@@ -795,6 +802,7 @@ EOF
                                   --wcsfile=$fake_wcs --output=$objects_wcs
                 fi
 
+                # Warp the object and clump images.
                 warped_clp=$tmpdir/warped-clumps-$objectid-$label_shift.fits
                 warped_obj=$tmpdir/warped-objects-$objectid-$label_shift.fits
                 astwarp $clumps_wcs \
@@ -823,62 +831,11 @@ EOF
             warped_masked=$warped
         fi
 
-#################################################################
-        vback=0.0
-        back=1
-        if [ x$back = x1 ]; then
-        # Generate the profiles
-        rprofile_psf=$tmpdir/rprofile-psf-$objectid-$label_shift.fits
-        rprofile_img=$tmpdir/rprofile-img-$objectid-$label_shift.fits
-        astscript-radial-profile $psf_warped --output $rprofile_psf
-        astscript-radial-profile $warped_masked --output $rprofile_img
-
-        for i in $(seq $(asttable $rprofile_img --tail 1 -cRADIUS)); do
-            for j in $(seq $(asttable $rprofile_psf --tail 1 -cRADIUS)); do
-
-            psf_i=$(asttable $rprofile_psf --equal=RADIUS,$i -c2)
-            psf_j=$(asttable $rprofile_psf --equal=RADIUS,$j -c2)
-            star_i=$(asttable $rprofile_img --equal=RADIUS,$i -c2)
-            star_j=$(asttable $rprofile_img --equal=RADIUS,$j -c2)
-
-            f_ij=$(astarithmetic $star_i $star_j - $psf_i $psf_j - / --quiet)
-            c_ij=$(astarithmetic $star_i $psf_i $f_ij x - --quiet)
-
-            stats=$tmpdir/rprofile-stats-$objectid-$label_shift-R_$i-$j.txt
-            echo $i $j $star_i $star_j $psf_i $psf_j $f_ij $c_ij > $stats
-
-            done
-        done
-        fi
-
-        statsfits=$tmpdir/rprofile-stats.fits
-        cat $tmpdir/rprofile-stats-$objectid-$label_shift-R_*.txt \
-            | asttable --output $statsfits
-        vback=$(aststatistics $statsfits -c8 --sigclip-mean --quiet)
-        vbackstd=$(aststatistics $statsfits -c8 --sigclip-std --quiet)
-
-	# Mask all but the wanted pixels of the ring. Subtract the
-	# background value computed above (or vback=0.0 if not estimated)
-        multipimg=$tmpdir/for-factor-$objectid-$label_shift.fits
-        astarithmetic $warped_masked -h1 $vback - set-i \
-                      $psf_warped    -h1          set-p \
-                      $rad_warped    -h1          set-r \
-                      r $normradiusmin lt r $normradiusmax ge or set-m \
-                      i p / m nan where --output $multipimg $quiet
-
-        # Find the multiplication factor, and the STD
-        stats=$(aststatistics $multipimg --quiet \
-                              --sclipparams=$sigmaclip \
-                              --sigclip-median --sigclip-std)
-
-#################################################################
-
 	# Set the used the center position for the output. If the original
 	# mode requested was IMG, the current center postion (that is in
 	# WCS) needs to be transformed to IMG.
         xc_out=$xcwcs_shift
         yc_out=$ycwcs_shift
-        values=$tmpdir/stats-$objectid-$label_shift.txt
 	if [ x"$mode" = x"img" ]; then
             xcyc_shift=$(echo "$xcwcs_shift,$ycwcs_shift" \
                            | asttable  --column='arith $1 $2 wcs-to-img' \
@@ -887,9 +844,23 @@ EOF
             yc_out=$(echo "$xcyc_shift" | awk '{print $2}')
         fi
 
-        # Save the data: center position, stats, and shifts.
-        echo "#xcenter ycenter fscale fscalestd backval backstd   xshift yshift xshiftpix yshiftpix"   > $values
-        echo "$xc_out  $yc_out $stats           $vback  $vbackstd $xs    $ys    $xspix    $yspix    " >> $values
+        # Mask all but the wanted pixels of the ring.
+        multipimg=$tmpdir/for-factor-$objectid-$label_shift.fits
+        astarithmetic $warped_masked -h1 set-i \
+                      $psf_warped    -h1 set-p \
+                      $rad_warped    -h1 set-r \
+                      r $normradiusmin lt r $normradiusmax ge or set-m \
+                      i p / m nan where --output $multipimg $quiet
+
+        # Find the multiplication factor, and the STD
+        stats=$(aststatistics $multipimg --quiet \
+                              --sclipparams=$sigmaclip \
+                              --sigclip-median --sigclip-std)
+
+        # Collect the data: center position, flux scale, and shifts.
+        values=$tmpdir/stats-$objectid-$label_shift.txt
+        echo "#xcenter ycenter fscale fscalestd xshift yshift xshiftpix yshiftpix"   > $values
+        echo "$xc_out  $yc_out $stats           $xs    $ys    $xspix    $yspix    " >> $values
 
     done
 done
@@ -898,24 +869,111 @@ done
 
 
 
-# Collect the statistics of all shifted images
+# Find the shifted position that gives the smallest STD value
+# -----------------------------------------------------------
+#
+# Once all data has been computed for all shifted positions, here the one
+# that gives the smallest STD value is obtained. This is the one that will
+# be given as the best output.
+
+# Stack data of all shifted images and sort them by the STD (4th) column
 stats_all=$tmpdir/stats-all-$objectid.fits
 cat $tmpdir/stats-$objectid-*.txt \
     | asttable --sort=4 --output $stats_all
 
-# Get the shift with the minimum STD value (4th column)
-minstd=$(aststatistics $stats_all -c4 --minimum --quiet)
+# Get the shift with the minimum STD value
+minstd=$(asttable $stats_all -c4 --head=1 --quiet)
 
-# Keep the new coordiantes and the multiplicative flux factor
-outvalues=$(asttable $stats_all --equal=4,$minstd --quiet)
-
-
+# Get the coordinates
+xcyc_best=$(asttable $stats_all --equal=4,$minstd -c1,2 --quiet)
 
 
 
-# Print the multiplication factor in standard output or in a given file
-if [ x"$output" = x ]; then echo $outvalues
-else                        echo $outvalues > $output
+
+
+# Get the flux scaling factor (after background estimation)
+# ---------------------------------------------------------
+#
+# Up to here, the coordinates that give the smallest STD have been
+# computed. Still it is necessary to compute the flux factor. There hare
+# two options now for computing it.
+# - If a background component is NOT considered, then just read the flux
+#   factor that is already computed.
+# - If a background component IS considered, estimate it by using the
+#   radial profiles, subtract this value, and estimate the flux factor.
+#
+if [ x$nobackground = x1 ]; then
+    back_val=0.0
+    factor_val=$(asttable $stats_all --equal=4,$minstd -c3 --quiet)
+
+else
+    # Construct the label to recover the best warped image
+    label_shift_best=$(asttable $stats_all --equal=4,$minstd -c7,8 --quiet \
+                                | awk '{printf "%.10f_%.10f\n", $1,$2}')
+
+    # This is the warped and shifted image with the best (lowest) STD
+    warped_best=$tmpdir/warped-$objectid-xs_ys_$label_shift_best.fits
+
+    # Generate the radial profiles
+    rprofile_psf=$tmpdir/rprofile-psf-$objectid-$label_shift_best.txt
+    rprofile_img=$tmpdir/rprofile-img-$objectid-$label_shift_best.txt
+    astscript-radial-profile $psf_warped --output $rprofile_psf
+    astscript-radial-profile $warped_best --output $rprofile_img
+
+    # Read the number of lines, and the contents of the tables into arrays,
+    # skipping lines starting with #
+    n=$(asttable $rprofile_img | wc -l)
+    IFS=$'\n' array_img=($(grep -v '^#' $rprofile_img))
+    IFS=$'\n' array_psf=($(grep -v '^#' $rprofile_psf))
+
+    mixed_table=$tmpdir/mixed-star-psf-$objectid-$label_shift_best.fits
+    for i in $(seq 0 $(($n - 1))); do
+        for j in $(seq 0 $(($n - 1))); do
+            printf "%s %s %s %s %s %s\n" ${array_img[i]} ${array_img[j]} ${array_psf[i]} ${array_psf[j]}
+        done
+    done | asttable -c1,3,2,4,6,8 --output $mixed_table
+
+    for_back_fits=$tmpdir/for-background-stats.fits
+    asttable $mixed_table \
+             -c1,2,3,4,5,6 \
+             -c'arith $3 $4 - $5 $6 - /' \
+             -c'arith $3 $5 $3 $4 - $5 $6 - / x -' \
+             --output $for_back_fits
+
+    # Find the background value
+    back_val=$(aststatistics $for_back_fits -c8 --quiet \
+                             --sclipparams=$sigmaclip --sigclip-mean)
+
+    # Mask all but the wanted pixels of the ring. Subtract the
+    # background value computed above (or vback=0.0 if not estimated)
+    multipimg=$tmpdir/for-factor-$objectid-$label_shift_best.fits
+    astarithmetic $warped_masked -h1 $back_val - set-i \
+                  $psf_warped    -h1             set-p \
+                  $rad_warped    -h1             set-r \
+                  r $normradiusmin lt r $normradiusmax ge or set-m \
+                  i p / m nan where --output $multipimg $quiet
+
+    # Find the multiplication factor and its STD
+    factor_val=$(aststatistics $multipimg --quiet \
+                               --sclipparams=$sigmaclip --sigclip-median)
+fi
+
+
+
+
+
+# Output
+# ------
+#
+# Collect the output data and print the (standard output or write a file)
+outvalues="$factor_val $xcyc_best"
+if [ x"$output" = x ]; then
+    echo $outvalues
+else
+    echo "# factor xcenter ycenter" > $output
+    echo $outvalues                >> $output
+
+    echo; echo "Output written to '$output'."
 fi
 
 
