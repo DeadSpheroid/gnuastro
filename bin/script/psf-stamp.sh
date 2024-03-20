@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Construct a star stamp to build a Point Spread Function (PSF). This
-# script will consider a center position and then it will crop the original
+# script will consider a center position and then it will warp the original
 # image around that center with the specified size. After that, it will
 # compute the radial profile to obtain a normalization value. Finally, the
 # output stamp will be normalized by dividing by the normalization value.
@@ -60,7 +60,6 @@ axisratio=1
 normradii=""
 sigmaclip=""
 widthinpix=""
-nocentering=0
 normop="median"
 positionangle=0
 version=@VERSION@
@@ -115,7 +114,6 @@ $scriptname options:
   -Q, --axis-ratio=FLT    Axis ratio for ellipse maskprofile (A/B).
   -p, --position-angle=FLT Position angle for ellipse mask profile.
   -s, --sigmaclip=FLT,FLT Sigma-clip multiple and tolerance.
-  -d, --nocentering       Don't warp the center coord to central pixel.
 
  Output:
   -o, --output            Output table with the radial profile.
@@ -317,9 +315,9 @@ do
         -Q|--axis-ratio)     axisratio="$2";                            check_v "$1" "$axisratio";  shift;shift;;
         -Q=*|--axis-ratio=*) axisratio="${1#*=}";                       check_v "$1" "$axisratio";  shift;;
         -Q*)                 axisratio=$(echo "$1"  | sed -e's/-Q//');  check_v "$1" "$axisratio";  shift;;
-        -p|--position-angle)       positionangle="$2";                                  check_v "$1" "$positionangle";  shift;shift;;
-        -p=*|--position-angle=*)   positionangle="${1#*=}";                             check_v "$1" "$positionangle";  shift;;
-        -p*)                       positionangle=$(echo "$1"  | sed -e's/-p//');        check_v "$1" "$positionangle";  shift;;
+        -p|--position-angle)     positionangle="$2";                           check_v "$1" "$positionangle";  shift;shift;;
+        -p=*|--position-angle=*) positionangle="${1#*=}";                      check_v "$1" "$positionangle";  shift;;
+        -p*)                     positionangle=$(echo "$1"  | sed -e's/-p//'); check_v "$1" "$positionangle";  shift;;
 
         # Output parameters
         -k|--keeptmp)     keeptmp=1; shift;;
@@ -327,8 +325,6 @@ do
         -t|--tmpdir)      tmpdir="$2";                          check_v "$1" "$tmpdir";  shift;shift;;
         -t=*|--tmpdir=*)  tmpdir="${1#*=}";                     check_v "$1" "$tmpdir";  shift;;
         -t*)              tmpdir=$(echo "$1" | sed -e's/-t//'); check_v "$1" "$tmpdir";  shift;;
-        -d|--nocentering)     nocentering=1; shift;;
-        -d*|--nocentering=*)  on_off_option_error --nocentering -d;;
         -o|--output)      output="$2";                          check_v "$1" "$output"; shift;shift;;
         -o=*|--output=*)  output="${1#*=}";                     check_v "$1" "$output"; shift;;
         -o*)              output=$(echo "$1" | sed -e's/-o//'); check_v "$1" "$output"; shift;;
@@ -537,46 +533,86 @@ fi
 
 
 
-# Transform WCS to IMG center coordinates
-# ---------------------------------------
+# Compute the center in WCS for Warping
+# -------------------------------------
 #
 # If the original coordinates have been given in WCS or celestial units
-# (RA/DEC), then transform them to IMG (pixel). Here, this is done by using
-# the WCS information from the original input image. If the original
-# coordinates were done in IMG, then just use them.
+# (RA/DEC) they will be used by Warp. Otherwise, here fake WCS information
+# is generated to be able to use Warp in the next steps. This is necessary
+# for allocating the object with sub-pixel precission at the center of the
+# output image. The IMG coordinates of the center are also computed because
+# in next steps they are necessary if a segment image is provided (to
+# compute the object and clumps label).
 if [ "$mode" = wcs ]; then
-  xycenter=$(echo "$xcoord,$ycoord" \
-                  | asttable  --column='arith $1 $2 wcs-to-img' \
-                              --wcsfile=$inputs --wcshdu=$hdu $quiet)
-  xcenter=$(echo "$xycenter" | awk '{print $1}')
-  ycenter=$(echo "$xycenter" | awk '{print $2}')
+    xycenter=$(echo "$xcoord,$ycoord" \
+                   | asttable  --column='arith $1 $2 wcs-to-img' \
+                               --wcsfile=$inputs --wcshdu=$hdu $quiet)
+
+    # Center coordinates in WCS and IMG
+    xcwcs=$xcoord
+    ycwcs=$ycoord
+    xcimg=$(echo "$xycenter" | awk '{print $1}')
+    ycimg=$(echo "$xycenter" | awk '{print $2}')
+    inputs_wcs=$inputs
+
 else
-  xcenter=$xcoord
-  ycenter=$ycoord
+    # Fake WCS information to be injected as header to the original image.
+    # The center is assumed to be at RA=180,DEC=0 with a pixel scale of 1
+    # arcsec in both axeses. Warp will interpret this for warping.
+    crval1=180.0
+    crval2=0.0
+    cdelt1=1.0
+    cdelt2=1.0
+    naxis1=$(astfits $inputs --hdu=$hdu --keyval NAXIS1 --quiet)
+    naxis2=$(astfits $inputs --hdu=$hdu --keyval NAXIS2 --quiet)
+    fake_wcs=$tmpdir/fake-wcs-$objectid.fits
+    echo "1 $xcoord $ycoord 1 1 1 1 1 1 1" \
+        | astmkprof --type=uint8 \
+                    --oversample=1 \
+                    --output=$fake_wcs \
+                    --cunit="arcsec,arcsec" \
+                    --cdelt=$cdelt1,$cdelt2 \
+                    --crval=$crval1,$crval2 \
+                    --crpix=$xcoord,$ycoord \
+                    --mergedsize=$naxis1,$naxis2
+
+    # Inject the fake WCS into the original image, its HDU becomes 1.
+    hdu=1
+    inputs_wcs=$tmpdir/input-wcsed-$objectid.fits
+    astarithmetic $inputs --hdu $hdu \
+                  --wcsfile=$fake_wcs --output $inputs_wcs
+
+    # Center coordinates in IMG and WCS
+    xycenter=$(echo "$xcoord,$ycoord" \
+                   | asttable  --column='arith $1 $2 img-to-wcs' \
+                               --wcsfile=$inputs_wcs --wcshdu=1 $quiet)
+    xcimg=$xcoord
+    ycimg=$ycoord
+    xcwcs=$(echo "$xycenter" | awk '{print $1}')
+    ycwcs=$(echo "$xycenter" | awk '{print $2}')
+
 fi
 
 
 
 
 
-# Crop the original image around the object
+# Warp the original image around the object
 # -----------------------------------------
 #
-# Crop the object around its center with the given stamp size width. It may
+# Warp the object around its center with the given stamp size width. It may
 # happen that the given coordinate is fully outside of the image (within
-# the requested stamp-width). In this case Crop won't generate any output,
-# so we are checking the existance of the '$cropped' file. If not created
+# the requested stamp-width). In this case Warp won't generate any output,
+# so we are checking the existance of the '$warped' file. If not created
 # we will create a fully NaN-valued image that can be ignored in stacks.
-#
-# We are setting '--checkcenter=0' in Crop so it doesn't check if the
-# central pixel is covered or not (we may be interested in the outer parts
-# of the PSF of a star that is centered outside of the image).
-cropped=$tmpdir/cropped.fits
-astcrop $inputs --hdu=$hdu --mode=img --checkcenter=0 \
-        --width=$xwidthinpix,$ywidthinpix \
-        --center=$xcenter,$ycenter \
-        --output=$cropped $quiet
-if ! [ -f $cropped ]; then
+warped=$tmpdir/warped-$objectid.fits
+astwarp $inputs_wcs \
+        --hdu=1 \
+        --widthinpix \
+        --center=$xcwcs,$ycwcs \
+        --output=$warped $quiet \
+        --width=$xwidthinpix,$ywidthinpix
+if ! [ -f $warped ]; then
 
     # 'makenew' will generate a fully 0-valued image. Adding (with '+') any
     # number by NaN will be NaN. Therefore the output of the Arithmetic
@@ -598,71 +634,83 @@ fi
 
 
 
-# Crop and unlabel the segmentation image
+# Warp and unlabel the segmentation image
 # ---------------------------------------
 #
 # If the user provides a segmentation image, treat it appropiately in order
 # to mask all objects that are not the central one. If not, just consider
-# that the cropped and masked image is the cropped (not masked) image. The
+# that the warped and masked image is the warped (not masked) image. The
 # process is as follow:
 #   - Compute the central clump and object labels. This is done with the
 #     option '--oneelemstdout' of Crop.
-#   - Crop the original mask image.
-#   - Crop the original mask image to a central region (core), in order to
-#     compute what is the central object id. This is necessary to unmask
-#     this object.
-#   - Compute what is the central object value, using the median value.
-#   - In the original cropped mask, convert all pixels belonging to the
-#     central object to zeros. By doing this, the central object becomes as
-#     sky.
+#   - Warp the CLUMPS image.
+#   - Warp the OBJECTS image.
+#   - On the original warped image, convert pixels belonging to the central
+#     object to zeros. By doing this, the central object becomes as sky.
 #   - Mask all non zero pixels in the mask image as nan values.
 if [ x"$segment" != x ]; then
-
     # Find the object and clump labels of the target.
     clab=$(astcrop $segment --hdu=CLUMPS --mode=img --width=1,1 \
-                   --oneelemstdout --center=$xcenter,$ycenter \
-                   --quiet)
+                   --oneelemstdout --center=$xcimg,$ycimg --quiet)
     olab=$(astcrop $segment --hdu=OBJECTS --mode=img --width=1,1 \
-                   --oneelemstdout --center=$xcenter,$ycenter \
-                   --quiet)
+                   --oneelemstdout --center=$xcimg,$ycimg --quiet)
 
     # If for any reason, a clump or object label couldn't be initialized at
     # the given coordiante, simply ignore this step. But print a warning so
     # the user is informed of the situation (and that this is a bug: 'clab'
     # should be initialized!).
     if [ x"$clab" = x   -o   x"$olab" = x ]; then
-        cat <<EOF
+        if [ x"$quiet" = x ]; then
+            cat <<EOF
 $scriptname: WARNING: no clump or object label could be found in '$segment' for the coordinate $center
 EOF
-        cropped_masked=$cropped
-
+        fi
+        warped_masked=$warped
     else
         # To help in debugging (when '--quiet' is not called)
-        if [ x"$quiet" = x ] && [ x"$center" != x ]; then
+        if [ x"$quiet" = x ]; then
             echo "$scriptname: $segment: at $center, found clump $clab in object $olab"
         fi
 
-        # Crop the object and clump image to same size as desired stamp.
-        cropclp=$tmpdir/cropped-clumps.fits
-        cropobj=$tmpdir/cropped-objects.fits
-        astcrop $segment --hdu=OBJECTS --mode=img \
-                --center=$xcenter,$ycenter \
-                --width=$xwidthinpix,$ywidthinpix --output=$cropobj $quiet
-        astcrop $segment --hdu=CLUMPS --mode=img \
-                --center=$xcenter,$ycenter \
-                --width=$xwidthinpix,$ywidthinpix --output=$cropclp $quiet
+	# In order to warp the objects and clumps image, WCS
+	# information is needed. If mode is wcs, just copy the HDU.
+	# If mode is img (no wcs info), it is necessary to inject
+	# the fake WCS information in advance.
+        clumps_wcs=$tmpdir/clumps-wcs-$objectid.fits
+        objects_wcs=$tmpdir/objects-wcs-$objectid.fits
+        if [ "$mode" = wcs ]; then
+            astfits $segment --copy CLUMPS --output $clumps_wcs
+            astfits $segment --copy OBJECTS --output $objects_wcs
+        else
+	    astarithmetic $segment --hdu CLUMPS \
+                          --wcsfile=$fake_wcs --output=$clumps_wcs
+	    astarithmetic $segment --hdu OBJECTS \
+                          --wcsfile=$fake_wcs --output=$objects_wcs
+        fi
+
+        # Warp the object and clump images.
+        warped_clp=$tmpdir/warped-clumps-$objectid.fits
+        warped_obj=$tmpdir/warped-objects-$objectid.fits
+        astwarp $clumps_wcs \
+                --gridfile=$warped \
+                --output=$warped_clp $quiet
+        astwarp $objects_wcs \
+                --gridfile=$warped \
+                --output=$warped_obj $quiet
 
         # Mask all the undesired regions.
-        cropped_masked=$tmpdir/cropped-masked.fits
-        astarithmetic $cropped --hdu=1 set-i --output=$cropped_masked $quiet \
-                      $cropobj --hdu=1 set-o \
-                      $cropclp --hdu=1 set-c \
+        warped_masked=$tmpdir/warped-masked-$objectid.fits
+        astarithmetic $warped     --hdu=1 float32 set-i \
+                      $warped_obj --hdu=1 int16   set-o \
+                      $warped_clp --hdu=1 int16   set-c \
                       \
                       c o $olab ne 0 where c $clab eq -1 where 0 gt \
                       1 dilate set-cmask \
                       o o $olab eq 0 where set-omask \
-                      i omask cmask or nan where
+                      i omask cmask or nan where \
+                      --output=$warped_masked $quiet
     fi
+
 
     # Apply the signal-to-noise threshold if the user provided one, and
     # only keep the central object.
@@ -671,163 +719,48 @@ EOF
         # Mask all the pixels that are below the threshold based on the
         # signal to noise value which is obtained form the SKY_STD. Finally
         # label the separate regions.
-        cropsnt=$tmpdir/cropped-snt.fits
-        cropstd=$tmpdir/cropped-std.fits
-        croplab=$tmpdir/cropped-lab.fits
-        astcrop $segment --hdu=SKY_STD --mode=img \
-                --center=$xcenter,$ycenter \
-                --width=$xwidthinpix,$ywidthinpix \
-                --output=$cropstd $quiet
+        warpsnt=$tmpdir/warped-snt.fits
+        warpstd=$tmpdir/warped-std.fits
+        warplab=$tmpdir/warped-lab.fits
+        astwarp $segment --hdu=SKY_STD \
+                --gridfile=$warped \
+                --output=$warpstd $quiet
 
         # Fill the NAN pixels with maximum value of the image plus one (so
         # the fill value is not present in the image).
-        fillval=$(astarithmetic $cropped_masked maxvalue 1 + -q)
-        fill=$tmpdir/cropped-masked-fill-nan-pix.fits
-        astarithmetic $cropped_masked set-i i i isblank $fillval \
+        fillval=$(astarithmetic $warped_masked maxvalue 1 + -q)
+        fill=$tmpdir/warped-masked-fill-nan-pix.fits
+        astarithmetic $warped_masked set-i i i isblank $fillval \
                       where --output=$fill
 
         # Apply the threshold and label the regions above the threshold.
-        astarithmetic $fill -h1 set-v \
-                      $cropstd -h1        set-s \
-                      v s /               set-sn \
+        astarithmetic $fill -h1      set-v \
+                      $warpstd -h1   set-s \
+                      v s /          set-sn \
                       v sn $snthresh lt \
                       2 dilate nan where set-all \
-                      all tofilefree-$cropsnt \
+                      all tofilefree-$warpsnt \
                       all isnotblank 2 connected-components \
-                      --output=$croplab
+                      --output=$warplab
 
         # Extract the label of the central coordinate.
-        id=$(astcrop $croplab -h1 --mode=$mode \
-                     --center=$xcoord,$ycoord \
+        id=$(astcrop $warplab -h1 --mode=$mode \
+                     --center=$xcimg,$ycimg \
                      --widthinpix --width=1 --oneelemstdout -q)
 
         # Mask all the pixels that do not belong to the main object and set
         # all the originally NaN-valued pixels to NaN again.
         msk=$tmpdir/mask.fits
-        astarithmetic $cropsnt $croplab $id ne nan where set-i \
+        astarithmetic $warpsnt $warplab $id ne nan where set-i \
                       i i $fillval eq nan where -g1 --output=$msk
 
         # Set the masked image to the desired output of this step.
-        mv $msk $cropped_masked
+        mv $msk $warped_masked
     fi
 
 # No '--segment' provided.
 else
-    cropped_masked=$cropped
-fi
-
-
-
-
-
-# Function to simplify checks in each dimension
-# ---------------------------------------------
-#
-# If the bottom-left edge of the crop is outside the image, the minimum
-# coordinate needs to be modified from the value in the 'ICF1PIX' keyword
-# of the output of the Crop program.
-first_pix_in_img () {
-
-    # This function takes a single argument: the dimension to work on.
-    dim=$1
-
-    # Find the minimim and maximum from the cropped image.
-    if [ $dim = x ]; then
-        width=$xwidthinpix
-        min=$(echo "$overlaprange" | awk '{print $1}')
-        max=$(echo "$overlaprange" | awk '{print $2}')
-    elif [ $dim = y ]; then
-        width=$ywidthinpix
-        min=$(echo "$overlaprange" | awk '{print $3}')
-        max=$(echo "$overlaprange" | awk '{print $4}')
-    else
-        cat <<EOF
-$scriptname: a bug! Please contact with us at bug-gnuastro@gnu.org. The value of 'dim' is "$dim" and not recognized
-EOF
-        exit 1
-    fi
-
-    # Check if it is necessary to correct the position. If the bottom-left
-    # corner of the image (which defines the zero coordinate along both
-    # dimensions) has fallen outside of the image, then the minimum value
-    # of 'ICF1PIX' in that dimension will be '1'.
-    #
-    # Therefore, if the minimum value is not '1', then everything is fine
-    # and no correction is necessary! We'll just return the minimum
-    # value. Otherwise, we need to return a negative minimum pixel value to
-    # obtain the correct position of the object from 'ICF1PIX' (which only
-    # has the region of the input that overlapped with the output). It is
-    # necessary to add '1' because the first pixel has a coordiante of 1,
-    # not 0.
-    if [ $min = 1 ]; then
-        echo "$max $width" | awk '{if($1==$2) print 1; else print $1-$2+1}'
-    else
-        echo $min
-    fi
-}
-
-
-
-
-
-# In the FITS standard, the integer coordinates are defined on the center
-# of each pixel. On the other hand, the centers of objects can be anywhere
-# (not exactly in the center of the pixel!). In this scenario, we should
-# move the center of the object to the center of the pixel with a sub-pixel
-# warp. In this part of the script we will calculate the necessary
-# sub-pixel translation and use Warp to center the object on the pixel
-# grid. The user can disable this with the '--nocentering' option.
-if [ $nocentering = 0 ]; then
-
-    # Read the overlap range from the 'ICF1PIX' keyword (which is printed
-    # in all outputs of Crop).
-    overlaprange=$(astfits $cropped -h0 --keyvalue=ICF1PIX -q \
-                       | sed -e's|:| |g' -e's|,| |')
-
-    # Calculate the position of the bottom-left pixel of the cropped image
-    # in relation to the input image.
-    minx=$(first_pix_in_img x)
-    miny=$(first_pix_in_img y)
-
-    # Due to cropping, the image coordinate should be shifted by a certain
-    # number (integer) of pixels (leaving the sub-pixel center intact).
-    stmcoord=$(echo "$xcenter $ycenter $minx $miny" \
-                   | awk '{printf "%g %g\n", $1-$3+1, $2-$4+1}')
-
-    # Calculate the displacement (or value to give to '--translate' in
-    # Warp), and the new center of the star after translation (or value of
-    # '--center' in Crop):
-    #  1. At first we extract the sub-pixel displacement ('x' and 'y').
-    #  2. If the displacement is larger than 0.5, then after the warp, the
-    #     center will be shifted by one pixel.  Otherwise, if the
-    #     displacement is smaller than 0.5, we shift the grid backwards by
-    #     mutiplying it by -1 and don't add any shift.
-    #  3. Add 'xshift' and 'yshit' valut to integer of x and y coordinate
-    #     and add final value to one.
-    warpcoord=$(echo "$stmcoord" \
-          | awk '{x=$1-int($1); y=$2-int($2); \
-                  if(x>0.5){x=1-x; xshift=1} else {x*=-1; xshift=0}; \
-                  if(y>0.5){y=1-y; yshift=1} else {y*=-1; yshift=0}; \
-                  printf("%f,%f %d,%d\n", x, y, \
-                  int($1)+xshift+1, int($2)+yshift+1)}')
-
-    # Warp image based on the measured displacement (first component of the
-    # output above).
-    warpped=$tmpdir/cropped-masked-warpforcenter.fits
-    DXY=$(echo "$warpcoord" | awk '{print $1}')
-    astwarp $cropped_masked --translate=$DXY --output=$warpped
-
-    # Crop image based on the calculated shift (second component of the
-    # output above).
-    centermsk=$tmpdir/cropped-masked-centered.fits
-    CXY=$(echo "$warpcoord" | awk '{print $2}')
-    astcrop $warpped -h1 \
-            --mode=img --output=$centermsk \
-            --center=$CXY --width=$xwidthinpix,$ywidthinpix
-else
-    # If the user did not want to correct the center of image, we'll use
-    # the raw crop as input for the next step.
-    centermsk=$cropped_masked
+    warped_masked=$warped
 fi
 
 
@@ -852,7 +785,7 @@ if [ x"$normradiusmin" != x   -a   x"$normradiusmax" != x ]; then
     if [ x"$sigmaclip" = x ]; then finalsigmaclip=""
     else                           finalsigmaclip="--sigmaclip=$sigmaclip";
     fi
-    astscript-radial-profile $centermsk --hdu=1 --rmax=$maxr \
+    astscript-radial-profile $warped_masked --hdu=1 --rmax=$maxr \
                              --measure=$normop $finalsigmaclip \
                              --position-angle=$positionangle \
                              --tmpdir=$tmpdir --keeptmp \
@@ -893,7 +826,7 @@ fi
 # but 1.868915 will be read as 'float64'. In the latter case, the output
 # will become 'float64' also, which will cause problems later when we want
 # to stack them together (some images will be 'float32', some 'float64').
-astarithmetic $centermsk --hdu=1 $normvalue float32 / \
+astarithmetic $warped_masked --hdu=1 $normvalue float32 / \
               float32 --output=$output $quiet
 
 
