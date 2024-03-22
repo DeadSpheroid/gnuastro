@@ -6699,7 +6699,6 @@ Otherwise the script will not generate the radial profile.
 As a consequence, in this step we put the normalization radii equal to the size of the stamps.
 By doing this, the script will generate the radial profile of the entire stamp.
 In this particular step we set it to @code{--normradii=500,510}.
-We also use the @option{--nocentering} option to disable sub-pixel warping in this phase (it is only relevant for the central part of the PSF).
 Furthermore, since there are several stars, we iterate over each row of the catalog using a while loop.
 
 @example
@@ -6709,7 +6708,6 @@ $ asttable outer/67510-6-10.fits \
            | while read -r ra dec mag; do
                astscript-psf-stamp label/67510-seg.fits \
                     --mode=wcs \
-                    --nocentering \
                     --center=$ra,$dec \
                     --normradii=500,510 \
                     --widthinpix=1000,1000 \
@@ -6752,7 +6750,6 @@ $ asttable outer/67510-6-10.fits \
            | while read -r ra dec mag; do
                astscript-psf-stamp label/67510-seg.fits \
                     --mode=wcs \
-                    --nocentering \
                     --center=$ra,$dec \
                     --normradii=20,30 \
                     --widthinpix=1000,1000 \
@@ -7145,6 +7142,7 @@ To take into account these and other possibilities, the @file{astscript-scale-fa
 Let's see this in practice.
 
 First, we are going to modify the coordinates of the star in order to simulate a small offset between the center we provide and the real center position of the star on the image.
+The pixel scale of this image is 0.55 arcsec/pixel, so with the line below we shift the image along the R.A. direction by +1 pixel.
 
 @example
 $ original_center=$center
@@ -7201,7 +7199,7 @@ $ astscript-psf-scale-factor label/67510-seg.fits \
 Let's see what happened.
 For each shifted position, a scaling flux factor was computed within the ring defined by @option{--normradii}, the standard deviation of such ring was also kept.
 Once all of them were computed, the shifted position that gave the smallest standard deviation value was selected to be the best one.
-As the final result, in the @file{single-star/scale.txt} there are three columns: the scaling factor, and the shifted coordinates.
+As the final result, in the @file{single-star/scale-shifts.txt} there are three columns: the scaling factor, and the shifted coordinates.
 It is up to you to use all of only some of them for the final subtraction of the PSF.
 
 As an advice, it is usefult to check the interemediate results to get some clues in case you obtain some unexpected results.
@@ -7277,8 +7275,6 @@ $ astscript-psf-subtract label/67510-seg.fits \
 $ astscript-fits-view label/67510-seg.fits single-star/subtracted.fits \
            --ds9center=$center --ds9mode=wcs --ds9extra="-zoom 4"
 @end example
-
-
 
 You will notice that there is something wrong with this ``subtraction''!
 The box of the extended PSF is clearly visible!
@@ -35580,9 +35576,6 @@ A certain width (specified by @option{--widthinpix} in pixels).
 Centered at the coordinate specified by the option @option{--center} (it can be in image/pixel or WCS coordinates, see @option{--mode}).
 If no center is specified, then it is assumed that the object of interest is already in the center of the image.
 @item
-If the given coordinate has sub-pixel elements (for example, pixel coordinates 1.234,4.567), the pixel grid of the output will be warped so your given coordinate falls in the center of the central pixel of the final output.
-This is very important for building the central parts of the PSF, but not too effective for the middle or outer parts (to speed up the program in such cases, you can disable it with the @option{--nocentering} option).
-@item
 Normalized ``normalized'' by the value computed within the ring around the center (at a radial distance between the two radii specified by the option @option{--normradii}).
 If no normalization ring is considered, the output will not be normalized.
 @end itemize
@@ -35618,20 +35611,9 @@ This option thus accepts only two values: @option{img} or @option{wcs}.
 @itemx --center=FLT,FLT
 The central position of the object.
 This option is used for placing the center of the stamp.
-This parameter is used in @ref{Crop} to center and crop the image.
+This parameter is used in @ref{Warp} to center and crop the image.
 The positions along each dimension must be separated by a comma (@key{,}).
 The units of the coordinates are read based on the value to the @option{--mode} option, see the examples above.
-
-The given coordinate for the central value can have sub-pixel elements (for example, it falls on coordinate 123.4,567.8 of the input image pixel grid).
-In such cases, after cropping, this script will use Gnuastro's @ref{Warp} to shift (or translate) the pixel grid by @mymath{-0.4} pixels along the horizontal and @mymath{1-0.8=0.2} pixels along the vertical.
-Finally the newly added pixels (due to the warping) will be trimmed to have your desired coordinate exactly in the center of the central pixel of the output.
-This is very important (critical!) when you are constructing the central part of the PSF.
-But for the outer parts it is not too effective, so to avoid wasting time for the warping, you can simply use @option{--nocentering} to disable it.
-
-@item -d
-@itemx --nocentering
-Do not do the sub-pixel centering to a new pixel grid.
-See the description of the @option{--center} option for more.
 
 @item -W INT,INT
 @itemx --widthinpix=INT,INT
@@ -35866,8 +35848,11 @@ $ asttable catalog.fits | while read -r ra dec mag; do \
 @end example
 
 The input should be an image containing the star that you want to match in flux with the PSF.
-The output will be a single number that is printed on the command-line.
-That number is the multiplicative factor to scale the PSF image (given to @option{--psf}) to match in flux with the given star (which is located in @option{--center} coordinate of the input image).
+The output will be a three numbers that will be printed on the command-line, or saved into a file if specified with the option @option{--output}.
+These numbers are:
+1. the multiplicative factor to scale the PSF image (given to @option{--psf}) to match in flux with the given star (which is located in @option{--center} coordinate of the input image).
+2. the re-calculated x-center position if the option @option{--xshifts} is used.
+3. the re-calculated y-center position if the option @option{--xshifts} is used.
 The scale factor will be calculated within the ring of pixels specified by the option @option{--normradii}.
 
 All the pixels within this ring will be separated from both the PSF and input images.
@@ -35910,18 +35895,6 @@ This parameter is passed to Gnuastro's Crop program make a crop for further proc
 The positions along each dimension must be separated by a comma (@key{,}).
 The units of the coordinates are interpreted based on the value to the @option{--mode} option (see below).
 
-The given coordinate for the central value can have sub-pixel elements (for example, it falls on coordinate 123.4,567.8 of the input image pixel grid).
-In such cases, after cropping, this script will use Gnuastro's @ref{Warp} to shift (or translate) the pixel grid by @mymath{-0.4} pixels along the horizontal and @mymath{1-0.8=0.2} pixels along the vertical.
-Finally the newly added pixels (due to the warping) will be trimmed to have your desired coordinate exactly in the center of the central pixel of the output.
-This is very important (critical!) when you are constructing the central part of the PSF.
-But for the very far outer parts it may not too effective (should be checked), or the target object may have already been centered at the requested coordinate.
-In such cases, to avoid wasting time for the warping, you can simply use @option{--nocentering} to disable sub-pixel centering.
-
-@item -d
-@itemx --nocentering
-Do not do the sub-pixel centering to a new pixel grid.
-See the description of the @option{--center} option for more.
-
 @item -O STR
 @itemx --mode=STR
 Interpret the center position of the object (values given to @option{--center}) in image or WCS coordinates.
@@ -35958,6 +35931,17 @@ The result is that all objects and clumps that contaminate the central source ar
 @itemx --sigmaclip=FLT,FLT
 Sigma clipping parameters used in the end to find the final scale factor from the distribution of all pixels used.
 For more on sigma-clipping, see @ref{Sigma clipping}.
+
+@itemx --xshifts=FLT,FLT,FLT
+Shifts on the centering position provided by @option{--center} in units of pixels.
+The three parameters used by the program @code{seq} to create the different shifted positions.
+For example, @option{--xshifts=-3.0,0.4,+1.0} will shift the center position from -3.0 pixels to +1.0 pixels in step of 0.4 pixels, along the x direction.
+It will compute the scaling factor for all of those position, and the scale factor for wich the standard deviation is the smallest will be provided as the best center.
+The re-computed center position is also provided as part of the output.
+
+@itemx --yshifts=FLT,FLT,FLT
+Same than the @option{--xshifts} but for the y direction.
+See above for more information.
 
 @item -t
 @itemx --tmpdir
