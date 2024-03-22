@@ -6978,23 +6978,31 @@ The sigma-clipped median of these pixels is finally reported.
 Unlike the radial profile method (which averages over a circular/elliptical annulus for each radius), this method imposes no a-priori shape on the PSF.
 This makes it very useful for complex PSFs (like the case here).
 
-To continue, let's remove the temporary directory and re-run the script but with @option{--quiet} mode so we can put the output in a shell variable.
+To continue, let's compute the scaling and keep it into a plain text file.
+Also, remove the temporary directory used previously.
 
 @example
+$ mkdir uniting
 $ rm -r stack_psfmodelscalefactor
-$ scale=$(astscript-psf-scale-factor outer/stack.fits \
-                   --psf=inner/stack.fits --center=501,501 \
-                   --mode=img --normradii=10,15 --quiet)
-$ echo $scale
+$ astscript-psf-scale-factor outer/stack.fits \
+           --psf=inner/stack.fits --center=501,501 \
+           --mode=img --normradii=10,15 --output=uniting/scale.txt --quiet
+$ cat uniting/scale.txt
 @end example
 
+As you can see, into the file there is a one-line header and then three values.
+The first value is the scaling factor that we are looking for.
+The other two values are the coordinates of the center position.
+At this point, we are only interested in the first value (the scaling flux factor), the other two correspond to the coordinates of the center and we will see them later in the subtraction of the PSF step.
 Now that we know the scaling factor, we are ready to unite the outer and the inner part of the PSF.
 To do that, we will use the script @file{astscript-psf-unite} with the command below (for more on this script, see @ref{Invoking astscript-psf-unite}).
 The basic parameters are the inner part of the PSF (given to @option{--inner}), the inner part's scale factor (@option{--scale}), and the junction radius (@option{--radius}).
 The inner part is first scaled, and all the pixels of the outer image within the given radius are replaced with the pixels of the inner image.
 Since the flux factor was computed for a ring of pixels between 10 and 15 pixels, let's set the junction radius to be 12 pixels (roughly in between 10 and 15):
+Note that we need to avoid the header line (that starts with "#") and get only the first column (the scaling factor), to do that we use AWK.
 
 @example
+scale=$(cat uniting/scale.txt | awk '!/^#/{print $1}')
 $ astscript-psf-unite outer/stack.fits \
            --inner=inner/stack.fits --radius=12 \
            --scale=$scale --output=psf.fits
@@ -7018,13 +7026,14 @@ So let's choose a bad normalization radial range (50 to 60 pixels) and unite the
 The last command will open the two PSFs together in DS9, you should be able to immediately see the discontinuity in the union radius.
 
 @example
-$ scale=$(astscript-psf-scale-factor outer/stack.fits \
+$ astscript-psf-scale-factor outer/stack.fits \
                    --psf=inner/stack.fits --center=501,501 \
-                   --mode=img --normradii=50,60 --quiet)
+                   --mode=img --normradii=50,60 --output=uniting/scale-bad.txt --quiet
 
+scale_bad=$(cat uniting/scale-bad.txt | awk '!/^#/{print $1}')
 $ astscript-psf-unite outer/stack.fits \
            --inner=inner/stack.fits --radius=55 \
-           --scale=$scale --output=psf-bad.fits
+           --scale=$scale_bad --output=psf-bad.fits
 
 $ astscript-fits-view psf-bad.fits psf.fits --ds9scale=minmax \
            --ds9extra="-scale limits 0 50 -match scale" \
@@ -7073,26 +7082,40 @@ Finally, once the stars have been modeled by the PSF, we will subtract it.
 
 First, let's start with a single star.
 Later, when the basic idea has been explained, we will generalize the method for any number of stars.
-With the following command we obtain the coordinates (RA and DEC) and magnitude of the brightest star in the image (which is on the top edge of the image):
+With the following command we obtain the coordinates (RA and DEC) of the fainter star that we have used to construct the outer part of the PSF (note the @option{--tail 1}).
 
 @example
 $ mkdir single-star
-$ center=$(asttable flat/67510-bright.fits --sort phot_g_mean_mag \
-                    --column=ra,dec --head 1 \
-                    | awk '@{printf "%s,%s", $1, $2@}')
+$ center=$(asttable outer/67510-6-10.fits --sort phot_g_mean_mag \
+                    --column=ra,dec --tail 1 \
+                    | awk '{printf "%.8f,%.8f", $1, $2}')
 $ echo $center
 @end example
 
-With the center position of that star, let's obtain the flux factor using the same normalization ring we used for the creation of the outer part of the PSF:
+With the center position of that star, let's obtain the flux factor using the same normalization ring we used for the creation of the outer part of the PSF, this parameter is saved into a plain text file:
 
 @example
-$ scale=$(astscript-psf-scale-factor label/67510-seg.fits \
-                   --mode=wcs --quiet \
-                   --psf=psf.fits \
-                   --center=$center \
-                   --normradii=10,15 \
-                   --segment=label/67510-seg.fits)
+$ astscript-psf-scale-factor label/67510-seg.fits \
+            --mode=wcs --quiet \
+            --psf=psf.fits \
+            --center=$center \
+            --normradii=10,15 \
+            --segment=label/67510-seg.fits \
+            --output=single-star/scale.txt 
 @end example
+
+Let's have a look at the file generated, it contains three columns.
+The first column is the scaling flux factor.
+The second and third columns correspond to the coordinates of the center position.
+Since this file has a first-line header starting with #, we avoid that line and read the first column by using AWK.
+
+@example
+$ cat single-star/scale.txt
+$ scale=$(cat single-star/scale.txt | awk '!/^#/@{print $1@}')
+@end example
+
+For now, just ignore the other two columns that correspond to the center position since they are the same than the center position we provided with the option @option{--center}.
+We will look into them later.
 
 Now we have all the information necessary to model the star using the PSF: the position on the sky and the flux factor.
 Let's use this data with the script @file{astscript-psf-subtract} for modeling this star and have a look with DS9.
@@ -7108,6 +7131,154 @@ $ astscript-psf-subtract label/67510-seg.fits \
 $ astscript-fits-view label/67510-seg.fits single-star/subtracted.fits \
            --ds9center=$center --ds9mode=wcs --ds9extra="-zoom 4"
 @end example
+
+After opening the two images at the same time, you will realize that the star at the center has been modeled and subtracted.
+There are some residuals that remains as par of the natural subtraction because the PSF is an averaged model of several stars, while each star has a particular shape.
+But so far, with just a few stars we have been able to model this star and subtract it quite accurately.
+
+Now, let's see a couple of interesting parameters that we skip in the steps above.
+Imagine, for example, that for some reason, the coordinate of this star is not accurate (i.e., the center position does not correspond to the center of the star on the image).
+There are many reasons why this could happen.
+For example, the center was computed by Gaia (or any other catalog) and the image was taken some time after, and because the proper motion of the star, the coordinates from the catalog and the coordinate on the image are not the same.
+Other possibility is that the astrometric solution of the image is not accurate enough and it has offests.
+To take into account these and other possibilities, the @file{astscript-scale-factor} script is able to consider different shifts on the center position.
+Let's see this in practice.
+
+First, we are going to modify the coordinates of the star in order to simulate a small offset between the center we provide and the real center position of the star on the image.
+
+@example
+$ original_center=$center
+$ modified_center=$(echo $center | awk -F',' '@{printf "%.8f,%.8f", $1+0.55/3600.0, $2@}')
+
+$ echo $original_center
+$ echo $modified_center
+@end example
+
+Once we have modified by 1 pixel the RA position, let's see how this changes the subtraction of the star.
+In this step, we should re-calculate the scaling factor, but since we just want to check the effect of the 1-pixel offset, we consider the same flux scaling factor already computed.
+
+@example
+$ astscript-psf-subtract label/67510-seg.fits \
+           --mode=wcs \
+           --psf=psf.fits \
+           --scale=$scale \
+           --center=$modified_center \
+           --output=single-star/subtracted-modified-center.fits
+
+$ astscript-fits-view single-star/subtracted.fits single-star/subtracted-modified-center.fits \
+           --ds9center=$center --ds9mode=wcs --ds9extra="-zoom 4"
+@end example
+
+With such small shift in the RA coordinate, it is difficult to see any difference by eye.
+To help checking the differences, blink between the two frames of the DS9 image (Frame/Blink).
+Do you see now the changes?
+Which one is a better subtraction?
+It is difficult to say because they are very similar.
+In fact, since this is a real observation, there is not such thing as the correct center of the star, but different centers computed using different techniques (Gaia, NoiseChisel+Segment+Catalog), etc.
+To select the best value we could shift the center position along the x and y directions several times, make the subtraction of all of them, and finally check which one gives the "better subtraction".
+This is actually the goal of the options @options{--xshift} and @option{--yshifts}.
+
+These two options allow you to consider shifts along the two axis for the center position in the computation of the scaling flux factor.
+Let's see this in practice.
+With the command below, the flux scaling factor will be estimated considering the original center position and several shifts along the x and y directions.
+The units of the shifts are in pixels, in such a way that @option{--xshifts=-1.0,1.0,+1.0} will generate the following shifts along the x-axis: -1.0, 0.0, 1.0 pixels.
+With the command below we also ask for the same along the y-axis, so a total of 9 shifts will be computed.
+We also request for keepint all temporary files in the @file{checks} directory.
+
+@example
+$ astscript-psf-scale-factor label/67510-seg.fits \
+            --mode=wcs --quiet \
+            --psf=psf.fits \
+            --center=$center \
+            --normradii=10,15 \
+            --xshifts=-1.0,1.0,+1.0 \
+            --yshifts=-1.0,1.0,+1.0 \
+            --segment=label/67510-seg.fits \
+            --output=single-star/scale-shifts.txt \
+            --tmpdir=checks --keeptmp
+@end example
+
+Let's see what happened.
+For each shifted position, a scaling flux factor was computed within the ring defined by @option{--normradii}, the standard deviation of such ring was also kept.
+Once all of them were computed, the shifted position that gave the smallest standard deviation value was selected to be the best one.
+As the final result, in the @file{single-star/scale.txt} there are three columns: the scaling factor, and the shifted coordinates.
+It is up to you to use all of only some of them for the final subtraction of the PSF.
+
+As an advice, it is usefult to check the interemediate results to get some clues in case you obtain some unexpected results.
+This can be done by having a look at the files generated in the @file{checks} directory.
+In particular, all ring shifted images can be visually inspectioned.
+The complete results are kept in a @file{fits} table with the following columns: 1. best shifted ra coordinate, 2. best shifted dec coordinate, 3. flux scaling factor, 4. flux scaling factor standard deviation, 5. ra shift in wcs units, 6. dec shift in wcs units, 7. x shift in pixels, 8 y shift in pixels.
+
+@example
+$ astscript-fits-view checks/for-factor-*-xs_ys_*.fits
+
+$ asttable checks/stats-all-*.fits  -Y
+@end example
+
+The final (best) result is saved into the output file @file{single-star/scale-shifts.txt}.
+It contains the three values that are necessary for modeling the star by using the PSF: 1. flux scaling factor, 2. x position, 3. y position.
+Take them with the following lines.
+In order to avoid the first line that is the header (starting with a #), we use AWK.
+
+@example
+$ scale=$(cat single-star/scale-shifts.txt | awk '!/^#/{print $1}')
+$ xcenter=$(cat single-star/scale-shifts.txt | awk '!/^#/{print $2}')
+$ ycenter=$(cat single-star/scale-shifts.txt | awk '!/^#/{print $3}')
+@end example
+
+Once we got the necessary parameters, it is possible to subtract the star, but this time with the shifted (and hopefully better) position.
+The last line will open the previous subtracted image and the new subtracted (shifted) image.
+
+@example
+$ astscript-psf-subtract label/67510-seg.fits \
+           --mode=wcs \
+           --psf=psf.fits \
+           --scale=$scale \
+           --center=$xcenter,$ycenter \
+           --output=single-star/subtracted-shifted.fits
+
+$ astscript-fits-view single-star/subtracted.fits single-star/subtracted-shifted.fits \
+           --ds9center=$center --ds9mode=wcs --ds9extra="-zoom 4"
+@end example
+
+Take your time and analyze the differences, do you see any?
+Which one would you say is a better subtraction?
+Difficult to say.
+We let the decission to the user, just noticing that several steps could be done in order to decide: re-bin the subtracted images, study if there is a systemmatic offset for different stars across the image, and so on.
+Note also that here we shifted the center position in steps of 1 pixel, but if the position of the stars you have are accurate and precisse, you could try using smaller shifts or even not using them at all.
+Note also that performing this center position search is time consuming, and when there are several stars to be modeled and subtracted, the overhead could be significant.
+
+Let's consider now the brightest star in the image (which is on the top edge of the image).
+To do it, let's take the first star from the catalog by usin the option @option{--head=1}.
+The necessary commands are:
+
+@example
+$ center=$(asttable outer/67510-6-10.fits --sort phot_g_mean_mag \
+                    --column=ra,dec --head=1 \
+                    | awk '@{printf "%s,%s", $1, $2@}')
+
+$ astscript-psf-scale-factor label/67510-seg.fits \
+            --mode=wcs --quiet \
+            --psf=psf.fits \
+            --center=$center \
+            --normradii=10,15 \
+            --segment=label/67510-seg.fits \
+            --output=single-star/scale.txt 
+
+$ scale=$(cat single-star/scale.txt | awk '!/^#/@{print $1@}')
+
+$ astscript-psf-subtract label/67510-seg.fits \
+           --mode=wcs \
+           --psf=psf.fits \
+           --scale=$scale \
+           --center=$center \
+           --output=single-star/subtracted.fits
+
+$ astscript-fits-view label/67510-seg.fits single-star/subtracted.fits \
+           --ds9center=$center --ds9mode=wcs --ds9extra="-zoom 4"
+@end example
+
+
 
 You will notice that there is something wrong with this ``subtraction''!
 The box of the extended PSF is clearly visible!

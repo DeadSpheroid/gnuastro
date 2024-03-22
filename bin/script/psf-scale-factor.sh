@@ -535,78 +535,6 @@ ywidth=$(astarithmetic $normradiusmax float32 2.0 x 1.0 + --quiet)
 
 
 
-# Warp the PSF image
-# ------------------
-#
-# In principle, the PSF does not have WCS information. Here, fake WCS info
-# is included in order to use warp and center/re-size the PSF to the same
-# size than the warped image. Fake WCS is constructed as follow: reference
-# pixel is the center pixel. This pixel is assigned to be RA, Dec = 180.0,
-# 0.0 deg. Pixel scale is set to 1.0 arcsec/pixel in both axis.
-crval1=180.0
-crval2=0.0
-cdelt1=1.0
-cdelt2=1.0
-psfnaxis1=$(astfits $psf --hdu=$psfhdu --keyval NAXIS1 --quiet)
-psfnaxis2=$(astfits $psf --hdu=$psfhdu --keyval NAXIS2 --quiet)
-psfcenter1=$(echo $psfnaxis1 | awk '{print $1/2+0.5}')
-psfcenter2=$(echo $psfnaxis2 | awk '{print $1/2+0.5}')
-
-# Create the fake WCS image. No data, just WCS.
-psf_fake_wcs=$tmpdir/psf-fake-wcs.fits
-echo "1 $psfcenter1 $psfcenter2 1 1 1 1 1 1 1" \
-    | astmkprof --oversample=1 \
-                --type=uint8 \
-                --output=$psf_fake_wcs \
-                --cunit="arcsec,arcsec" \
-                --cdelt=$cdelt1,$cdelt2 \
-                --crval=$crval1,$crval2 \
-                --crpix=$psfcenter1,$psfcenter2 \
-                --mergedsize=$psfnaxis1,$psfnaxis2
-
-# Inject the WCS header into the image.
-psf_wcs=$tmpdir/psf-wcsed.fits
-astarithmetic $psf --hdu=$psfhdu \
-              --wcsfile=$psf_fake_wcs --output=$psf_wcs
-
-# Transform the center in img coordinates to center in wcs
-psfxywcs=$(echo "$psfcenter1,$psfcenter2" \
-                | asttable  --column='arith $1 $2 img-to-wcs' \
-                            --wcsfile=$psf_wcs --wcshdu=1 $quiet \
-                            | awk '{printf "%.10e,%.10e\n", $1, $2}')
-
-# Warp the PSF image around its center with the same size than the image
-psf_warped=$tmpdir/psf-warped.fits
-astwarp $psf_wcs \
-        --hdu=1 \
-        --widthinpix \
-        --center=$psfxywcs \
-        --width=$xwidth,$ywidth \
-        --output=$psf_warped $quiet \
-
-
-
-
-
-# Build a radial profile image
-# ----------------------------
-#
-# It will be used to only select pixels within the requested radial range.
-xradcenter=$(astfits $psf_warped --keyval NAXIS1 --quiet \
-                     | awk '{print $1/2+0.5}')
-yradcenter=$(astfits $psf_warped --keyval NAXIS2 --quiet \
-                     | awk '{print $1/2+0.5}')
-maxradius=$(printf "$xwidth\n$ywidth" \
-                   | aststatistics --maximum --quiet)
-rad_warped=$tmpdir/warped-radial-$objectid.fits
-echo "1 $xradcenter $yradcenter 7 $maxradius 0 0 1 1 1" \
-     | astmkprof --background=$psf_warped --clearcanvas \
-                 --oversample=1 --output=$rad_warped $quiet
-
-
-
-
-
 # Transform WCS to IMG center coordinates
 # ---------------------------------------
 #
@@ -615,21 +543,35 @@ echo "1 $xradcenter $yradcenter 7 $maxradius 0 0 1 1 1" \
 # the WCS information from the original input image. If the original
 # coordinates were done in IMG, then just use them.
 if [ "$mode" = wcs ]; then
+
+    # For the IMAGE: center coordinates in wcs and img
     xycenter=$(echo "$xcoord,$ycoord" \
                    | asttable  --column='arith $1 $2 wcs-to-img' \
                                --wcsfile=$inputs --wcshdu=$hdu $quiet)
 
-    # Center coordinates in WCS and IMG
     xcwcs=$xcoord
     ycwcs=$ycoord
     xcimg=$(echo "$xycenter" | awk '{print $1}')
     ycimg=$(echo "$xycenter" | awk '{print $2}')
     inputs_wcs=$inputs
 
+    # For the PSF: center coordinates in wcs and img
+    crval1=$xcwcs
+    crval2=$ycwcs
+    cdelt1=$(astfits $inputs --hdu=$hdu --pixelscale --quiet | awk '{print $1}')
+    cdelt2=$(astfits $inputs --hdu=$hdu --pixelscale --quiet | awk '{print $2}')
+
 else
-    # Fake WCS for the image is taken from the already constructed fake WCS
-    # of the PSF image. The only difference is that the crpix correspond to
-    # the center of the image (instead of the PSF image).
+    # In principle, the PSF does not have WCS information. Here, fake WCS info
+    # is included in order to use warp and center/re-size the PSF to the same
+    # size than the warped image. Fake WCS is constructed as follow: reference
+    # pixel is the center pixel. This pixel is assigned to be RA, Dec = 180.0,
+    # 0.0 deg. Pixel scale is set to 1.0 arcsec/pixel in both axis.
+    crval1=180.0
+    crval2=0.0
+    cdelt1=1.0
+    cdelt2=1.0
+    # For the IMAGE: center coordinates in wcs and img
     naxis1=$(astfits $inputs --hdu=$hdu --keyval NAXIS1 --quiet)
     naxis2=$(astfits $inputs --hdu=$hdu --keyval NAXIS2 --quiet)
     center1=$(echo $naxis1 | awk '{print $1/2}')
@@ -663,6 +605,68 @@ else
     ycwcs=$(echo "$xycenter" | awk '{print $2}')
 
 fi
+
+# For the PSF
+psfnaxis1=$(astfits $psf --hdu=$psfhdu --keyval NAXIS1 --quiet)
+psfnaxis2=$(astfits $psf --hdu=$psfhdu --keyval NAXIS2 --quiet)
+psfcenter1=$(echo $psfnaxis1 | awk '{print $1/2+0.5}')
+psfcenter2=$(echo $psfnaxis2 | awk '{print $1/2+0.5}')
+
+# Create the fake WCS image. No data, just WCS.
+psf_fake_wcs=$tmpdir/psf-fake-wcs.fits
+echo "1 $psfcenter1 $psfcenter2 1 1 1 1 1 1 1" \
+    | astmkprof --oversample=1 \
+                --type=uint8 \
+                --output=$psf_fake_wcs \
+                --cdelt=$cdelt1,$cdelt2 \
+                --crval=$crval1,$crval2 \
+                --crpix=$psfcenter1,$psfcenter2 \
+                --mergedsize=$psfnaxis1,$psfnaxis2
+
+# Inject the WCS header into the image.
+psf_wcs=$tmpdir/psf-wcsed.fits
+astarithmetic $psf --hdu=$psfhdu \
+              --wcsfile=$psf_fake_wcs --output=$psf_wcs
+
+# Transform the center in img coordinates to center in wcs
+psfxywcs=$(echo "$psfcenter1,$psfcenter2" \
+                | asttable  --column='arith $1 $2 img-to-wcs' \
+                            --wcsfile=$psf_wcs --wcshdu=1 $quiet \
+                            | awk '{printf "%.10e,%.10e\n", $1, $2}')
+
+# Warp the PSF
+# ------------
+#
+# The PSF image is warped around its center
+psf_warped=$tmpdir/psf-warped.fits
+astwarp $psf_wcs \
+        --hdu=1 \
+        --widthinpix \
+        --center=$psfxywcs \
+        --width=$xwidth,$ywidth \
+        --output=$psf_warped $quiet
+
+
+
+
+
+# Build a radial profile image
+# ----------------------------
+#
+# It will be used to only select pixels within the requested radial range.
+xradcenter=$(astfits $psf_warped --keyval NAXIS1 --quiet \
+                     | awk '{print $1/2+0.5}')
+yradcenter=$(astfits $psf_warped --keyval NAXIS2 --quiet \
+                     | awk '{print $1/2+0.5}')
+maxradius=$(printf "$xwidth\n$ywidth" \
+                   | aststatistics --maximum --quiet)
+rad_warped=$tmpdir/warped-radial-$objectid.fits
+echo "1 $xradcenter $yradcenter 7 $maxradius 0 0 1 1 1" \
+     | astmkprof --background=$psf_warped --clearcanvas \
+                 --oversample=1 --output=$rad_warped $quiet
+
+
+
 
 
 
@@ -802,25 +806,29 @@ EOF
                                   --wcsfile=$fake_wcs --output=$objects_wcs
                 fi
 
-                # Warp the object and clump images.
-                warped_clp=$tmpdir/warped-clumps-$objectid-$label_shift.fits
-                warped_obj=$tmpdir/warped-objects-$objectid-$label_shift.fits
-                astwarp $clumps_wcs \
+		# Crop the object and clump images. We don't use Warp
+		# because it is not able to properly account integer values
+		# images because they become float32 and thus the
+		# segmentation clumps/objects are not correct.
+                croped_clp=$tmpdir/croped-clumps-$objectid-$label_shift.fits
+                croped_obj=$tmpdir/croped-objects-$objectid-$label_shift.fits
+                astcrop $clumps_wcs \
+                        --mode=wcs \
                         --widthinpix \
                         --width=$xwidth,$ywidth \
-                        --output=$warped_clp $quiet \
+                        --output=$croped_clp $quiet \
                         --center=$xcwcs_shift,$ycwcs_shift
-                astwarp $objects_wcs \
+                astcrop $objects_wcs \
                         --widthinpix \
                         --width=$xwidth,$ywidth \
-                        --output=$warped_obj $quiet \
+                        --output=$croped_obj $quiet \
                         --center=$xcwcs_shift,$ycwcs_shift
 
                 # Mask all the undesired regions.
                 warped_masked=$tmpdir/warped-masked-$objectid-$label_shift.fits
                 astarithmetic $warped     --hdu=1 set-i  \
-                              $warped_obj --hdu=1 set-o \
-                              $warped_clp --hdu=1 set-c \
+                              $croped_obj --hdu=1 set-o \
+                              $croped_clp --hdu=1 set-c \
                               \
                               c o $olab ne 0 where c $clab eq -1 where 0 gt set-cmask \
                               o o $olab eq 0 where set-omask \
