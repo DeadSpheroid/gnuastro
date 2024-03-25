@@ -6,6 +6,15 @@ See the end of the file for license conditions.
 * Noteworthy changes in release X.XX (library XX.X.X) (YYYY-MM-DD)
 ** New publications
 ** New features
+*** astscript-radial-profile
+
+  --azimuth option can be called multiple times so the profile is generated
+    over discrete azimuthal regions of the input. For example if called
+    with '--azimuth=30,50 --azimuth=210,250', the profile (or polar plot if
+    requested) will be generated only using pixels within these two
+    azimuthal ranges (all other pixels are ignored). Suggested and
+    implemented by Ignacio Ruiz Cejudo.
+
 ** Removed features
 ** Changed features
 ** Bugs fixed

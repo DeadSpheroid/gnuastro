@@ -112,7 +112,7 @@ $scriptname options:
   -c, --center=FLT,FLT     Coordinate of the center along 2 axes.
   -R, --rmax=FLT           Maximum radius for the radial profile (in pixels).
   -Q, --axis-ratio=FLT     Axis ratio for ellipse profiles (A/B).
-  -a, --azimuth=FLT,FLT    Azimuthal angles range (from the major axis).
+  -a, --azimuth=FLT,FLT    Azimuthal range(s) (from the major axis).
   -p, --position-angle=FLT Position angle for ellipse profiles.
   -g, --polar              Polar plot (azimuth angle vs. radius).
   -s, --sigmaclip=FLT,FLT  Sigma-clip multiple and tolerance.
@@ -326,9 +326,9 @@ do
         -Q|--axis-ratio)         axisratio="$2";                               check_v "$1" "$axisratio";  shift;shift;;
         -Q=*|--axis-ratio=*)     axisratio="${1#*=}";                          check_v "$1" "$axisratio";  shift;;
         -Q*)                     axisratio=$(echo "$1"  | sed -e's/-Q//');     check_v "$1" "$axisratio";  shift;;
-        -a|--azimuth)            azimuth="$2";                                 check_v "$1" "$azimuth";  shift;shift;;
-        -a=*|--azimuth=*)        azimuth="${1#*=}";                            check_v "$1" "$azimuth";  shift;;
-        -a*)                     azimuth=$(echo "$1"  | sed -e's/-a//');       check_v "$1" "$azimuth";  shift;;
+        -a|--azimuth)            aztmp="$2";                                   check_v "$1" "$aztmp";  shift;shift;;
+        -a=*|--azimuth=*)        aztmp="${1#*=}";                              check_v "$1" "$aztmp";  shift;;
+        -a*)                     aztmp=$(echo "$1"  | sed -e's/-a//');         check_v "$1" "$aztmp";  shift;;
         -p|--position-angle)     positionangle="$2";                           check_v "$1" "$positionangle";  shift;shift;;
         -p=*|--position-angle=*) positionangle="${1#*=}";                      check_v "$1" "$positionangle";  shift;;
         -p*)                     positionangle=$(echo "$1"  | sed -e's/-p//'); check_v "$1" "$positionangle";  shift;;
@@ -389,13 +389,32 @@ do
         *) if [ x"$inputs" = x ]; then inputs="$1"; else inputs="$inputs $1"; fi; shift;;
     esac
 
-    # If a measurment was given, add it to possibly existing previous
-    # measurements into a comma-separate list.
+    # If a measurment or azimuth were given (options that can be called
+    # more than once), add their value to previous values.
     if [ x"$measuretmp" != x ]; then
         if [ x"$measure" = x ]; then measure=$measuretmp;
         else                         measure="$measure,$measuretmp";
         fi
         measuretmp=""
+    fi
+    if [ x"$aztmp" != x ]; then
+
+        # Make sure two values are indeed given to this option.
+        naz=$(echo $aztmp \
+                  | awk 'BEGIN{FS=","} \
+                         {for(i=1;i<=NF;++i) c+=$i!=""} \
+                         END{print c}')
+        if [ x$naz != x2 ]; then
+            printf "$scriptname: '--azimuth' (or '-a') only takes "
+            printf "two numbers, but $naz number(s) were given "
+            printf "in '$aztmp'"; exit 1
+        fi
+
+        # Add the give values to any potentially pre-existing values.
+        if [ x"$azimuth" = x ]; then azimuth=$aztmp;
+        else                         azimuth="$azimuth:$aztmp";
+        fi
+        aztmp=""
     fi
 done
 
@@ -435,17 +454,6 @@ if [ "$mode" = wcs   -o    $mode = "img" ]; then
 else
     echo "$scriptname: value to '--mode' ('-m') should be 'wcs' or 'img'"
     exit 1
-fi
-
-# If a '--azimuth' has been given, make sure it only has two numbers.
-if [ x"$azimuth" != x ]; then
-    nazimuth=$(echo $azimuth | awk 'BEGIN{FS=","} \
-                                    {for(i=1;i<=NF;++i) c+=$i!=""} \
-                                    END{print c}')
-    if [ x$nazimuth != x2 ]; then
-        echo "$scriptname: '--azimuth' (or '-a') only takes two values, but $nazimuth were given"
-        exit 1
-    fi
 fi
 
 # The precision should be an integer, smaller than 6.
@@ -733,7 +741,7 @@ rm $radialaperturesholed
 # Create an azimuthal apertures image if the user specifies a range of
 # angles over which compute the radial profile. The azimuthal radial
 # profile is combined with the radial apertures generated above, to only
-# consider the desired portion of the image. If the azimuth option is not
+# consider the desired portions of the image. If the azimuth option is not
 # called, then the aperture image is a symbolic link to the radial aperture
 # image constructed above.
 aperturesrawbase=apertures-raw.fits
@@ -749,58 +757,78 @@ if [ x"$azimuth" != x ]; then
         echo $new_angle
     }
 
-    # Get the initial and final azimuth angles
-    raw_azimuth_ini=$(echo "$azimuth" | awk 'BEGIN{FS=","} {print $1}')
-    raw_azimuth_fin=$(echo "$azimuth" | awk 'BEGIN{FS=","} {print $2}')
-
-    # Transform the azimuth angles to [0, 360) range
-    azimuth_ini=$(transform_angle $raw_azimuth_ini)
-    azimuth_fin=$(transform_angle $raw_azimuth_fin)
-
-    # Generate the azimuthal apertures
-    azimuthaperturesbase=azimuth-raw.fits
-    azimuthapertures=$tmpdir/$azimuthaperturesbase
+    # Generate the azimuthal apertures over the full profile.
+    azraw=$tmpdir/azimuth-raw.fits
+    azone=$tmpdir/azimuth-one.fits
     echo "1 $xcenter $ycenter 9 $rmax 1 $positionangle $axisratio 1 1" \
-         | astmkprof --background=$values --backhdu=1 --mforflatpix \
-                     --mode=img --clearcanvas --type=float32 $quiet \
-                     --circumwidth=1 --replace --output=$azimuthapertures
+        | astmkprof --background=$values --backhdu=1 --mforflatpix \
+                    --mode=img --clearcanvas --type=float32 $quiet \
+                    --circumwidth=1 --replace --output=$azraw
 
-    # From the azimuthal aperture image, consider only that portion that
-    # are in between (or outside) the two specified angles. Set the rest of
-    # the pixels to zero values (on the radial apertures image).
-    #
-    # There are two ways that the angle range can be defined:
-    #
-    #   - The first is smaller than the second (for example
-    #     '--azimuth=10,20'). In this case, we will use an 'and' between
-    #     the regions of each angle so the user gets the region between the
-    #     two angles.
-    #
-    #   - The first is greater than the second (for example
-    #     '--azimuth=355,5') In this case, we assume that the user wants an
-    #     azimuthal range outside the two angles. In the example above, its
-    #     the 10 degrees around the azimuthal angle 0. For this case, we
-    #     should use 'or' between the two regions.
-    #
-    #   - The central pixel contains all azimuth angles, it should
-    #     therefore be included in azimthal ranges. By default MakeProfiles
-    #     is forced to give it a single azimuth angle value, so without
-    #     explicitly adding the central pixel to all azimuthal profiles, it
-    #     the radius of 1 will be ignored in some azimuthal ranges and kept
-    #     in others. But this is only because it is smaller than our
-    #     sampling rate, in practice, the central pixel contains all
-    #     azimuth angles. So when defining the 'arc', we are also adding
-    #     'radial 1 eq or' to add that central pixel.
-    condition=$(echo $azimuth_ini $azimuth_fin \
-                     | awk ' {if ($1<$2) print "and"; \
-                              else       print "or"}')
-    astarithmetic --output=$aperturesraw $quiet \
-                  $radialapertures  -h1 uint32 set-radial \
-                  $azimuthapertures -h1 uint16 set-azimuth \
-                  azimuth $azimuth_ini uint16 ge \
-                  azimuth $azimuth_fin uint16 le $condition \
-                  radial 1 eq or set-arc \
-                  radial arc 1 uint8 ne 0 uint8 where
+    # Loop over all the pairs. But first, make sure that the final file
+    # (with all azimuthal ranges) is not present (from a previous run for
+    # example).
+    rm -f $aperturesraw
+    for p in $(echo "$azimuth" | tr ':' ' '); do
+
+        # Get the initial and final azimuth angles
+        raw_azimuth_ini=$(echo "$p" | awk 'BEGIN{FS=","} {print $1}')
+        raw_azimuth_fin=$(echo "$p" | awk 'BEGIN{FS=","} {print $2}')
+
+        # Transform the azimuth angles to [0, 360) range
+        azimuth_ini=$(transform_angle $raw_azimuth_ini)
+        azimuth_fin=$(transform_angle $raw_azimuth_fin)
+
+        # From the azimuthal aperture image, consider only that portion
+        # that are in between (or outside) the two specified angles. Set
+        # the rest of the pixels to zero values (on the radial apertures
+        # image).
+        #
+        # There are two ways that the angle range can be defined:
+        #
+        #   - The first is smaller than the second (for example
+        #     '--azimuth=10,20'). In this case, we will use an 'and'
+        #     between the regions of each angle so the user gets the region
+        #     between the two angles.
+        #
+        #   - The first is greater than the second (for example
+        #     '--azimuth=355,5') In this case, we assume that the user
+        #     wants an azimuthal range outside the two angles. In the
+        #     example above, its the 10 degrees around the azimuthal angle
+        #     0. For this case, we should use 'or' between the two regions.
+        #
+        #   - The central pixel contains all azimuth angles, it should
+        #     therefore be included in azimthal ranges. By default
+        #     MakeProfiles is forced to give it a single azimuth angle
+        #     value, so without explicitly adding the central pixel to all
+        #     azimuthal profiles, it the radius of 1 will be ignored in
+        #     some azimuthal ranges and kept in others. But this is only
+        #     because it is smaller than our sampling rate, in practice,
+        #     the central pixel contains all azimuth angles. So when
+        #     defining the 'arc', we are also adding 'radial 1 eq or' to
+        #     add that central pixel.
+        condition=$(echo $azimuth_ini $azimuth_fin \
+                         | awk ' {if ($1<$2) print "and"; \
+                                  else       print "or"}')
+        astarithmetic --output=$azone $quiet \
+                      $radialapertures  -h1 uint16 set-radial \
+                      $azraw            -h1 uint16 set-azimuth \
+                      azimuth $azimuth_ini  uint16 ge \
+                      azimuth $azimuth_fin  uint16 le $condition \
+                      radial 1 eq or set-arc \
+                      radial arc 1 uint8 ne 0 uint8 where
+
+        # Put the output of this azimuthal range into the intermediate
+        # file.
+        if [ -f $aperturesraw ]; then
+            aperturesrawtmp=$tmpdir/azimuth-intermediate-tmp.fits
+            astarithmetic $aperturesraw set-i $azone set-o \
+                          i i 0 eq o where -g1 -o$aperturesrawtmp
+            mv $aperturesrawtmp $aperturesraw
+        else
+            mv $azone $aperturesraw
+        fi
+    done
 else
     cd $tmpdir; ln -fs $radialaperturesbase $aperturesrawbase; cd $curdir
 fi
@@ -822,19 +850,10 @@ else                           finalzp="--zeropoint=$zeropoint";
 fi
 if [ x$polar = x0 ]; then polaropt=""
 else
-    # We are using 'raw_azimuth_fin' because it can be set to zero when the
-    # value was 360. Note also that we should convert to an integer at the
-    # start (before 'set-i'), otherwise, in floating point, the 'gt'
-    # condition is going to miss the outer edge.
-    condition=$(echo $azimuth_ini $azimuth_fin \
-                     | awk ' {if ($1<$2) print "or"; \
-                              else       print "and"}')
-    intazimuthapertures=$tmpdir/azimuth-raw-int.fits
-    astarithmetic $azimuthapertures uint16 set-i i \
-                  i $azimuth_ini     uint16 lt \
-                  i $raw_azimuth_fin uint16 gt $condition \
-                  0 where uint32 --output=$intazimuthapertures $quiet
-    polaropt="--clumpsfile=$intazimuthapertures --clumpshdu=1 --clumpscat"
+    azclumps=$tmpdir/azimuth-clumps.fits
+    astarithmetic $azraw $aperturesraw 0 eq 0 where -g1 \
+                  uint16 --output=$azclumps
+    polaropt="--clumpsfile=$azclumps --clumpshdu=1 --clumpscat"
 fi
 
 
@@ -854,8 +873,8 @@ if [ x"$undersample" != x ]; then
 
     # Divide by the undersampling factor (multiplied by the precision
     # factor: multiple of 10).
-    astarithmetic $aperturesraw $undersample $precfactor int16 x / \
-                  $quiet --output $apertures.fits
+    astarithmetic $aperturesraw $undersample $precfactor  x / \
+                  $quiet int16 --output $apertures.fits
 
     # The integer division above will re-create the 0-valued hole in the
     # center! So we need to fill it like above.
@@ -912,7 +931,6 @@ cat=$tmpdir/catalog.fits
 astmkcatalog $apertures --hdu=1 --valuesfile=$values --valueshdu=1 \
              --ids $finalinstd $finalmeasure $finalsigmaclip $finalzp \
              $polaropt --spatialresolution=0.0 --output=$cat $quiet
-
 
 
 
@@ -1017,6 +1035,17 @@ if [ x$polar = x1 ]; then
     maxrad=$(aststatistics  $polarcat -h1 -cRADIUS  --maximum)
     maxazim=$(aststatistics $polarcat -h1 -cAZIMUTH --maximum)
     minazim=$(aststatistics $polarcat -h1 -cAZIMUTH --minimum)
+
+    # If the maximum value is 360, make sure we have more than one row with
+    # an azimuth of 360. If there is only one element at an azimuth of 360,
+    # it was just the central pixel and the largest azimuthal value was not
+    # 360.
+    if [ $maxazim = 360 ]; then
+        if [ $(asttable $polarcat --equal=AZIMUTH,360 | wc -l) = 1 ]; then
+            maxazim=$(asttable $polarcat -cAZIMUTH --range=AZIMUTH,0,360 \
+                               -O | aststatistics --maximum)
+        fi
+    fi
 
     # In the end, many azimuth angles close to radius zero are not going to
     # be filled at all! We need to set those to NaN within the radial

@@ -362,7 +362,7 @@ Clipping outliers
 * Building inputs and analysis without clipping::  Building a dataset for demonstration below.
 * Sigma clipping::              Standard deviation (STD) clipping.
 * MAD clipping::                Median Absolute Deviation (MAD) clipping.
-* Contiguous outliers::  Two clips with holes filled in the middle.
+* Contiguous outliers::         Two clips with holes filled in the middle.
 
 Installation
 
@@ -10919,7 +10919,7 @@ But the concepts and methods are applicable to any analysis that is affected by 
 * Building inputs and analysis without clipping::  Building a dataset for demonstration below.
 * Sigma clipping::              Standard deviation (STD) clipping.
 * MAD clipping::                Median Absolute Deviation (MAD) clipping.
-* Contiguous outliers::  Two clips with holes filled in the middle.
+* Contiguous outliers::         Two clips with holes filled in the middle.
 @end menu
 
 @node Building inputs and analysis without clipping, Sigma clipping, Clipping outliers, Clipping outliers
@@ -33960,7 +33960,7 @@ By default, it is @option{--position-angle=0}, which means that the semi-major a
 @itemx --azimuth=FLT,FLT
 @cindex Wedge (radial profile)
 @cindex Azimuthal range (radial profile)
-Limit the profile to the given azimuthal angle range (two numbers given to this option, in degrees, from 0 to 360) from the major axis (defined by @option{--position-angle}).
+Limit the profile to the given azimuthal angle range (in degrees, from 0 to 360) from the major axis (defined by @option{--position-angle}) of each call to this option.
 The radial profile will therefore be created on a wedge-like shape, not the full circle/ellipse.
 The pixel containing the center of the profile will always be included in the profile (because it contains all azimuthal angles!).
 
@@ -33968,7 +33968,12 @@ If the first angle is @emph{smaller} than the second (for example, @option{--azi
 Otherwise (for example, @option{--azimuth=80,10}), the region @emph{outside} the two angles will be used.
 The latter case can be useful when you want to ignore part of the 2D shape (for example, due to a bright star that can be contaminating it).
 
-You can visually see the shape of the region used by running this script with @option{--keeptmp} and viewing the @file{values.fits} and @file{apertures.fits} files of the temporary directory with a FITS image viewer like @ref{SAO DS9}.
+This option can be called more than once; for example, @option{--azimuth=80,100 --azimuth=260,280}.
+In such cases, all given azimuthal ranges will be used.
+In the example above, two wedge-like shapes will be used to construct the profile: between angles of 80 to 100 degrees, and between 260 and 280 degrees.
+
+You can see the shape of the region used by adding the @option{--keeptmp} option.
+Afterwards, you can view the @file{values.fits} and @file{apertures.fits} files of the temporary directory with a FITS image viewer like @ref{SAO DS9}.
 You can use @ref{Viewing FITS file contents with DS9 or TOPCAT} to open them together in one instance of DS9, with both frames matched and locked (for easy comparison in case you want to zoom-in or out).
 For example, see the commands below (based on your target object, just change the image name, center, position angle, etc.):
 
