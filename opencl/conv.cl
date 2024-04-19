@@ -1,4 +1,4 @@
-typedef struct gal_gpu_data_t
+typedef struct __attribute__((packed)) gal_gpu_data_t
 {
   /* Basic information on array of data. */
   uint8             type;  /* Type of data (see 'gnuastro/type.h').         */
@@ -67,11 +67,11 @@ __kernel void convolution(
 	__global float * output
 )
 {	
-    /* correct the pointers */
-    image->dsize = image_dsize;
-    image->array = image_array;
-    kernell->dsize = kernell_dsize;
-    kernell->array = kernell_array;
+    // /* correct the pointers */
+    // image->dsize = image_dsize;
+    // image->array = image_array;
+    // kernell->dsize = kernell_dsize;
+    // kernell->array = kernell_array;
 
     /* get the image and kernel size */
     int image_height = image_dsize[0];

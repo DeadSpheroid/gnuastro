@@ -52,7 +52,7 @@ typedef struct gal_gpu_data_t
 cl_kernel 
 gal_gpu_kernel_create(char *name, char *function_name, char *core_name, 
                         cl_device_id device_id, cl_context *context, 
-                        cl_command_queue *command_queue);
+                        cl_command_queue *command_queue, int device);
 
 
 
@@ -68,6 +68,10 @@ gal_gpu_copy_array_to_device(gal_data_t * in, cl_mem *input_mem_obj, cl_context 
 cl_mem
 gal_gpu_copy_dsize_to_device(gal_data_t * in, cl_mem *input_mem_obj, cl_context context, 
                         cl_command_queue command_queue);
+
+cl_mem
+gal_gpu_copy_mode_to_device(cl_int mode, cl_mem *input_mem_obj, cl_context context, 
+                                cl_command_queue command_queue);
 
 cl_mem
 gal_gpu_copy_struct_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context, 

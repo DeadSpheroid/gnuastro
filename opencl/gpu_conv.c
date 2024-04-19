@@ -5,7 +5,7 @@
 gal_data_t *
 gal_conv_gpu(gal_data_t *input_image, gal_data_t *kernel_image, 
             char * cl_kernel_name, char * function_name, char * core_name,
-            size_t global_item_size, size_t local_item_size)
+            size_t global_item_size, size_t local_item_size, int device)
 {
 
     clock_t start_init, end_init;
@@ -22,11 +22,13 @@ gal_conv_gpu(gal_data_t *input_image, gal_data_t *kernel_image,
     cl_command_queue command_queue = NULL;
     cl_int image_width = input_image->dsize[1];
     cl_int image_height = input_image->dsize[0];
+    // cl_int mode = (cl_int)device;
+    cl_mem dm;
     cl_mem gpu_image,gpu_image_array,gpu_image_dsize;
     cl_mem gpu_kernel,gpu_kernel_array,gpu_kernel_dsize;
 
     cl_kernel kernel = gal_gpu_kernel_create(cl_kernel_name, function_name,core_name, 
-                                                device_id, &context, &command_queue);
+                                                device_id, &context, &command_queue, device);
     clFinish(command_queue);
     end_init = clock();
     cpu_time_used_init = ((double)(end_init - start_init)) / CLOCKS_PER_SEC;
@@ -43,6 +45,8 @@ gal_conv_gpu(gal_data_t *input_image, gal_data_t *kernel_image,
     gal_gpu_copy_struct_to_device(input_image, &gpu_image, context, command_queue);
     gal_gpu_copy_array_to_device(input_image, &gpu_image_array, context, command_queue);
     gal_gpu_copy_dsize_to_device(input_image, &gpu_image_dsize, context, command_queue);
+
+    // gal_gpu_copy_mode_to_device(mode, &dm, context, command_queue);
 
     /* prepare the kernel for gpu*/
     gal_gpu_copy_struct_to_device(kernel_image, &gpu_kernel, context, command_queue);
@@ -82,11 +86,12 @@ gal_conv_gpu(gal_data_t *input_image, gal_data_t *kernel_image,
     ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&gpu_kernel_array);
     ret = clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *)&gpu_kernel_dsize);
     ret = clSetKernelArg(kernel, 6, sizeof(cl_mem), (void *)&gpu_output);
+    ret = clSetKernelArg(kernel, 7, sizeof(cl_mem), (void *)&dm);
 
 
     /* launch the kernel */
     ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, 
-                                    &local_item_size, 0, NULL, NULL);
+                                    NULL, 0, NULL, NULL);
 
     clFinish(command_queue);
     end_conv = clock();
