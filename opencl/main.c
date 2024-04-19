@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 
     start_load = clock();
 
-    gal_data_t *input_image = gal_fits_img_read_to_type("data/data.fits", "1", GAL_TYPE_FLOAT32, -1, -1, "");
+    gal_data_t *input_image = gal_fits_img_read_to_type("data/arithmetic.fits", "1", GAL_TYPE_FLOAT32, -1, -1, "");
     gal_data_t *kernel_image = gal_fits_img_read_kernel("data/kernel.fits", "1", -1, -1, "");
     gal_data_t *output_image;
 

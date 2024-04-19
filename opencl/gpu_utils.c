@@ -71,18 +71,19 @@ gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
     cl_platform_id *platforms =
         (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
 
-    printf("No of platforms %d", num_platforms);
+    printf("No of platforms %d\n", num_platforms);
 
 
     // Get all available platforms
     ret = clGetPlatformIDs(num_platforms, platforms, NULL);
     // just put one availbale device inside device_id
-    for (cl_uint i = 0; i < num_platforms; i++)
+    cl_uint i;
+    for (i = 0; i < num_platforms; i++)
     {
         if (device == 1)
         {
             // Searching for a gpu
-            printf("Searching for a gpu");
+            printf("Searching for a gpu\n");
             ret = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 1, &device_id, &ret_num_devices);
         }
         else
@@ -104,7 +105,15 @@ gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
     {
         printf("Device found\n");
     }
-
+    char buffer[256];
+    size_t actual;
+    ret = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), (void*)buffer, NULL);
+    if(ret != CL_SUCCESS){
+        printf("Error getting device name\n");
+    }
+    else{
+        printf("Using device: %s\n", buffer);
+    }
     *context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
     *command_queue = clCreateCommandQueueWithProperties(*context, device_id, 0, &ret);
 
