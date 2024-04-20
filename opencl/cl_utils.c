@@ -1,49 +1,4 @@
-#include "gpu_utils.h"
-
-// char *
-// gal_gpu_read_file_to_string(char * name)
-// {
-//     FILE *fp;
-//     int ret=0;
-//     char *source_str;
-//     size_t source_size;
-//     fp = fopen(name, "r");
-//     source_str = (char*)malloc(MAX_SOURCE_SIZE);
-//     source_size = fread( source_str, 1, MAX_SOURCE_SIZE, fp);
-//     fclose( fp );
-
-//     return source_str;
-// }
-
-// size_t
-// gal_merge_files(char * kernel, char * core, char *result)
-// {
-//     FILE *coreFile = fopen("conv_core.h", "r");
-//     FILE *kernelFile = fopen("conv.cl", "r");
-
-//     fseek(coreFile, 0, SEEK_END);
-//     long coreSize = ftell(coreFile);
-//     fseek(coreFile, 0, SEEK_SET);
-
-//     fseek(kernelFile, 0, SEEK_END);
-//     long kernelSize = ftell(kernelFile);
-//     fseek(kernelFile, 0, SEEK_SET);
-
-//     result = (char *)malloc(coreSize + kernelSize + 1); // +1 for null-terminator
-
-//     fread(result, 1, coreSize, coreFile);
-
-//     result[coreSize] = '\n';
-
-//     fread(result + coreSize + 1, 1, kernelSize, kernelFile);
-
-//     result[coreSize + kernelSize] = '\0';
-
-//     fclose(coreFile);
-//     fclose(kernelFile);
-
-//     return coreSize + kernelSize + 1;
-// }
+#include "cl_utils.h"
 
 /*********************************************************************/
 /*************             Initialization          *******************/
@@ -52,9 +7,9 @@
    devices, selected using device_id. Then creates the kernel object
    using the created context for a specific funtion (named function_name)  */
 cl_kernel
-gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
-                      cl_device_id device_id, cl_context *context,
-                      cl_command_queue *command_queue, int device)
+gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
+                     cl_device_id device_id, cl_context *context,
+                     cl_command_queue *command_queue, int device)
 {
     /* initializations */
     int ret = 0;
@@ -71,8 +26,7 @@ gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
     cl_platform_id *platforms =
         (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
 
-    printf("No of platforms %d\n", num_platforms);
-
+    printf("No of platforms %d\n\n", num_platforms);
 
     // Get all available platforms
     ret = clGetPlatformIDs(num_platforms, platforms, NULL);
@@ -83,13 +37,11 @@ gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
         if (device == 1)
         {
             // Searching for a gpu
-            printf("Searching for a gpu\n");
             ret = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 1, &device_id, &ret_num_devices);
         }
         else
         {
             // Searching for a cpu
-            printf("Searching for a cpu\n");
             ret = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_CPU, 1, &device_id, &ret_num_devices);
         }
         if (ret == CL_SUCCESS)
@@ -101,19 +53,28 @@ gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
     {
         printf("Error finding devices\n");
     }
+
+    char buffer[256];
+    ret = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, sizeof(buffer), (void *)buffer, NULL);
+    if (ret != CL_SUCCESS)
+    {
+        printf("Error getting platform name\n");
+    }
     else
     {
-        printf("Device found\n");
+        printf("Using platform: %s\n", buffer);
     }
-    char buffer[256];
-    size_t actual;
-    ret = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), (void*)buffer, NULL);
-    if(ret != CL_SUCCESS){
+
+    ret = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), (void *)buffer, NULL);
+    if (ret != CL_SUCCESS)
+    {
         printf("Error getting device name\n");
     }
-    else{
-        printf("Using device: %s\n", buffer);
+    else
+    {
+        printf("Using device: %s\n\n", buffer);
     }
+
     *context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
     *command_queue = clCreateCommandQueueWithProperties(*context, device_id, 0, &ret);
 
@@ -183,53 +144,60 @@ gal_gpu_kernel_create(char *kernel_name, char *function_name, char *core_name,
 // }
 
 cl_mem
-gal_gpu_copy_array_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context,
-                             cl_command_queue command_queue)
+gal_cl_copy_array_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context,
+                            cl_command_queue command_queue, int device)
 {
     int ret = 0;
-    *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
+    if(device == 2){
+        *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                                    in->size * gal_type_sizeof(in->type), (void*)in->array, &ret);
+    }
+    else{
+        *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
                                     in->size * gal_type_sizeof(in->type), NULL, &ret);
-
-    ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
-                               in->size * gal_type_sizeof(in->type), (float *)in->array, 0, NULL, NULL);
+        ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
+                                in->size * gal_type_sizeof(in->type), (float *)in->array, 0, NULL, NULL);
+    }
 }
 
 cl_mem
-gal_gpu_copy_dsize_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context,
-                             cl_command_queue command_queue)
+gal_cl_copy_dsize_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context,
+                            cl_command_queue command_queue, int device)
 {
     int ret = 0;
-    *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
+    if(device == 2){
+        *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                                    3 * sizeof(size_t), (void*)in->dsize, &ret);
+    }
+    else{
+        *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
                                     3 * sizeof(size_t), NULL, &ret);
+        ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
+                                3 * sizeof(size_t), in->dsize, 0, NULL, NULL);
+    }
+    
 
-    ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
-                               3 * sizeof(size_t), in->dsize, 0, NULL, NULL);
 }
 
 cl_mem
-gal_gpu_copy_mode_to_device(cl_int mode, cl_mem *input_mem_obj, cl_context context, 
-                                cl_command_queue command_queue)
+gal_cl_copy_struct_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context,
+                             cl_command_queue command_queue, int device)
 {
     int ret = 0;
-    *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(mode), NULL, ret);
+    if(device == 2){
+        *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+                                        sizeof(in), (void*)in, &ret);
+    }
+    else{
+        *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
+                                        sizeof(in), NULL, &ret);
+        ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
+                                sizeof(in), in, 0, NULL, NULL);
+    }
 
-    ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
-                               sizeof(mode), mode, 0, NULL, NULL);
 }
 
-cl_mem
-gal_gpu_copy_struct_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context,
-                              cl_command_queue command_queue)
-{
-    int ret = 0;
-    *input_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
-                                    sizeof(in), NULL, &ret);
-
-    ret = clEnqueueWriteBuffer(command_queue, *input_mem_obj, CL_TRUE, 0,
-                               sizeof(in), in, 0, NULL, NULL);
-}
-
-void gal_gpu_copy_from_device(gal_data_t *out, cl_mem *output_mem_obj, cl_command_queue command_queue)
+void gal_cl_copy_from_device(gal_data_t *out, cl_mem *output_mem_obj, cl_command_queue command_queue)
 {
     clEnqueueReadBuffer(command_queue, *output_mem_obj, CL_TRUE, 0,
                         out->size * gal_type_sizeof(out->type), (float *)out->array, 0, NULL, NULL);
