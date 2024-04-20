@@ -85,4 +85,6 @@ Time taken for all operations : 6.105039
 ### Note
 The drastically reduced data transfer time on cpu as opposed to the earlier iteration is because now, there is no reallocation of data on cpu happening.
 
-That is to say, when convolution is performed on the cpu, rather than copying the image data to a buffer on 
+That is to say, when convolution is performed on the cpu, rather than copying the image data to a buffer on cpu(double allocation), we simply use the original pointer itself, using CL_MEM_USE_HOST_PTR to indicate this.
+
+Notably, this seems to drastically drop the data transfer time on CPU for the POCL implementation, but doesnt make a difference for the Intel implementation.
