@@ -26,7 +26,7 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
     cl_platform_id *platforms =
         (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
 
-    printf("No of platforms %d\n\n", num_platforms);
+    // printf("No of platforms available on your device%d\n\n", num_platforms);
 
     // Get all available platforms
     ret = clGetPlatformIDs(num_platforms, platforms, NULL);

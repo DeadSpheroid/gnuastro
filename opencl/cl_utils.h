@@ -1,7 +1,7 @@
+#define CL_TARGET_OPENCL_VERSION 300
 #include <stdio.h>
 #include <gnuastro/data.h>
 #include <CL/cl.h>
-
 #define MAX_SOURCE_SIZE (0x100000)
 
 // typedef struct gal_gpu_data_t
