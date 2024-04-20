@@ -82,4 +82,7 @@ Time taken in copying result to host: 0.232176
 
 Time taken for all operations : 6.105039
 ```
+### Note
+The drastically reduced data transfer time on cpu as opposed to the earlier iteration is because now, there is no reallocation of data on cpu happening.
 
+That is to say, when convolution is performed on the cpu, rather than copying the image data to a buffer on 

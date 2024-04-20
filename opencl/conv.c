@@ -22,10 +22,9 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     cl_command_queue command_queue = NULL;
     cl_int image_width = input_image->dsize[1];
     cl_int image_height = input_image->dsize[0];
-    cl_mem dm;
     cl_kernel kernel;
-    cl_mem cl_image,cl_image_array,cl_image_dsize;
-    cl_mem cl_kernel,cl_kernel_array,cl_kernel_dsize;
+    cl_mem cl_image_array,cl_image_dsize;
+    cl_mem cl_kernel_array,cl_kernel_dsize;
 
     kernel = gal_cl_kernel_create(cl_kernel_name, function_name,core_name, 
                                                 device_id, &context, &command_queue, device);
@@ -42,12 +41,10 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     start_copy = clock();
 
     /* prepare the input image for device*/
-    gal_cl_copy_struct_to_device(input_image, &cl_image, context, command_queue, device);
     gal_cl_copy_array_to_device(input_image, &cl_image_array, context, command_queue, device);
     gal_cl_copy_dsize_to_device(input_image, &cl_image_dsize, context, command_queue, device);
 
     /* prepare the kernel for device*/
-    gal_cl_copy_struct_to_device(kernel_image, &cl_kernel, context, command_queue, device);
     gal_cl_copy_array_to_device(kernel_image, &cl_kernel_array, context, command_queue, device);
     gal_cl_copy_dsize_to_device(kernel_image, &cl_kernel_dsize, context, command_queue, device);
 
@@ -77,14 +74,11 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
 
     start_conv = clock();
     /* initialize kernel arguments */
-    ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&cl_image);
-    ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&cl_kernel);
-    ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&cl_image_array);
-    ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&cl_image_dsize);
-    ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&cl_kernel_array);
-    ret = clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *)&cl_kernel_dsize);
-    ret = clSetKernelArg(kernel, 6, sizeof(cl_mem), (void *)&cl_output);
-    ret = clSetKernelArg(kernel, 7, sizeof(cl_mem), (void *)&dm);
+    ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&cl_image_array);
+    ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&cl_image_dsize);
+    ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&cl_kernel_array);
+    ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&cl_kernel_dsize);
+    ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&cl_output);
 
 
     /* launch the kernel */
@@ -119,10 +113,8 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     ret = clFlush(command_queue);
     ret = clFinish(command_queue);
     ret = clReleaseKernel(kernel);
-    ret = clReleaseMemObject(cl_image);
     ret = clReleaseMemObject(cl_image_array);
     ret = clReleaseMemObject(cl_image_dsize);
-    ret = clReleaseMemObject(cl_kernel);
     ret = clReleaseMemObject(cl_kernel_array);
     ret = clReleaseMemObject(cl_kernel_dsize);
     ret = clReleaseMemObject(cl_output);
