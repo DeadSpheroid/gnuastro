@@ -2034,14 +2034,26 @@ reversepolish(struct arithmeticparams *p)
       /* Put a copy of the WCS structure from the reference image, it will
          be freed while freeing 'data'. But start the file with the 0-th
          HDU keywords.*/
-      gal_fits_key_write(p->cp.ckeys, p->cp.output, "0", "NONE", 1, 1);
+
       if(data->ndim==1 && p->onedasimage==0)
-        gal_table_write(data, NULL, NULL, p->cp.tableformat,
-                        p->onedonstdout ? NULL : p->cp.output,
-                        "ARITHMETIC", 0, 0);
+        {
+          /* The keywords HDU should only be created when a FITS file is to
+             be made; not when the output should go to a text file or the
+             standard output. */
+          if( p->onedonstdout==0
+              && gal_fits_name_is_fits(p->cp.output)==0 )
+            gal_fits_key_write(p->cp.ckeys, p->cp.output, "0", "NONE",
+                               1, 1);
+          gal_table_write(data, NULL, NULL, p->cp.tableformat,
+                          p->onedonstdout ? NULL : p->cp.output,
+                          "ARITHMETIC", 0, 0);
+        }
       else
-        for(tmp=data; tmp!=NULL; tmp=tmp->next)
-          gal_fits_img_write(tmp, p->cp.output, NULL, 0);
+        {
+          gal_fits_key_write(p->cp.ckeys, p->cp.output, "0", "NONE", 1, 1);
+          for(tmp=data; tmp!=NULL; tmp=tmp->next)
+            gal_fits_img_write(tmp, p->cp.output, NULL, 0);
+        }
 
       /* Let the user know that the job is done. */
       if(!p->cp.quiet)
