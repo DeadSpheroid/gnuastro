@@ -169,6 +169,9 @@ See the end of the file for license conditions.
     requested. Reported by Raul Infante-Sainz and fixed by Giacomo
     Lorenzetti.
 
+  - bug #65672: ./developer-build exits silently when some options are
+    given an empty value. Found and fixed by Giacomo Lorenzetti.
+
   - bug #65673: Arithmetic creates a metadata FITS file a HDU with no data)
     even when the output is not FITS (plain-text or on the standard
     output). Reported by Sepideh Eskandarlou.

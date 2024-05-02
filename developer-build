@@ -258,7 +258,7 @@ do
             ;;
         -b|--top-build-dir)
             top_build_dir="$2"
-            if [ x"top_build_dir" = x ]; then
+            if [ x"$top_build_dir" = x ]; then
                 echo "No argument given to '--top-build-dir' ('-b')."
                 exit 1;
             fi
@@ -287,7 +287,7 @@ do
             ;;
         -j|--jobs)
             jobs="$2"
-            if [ x"jobs" = x ]; then
+            if [ x"$jobs" = x ]; then
                 echo "No argument given to '--jobs' ('-j')."
                 exit 1;
             fi
@@ -308,6 +308,10 @@ do
             ;;
         -z|--compression)
             compression="$2"
+            if [ x"$compression" = x ]; then
+                echo "No argument given to '--compression' ('-z')."
+                exit 1;
+            fi
             shift # past argument
             shift # past value
             ;;
