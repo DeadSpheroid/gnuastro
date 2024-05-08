@@ -22287,10 +22287,23 @@ $ astarithmetic 3 0.2 5 4 image.fits filter-sigclip-mean
 
 The median (which needs a sorted dataset) is necessary for @mymath{\sigma}-clipping, therefore @code{filter-sigclip-mean} can be significantly slower than @code{filter-mean}.
 However, if there are strong outliers in the dataset that you want to ignore (for example, emission lines on a spectrum when finding the continuum), this is a much better solution.
+Note that @mymath{\sigma}-clipping is easily biased by outliers, so @code{filter-madclip-mean} is more robust.
 
 @item filter-sigclip-median
 Apply a @mymath{\sigma}-clipped median filtering onto the input dataset.
 This operator and its necessary operands are almost identical to @code{filter-sigclip-mean}, except that after @mymath{\sigma}-clipping, the median value (which is less affected by outliers than the mean) is added back to the stack.
+Note that @mymath{\sigma}-clipping is easily biased by outliers, so @code{filter-madclip-median} is more robust.
+
+@item filter-madclip-mean
+Apply a MAD-clipped mean filtering onto the input dataset.
+MAD stands for Median Absolute Deviation, this is much more robust to outliers than the @mymath{\sigma}-clipping.
+This operator is called in a similar way to @code{filter-madclip-mean}, for example in the command below, we use @mymath{4\times}MAD clipping with a termination criteria of 0.01 on an image:
+@example
+$ astarithmetic 4 0.01 5 5 image.fits filter-madclip-mean
+@end example
+
+@item filter-madclip-median
+Apply a MAD-clipped median filtering onto the input dataset; see the description of @code{filter-madclip-mean} for more.
 @end table
 
 @node Pooling operators, Interpolation operators, Filtering operators, Arithmetic operators

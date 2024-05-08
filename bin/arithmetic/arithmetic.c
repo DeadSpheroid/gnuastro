@@ -288,12 +288,22 @@ arithmetic_filter(void *in_prm)
 
 
         case ARITHMETIC_OP_FILTER_SIGCLIP_MEAN:
+        case ARITHMETIC_OP_FILTER_MADCLIP_MEAN:
         case ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN:
+        case ARITHMETIC_OP_FILTER_MADCLIP_MEDIAN:
           /* The median is always available with a sigma-clip, but the mean
              needs to be explicitly requested. */
           if(afp->operator == ARITHMETIC_OP_FILTER_SIGCLIP_MEAN)
             clipflags = GAL_STATISTICS_CLIP_OUTCOL_OPTIONAL_MEAN;
-          sigclip=gal_statistics_clip_sigma(tile, afp->sclip_multip,
+
+          /* Do the main operation. */
+          if(    afp->operator==ARITHMETIC_OP_FILTER_SIGCLIP_MEAN
+              || afp->operator==ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN )
+            sigclip=gal_statistics_clip_sigma(tile, afp->sclip_multip,
+                                              afp->sclip_param, clipflags,
+                                              0, 1);
+          else
+            sigclip=gal_statistics_clip_mad(tile, afp->sclip_multip,
                                             afp->sclip_param, clipflags,
                                             0, 1);
 
@@ -301,8 +311,10 @@ arithmetic_filter(void *in_prm)
           switch(afp->operator)
             {
             case ARITHMETIC_OP_FILTER_SIGCLIP_MEAN:
+            case ARITHMETIC_OP_FILTER_MADCLIP_MEAN:
               sind = GAL_STATISTICS_CLIP_OUTCOL_MEAN; break;
             case ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN:
+            case ARITHMETIC_OP_FILTER_MADCLIP_MEDIAN:
               sind = GAL_STATISTICS_CLIP_OUTCOL_MEDIAN; break;
             default:
               error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at "
@@ -368,8 +380,10 @@ wrapper_for_filter(struct arithmeticparams *p, char *token, int operator)
   size_t fsize[ARITHMETIC_FILTER_DIM];
   gal_data_t *tmp, *tmp2, *zero, *comp, *params_list=NULL;
   size_t hnfsize[ARITHMETIC_FILTER_DIM], hpfsize[ARITHMETIC_FILTER_DIM];
-  int issigclip=(operator==ARITHMETIC_OP_FILTER_SIGCLIP_MEAN
-                 || operator==ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN);
+  int isclip=(   operator==ARITHMETIC_OP_FILTER_SIGCLIP_MEAN
+              || operator==ARITHMETIC_OP_FILTER_MADCLIP_MEAN
+              || operator==ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN
+              || operator==ARITHMETIC_OP_FILTER_MADCLIP_MEDIAN );
 
 
   /* Get the input's number of dimensions. */
@@ -395,7 +409,7 @@ wrapper_for_filter(struct arithmeticparams *p, char *token, int operator)
 
   /* Based on the first popped operand's dimensions and the operator, of
      pop the necessary number of operands. */
-  nparams = ndim + (issigclip ? 2 : 0 );
+  nparams = ndim + (isclip ? 2 : 0 );
   for(i=0;i<nparams;++i)
     {
       /* Add this to the list of parameters. */
@@ -412,7 +426,7 @@ wrapper_for_filter(struct arithmeticparams *p, char *token, int operator)
 
   /* If this is a sigma-clipping filter, the top two operands are the
      sigma-clipping parameters. */
-  if(issigclip)
+  if(isclip)
     {
       /* Read the sigma-clipping multiple (first element in the list). */
       tmp=gal_list_data_pop(&params_list);
@@ -497,6 +511,7 @@ wrapper_for_filter(struct arithmeticparams *p, char *token, int operator)
             { hnfsize[i]=fsize[i]/2; hpfsize[i]=fsize[i]/2-1; }
         }
 
+
       /* For a test.
       printf("fsize: %zu, %zu\n", fsize[0], fsize[1]);
       printf("hnfsize: %zu, %zu\n", hnfsize[0], hnfsize[1]);
@@ -509,11 +524,13 @@ wrapper_for_filter(struct arithmeticparams *p, char *token, int operator)
         {
         case ARITHMETIC_OP_FILTER_MEDIAN:
         case ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN:
+        case ARITHMETIC_OP_FILTER_MADCLIP_MEDIAN:
           type=afp.input->type;
           break;
 
         case ARITHMETIC_OP_FILTER_MEAN:
         case ARITHMETIC_OP_FILTER_SIGCLIP_MEAN:
+        case ARITHMETIC_OP_FILTER_MADCLIP_MEAN:
           type=GAL_TYPE_FLOAT64;
           break;
 
@@ -1457,8 +1474,12 @@ arithmetic_set_operator(char *string, size_t *num_operands, int *inlib)
         { op=ARITHMETIC_OP_FILTER_MEDIAN;         *num_operands=0; }
       else if (!strcmp(string, "filter-sigclip-mean"))
         { op=ARITHMETIC_OP_FILTER_SIGCLIP_MEAN;   *num_operands=0; }
+      else if (!strcmp(string, "filter-madclip-mean"))
+        { op=ARITHMETIC_OP_FILTER_MADCLIP_MEAN;   *num_operands=0; }
       else if (!strcmp(string, "filter-sigclip-median"))
         { op=ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN; *num_operands=0; }
+      else if (!strcmp(string, "filter-madclip-median"))
+        { op=ARITHMETIC_OP_FILTER_MADCLIP_MEDIAN; *num_operands=0; }
       else if (!strcmp(string, "erode"))
         { op=ARITHMETIC_OP_ERODE;                 *num_operands=0; }
       else if (!strcmp(string, "dilate"))
@@ -1733,7 +1754,9 @@ arithmetic_operator_run(struct arithmeticparams *p, int operator,
         case ARITHMETIC_OP_FILTER_MEAN:
         case ARITHMETIC_OP_FILTER_MEDIAN:
         case ARITHMETIC_OP_FILTER_SIGCLIP_MEAN:
+        case ARITHMETIC_OP_FILTER_MADCLIP_MEAN:
         case ARITHMETIC_OP_FILTER_SIGCLIP_MEDIAN:
+        case ARITHMETIC_OP_FILTER_MADCLIP_MEDIAN:
           wrapper_for_filter(p, operator_string, operator);
           break;
 

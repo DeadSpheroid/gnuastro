@@ -14,6 +14,11 @@ See the end of the file for license conditions.
 
   - New operators:
 
+    - filter-madclip-mean: filter/smooth the input using MAD-clipped mean.
+
+    - filter-madclip-median: filter/smooth the input using MAD-clipped
+      median.
+
     - madclip-maskfilled: mask (set to NaN) all input elements that are
       outliers (defined by MAD-clipping). Combined with the stacking
       operators this allows removing large contiugous outliers in your
