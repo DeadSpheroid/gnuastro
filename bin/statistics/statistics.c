@@ -30,8 +30,6 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <stdlib.h>
 
-#include <gsl/gsl_fit.h>
-
 #include <gnuastro/fit.h>
 #include <gnuastro/wcs.h>
 #include <gnuastro/fits.h>

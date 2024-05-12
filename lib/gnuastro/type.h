@@ -47,8 +47,6 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdint.h>
 
-#include <gsl/gsl_complex.h>
-
 /* When we are within Gnuastro's building process, 'IN_GNUASTRO_BUILD' is
    defined. In the build process, installation information (in particular
    'GAL_CONFIG_SIZEOF_SIZE_T' that we need below) is kept in

@@ -31,6 +31,8 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 #include <inttypes.h>
 
+#include <gsl/gsl_complex.h>
+
 #include <gnuastro/type.h>
 #include <gnuastro/data.h>
 #include <gnuastro/list.h>

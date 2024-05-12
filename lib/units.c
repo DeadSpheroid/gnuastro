@@ -31,8 +31,6 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 
-#include <gsl/gsl_math.h>
-
 #include <gnuastro/type.h>
 #include <gnuastro/pointer.h>
 

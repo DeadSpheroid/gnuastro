@@ -28,8 +28,6 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <string.h>
 
-#include <gsl/gsl_const_mksa.h>
-
 #include <gnuastro/fits.h>
 #include <gnuastro/table.h>
 #include <gnuastro/pointer.h>

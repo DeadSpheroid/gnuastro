@@ -30,7 +30,6 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 
 #include <gsl/gsl_rng.h>
-#include <gsl/gsl_heapsort.h>
 
 #include <gnuastro/txt.h>
 #include <gnuastro/wcs.h>
