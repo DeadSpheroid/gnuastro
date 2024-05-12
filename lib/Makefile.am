@@ -29,12 +29,18 @@ endif
 if COND_HASGNUMAKE_H
   MAYBE_GNUMAKE = libgnuastro_make.la
 endif
+if COND_HASOPENCL
+  $(info "Found OpenCL")
+  MAYBE_CL = cl_utils.c
+  MAYBE_CL_H = $(headersdir)/cl_utils.h
+else
+  $(info "What is opencl?")
+endif
 if COND_NUMPY
   MAYBE_NUMPY_C = python.c
   MAYBE_NUMPY_H = $(headersdir)/python.h
   MAYBE_NUMPY_INCLUDE = -I$(NUMPY_INCLUDE_DIR) -I$(PYTHON_INCLUDE_DIR)
 endif
-
 
 
 
@@ -71,7 +77,8 @@ lib_LTLIBRARIES = libgnuastro.la $(MAYBE_GNUMAKE)
 # Linking flags for the Gnuastro library.
 libgnuastro_la_LIBADD = $(top_builddir)/bootstrapped/lib/libgnu.la
 libgnuastro_la_LDFLAGS = -version-info $(GAL_LT_VERSION) $(CONFIG_LDADD) \
-                         -lc -no-undefined
+                         -lc -no-undefined \
+                         -L/opt/intel/oneapi/2024.1/lib
 
 # Gnuastro's GNU Make extensions
 libgnuastro_make_la: libgnuastro.la
@@ -85,6 +92,7 @@ libgnuastro_make_la_SOURCES = makeplugin.c
 libgnuastro_la_SOURCES = \
   $(MAYBE_NUMPY_C) \
   $(MAYBE_WCSDISTORTION) \
+  $(MAYBE_CL) \
   arithmetic.c \
   arithmetic-and.c \
   arithmetic-bitand.c \
@@ -110,6 +118,7 @@ libgnuastro_la_SOURCES = \
   blank.c \
   box.c \
   checkset.c \
+  cl_convolve.c \
   color.c \
   convolve.c \
   cosmology.c \
@@ -158,6 +167,7 @@ libgnuastro_la_SOURCES = \
 # installed.
 pkginclude_HEADERS = gnuastro/config.h \
   $(MAYBE_NUMPY_H) \
+  $(MAYBE_CL_H) \
   $(headersdir)/arithmetic.h \
   $(headersdir)/array.h \
   $(headersdir)/binary.h \
@@ -267,6 +277,7 @@ gnuastro/config.h: Makefile $(internaldir)/config.h.in
 	       -e 's|@HAVE_GNUMAKE_H[@]|$(HAVE_GNUMAKE_H)|g' \
 	       -e 's|@HAVE_GSL_STEFFEN[@]|$(HAVE_GSL_STEFFEN)|g' \
 	       -e 's|@HAVE_LIBGIT2[@]|$(HAVE_LIBGIT2_FOR_CONF)|g' \
+         -e 's|@HAVE_OPENCL[@]|$(HAVE_OPENCL)|g' \
 	       -e 's|@HAVE_WCSLIB_DIS_H[@]|$(HAVE_WCSLIB_DIS_H)|g' \
 	       -e 's|@HAVE_WCSLIB_MJDREF[@]|$(HAVE_WCSLIB_MJDREF)|g' \
 	       -e 's|@HAVE_WCSLIB_OBSFIX[@]|$(HAVE_WCSLIB_OBSFIX)|g' \
