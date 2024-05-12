@@ -291,6 +291,8 @@ has_cfitsio=yes
 has_libtiff=yes
 has_libjpeg=yes
 has_gslcblas=yes
+has_ocl=0
+has_svml=0
 missing_mandatory=no
 missing_optional_lib=no
 
@@ -341,12 +343,64 @@ orig_LIBS="$LIBS"
 # found for GSL below, on some systems (reported on Ubuntu), if we don't
 # add it explicitly here, the build will crash because of a failure to link
 # with the math functions.
+
+
 AC_LIB_HAVE_LINKFLAGS([m], [], [#include <math.h>])
 AS_IF([test "x$LIBM" = x], [],
       [LIBS="$LIBM $LIBS"
        AS_IF([ test "x$enable_shared" = "xno" ],
              [LDADD="$LIBM   $LDADD"],
              [LDADD="$LTLIBM $LDADD"]) ])
+
+AC_LIB_HAVE_LINKFLAGS([OpenCL], [], [#include <CL/cl.h>])
+AS_IF([test "x$LIBOPENCL" = x],
+      [missing_optional_lib=yes; has_ocl=0; anywarnings=yes;
+      AS_ECHO(["CL Not found"])],
+      [
+       LIBS="$LIBOPENCL $LIBS"
+       has_ocl=1;
+       AS_IF([ test "x$enable_shared" = "xno" ],
+             [LDADD="$LIBOPENCL   $LDADD"],
+             [LDADD="$LTLIBOPENCL $LDADD"]) 
+       AS_ECHO(["CL Found"])])
+AM_CONDITIONAL([COND_HASOPENCL], [test "x$has_ocl" = "x1"])
+AC_DEFINE_UNQUOTED([GAL_CONFIG_HAVE_OPENCL],
+                   [$has_ocl],
+                   [OpenCL found on this device])
+AC_SUBST(HAVE_OPENCL, [$has_ocl])
+
+# AS_ECHO(["LD FLAGS $LDFLAGS"])
+# AS_ECHO(["LDLIBPATH $LD_LIBRARY_PATH"])
+# AS_ECHO(["LDADD $LDADD"])
+
+# AC_LIB_LINKFLAGS([svml], [])
+# AS_IF([test "x$LIBSVML" = "x"],
+#       [
+#        missing_optional_lib=yes; has_svml=no;
+#        AS_ECHO(["SVML NOT FOUND"])
+#       ],
+#       [
+#        LIBS="$LIBSVML $LIBS"
+#        has_svml=yes
+#        AS_IF([ test "x$enable_shared" = "xno" ],
+#              [LDADD="$LIBSVML   $LDADD"],
+#              [LDADD="$LTLIBSVML $LDADD"]
+#        )
+#        AS_ECHO(["SVML FOUND"])
+#       ]
+# )
+
+# AC_LIB_HAVE_LINKFLAGS([svml], [], [])
+# AS_IF([test "x$LIBSVML" = x],
+#       [missing_mandatory=yes; has_svml=0;
+#       AS_ECHO(["svml Not found"])],
+#       [
+#        LIBS="$LIBSVML $LIBS"
+#        has_svml=1;
+#        AS_IF([ test "x$enable_shared" = "xno" ],
+#              [LDADD="$LIBSVML   $LDADD"],
+#              [LDADD="$LTLIBSVML $LDADD"]) 
+#        AS_ECHO(["svml Found"])])
 
 
 AC_LIB_HAVE_LINKFLAGS([gsl], [gslcblas], [
@@ -503,6 +557,16 @@ AS_IF([test "$lt_cv_prog_compiler_static_works" = no ],
         enable_shared=yes ])
 
 
+# AS_IF([test "x$LIBSVML" = x],
+#       [missing_optional_lib=yes; has_svml=0;
+#       AS_ECHO(["svml Not found"])],
+#       [
+#        LIBS="$LIBSVML $LIBS"
+#        has_svml=1;
+#        AS_IF([ test "x$enable_shared" = "xno" ],
+#              [LDADD="$LIBSVML   $LDADD"],
+#              [LDADD="$LTLIBSVML $LDADD"]) 
+#        AS_ECHO(["svml Found"])])
 
 
 
@@ -845,6 +909,8 @@ AS_IF([test "x$missing_mandatory" = "xyes"],
                       [ AS_ECHO([" - Missing cURL: https://curl.haxx.se"])                        ])
 dnl             AS_IF([test "x$has_numpy" = "x0"],
 dnl                   [ AS_ECHO([" - Missing Numpy (for Python wrappers): https://numpy.org"])    ])
+                AS_IF([test "x$has_ocl" = "x0"], 
+                      [ AS_ECHO([" - Missing OpenCL (for GPU access)"])])
                 AS_IF([test "x$has_ds9" = "xno"],
                       [ AS_ECHO([" - Missing SAO DS9: https://sites.google.com/cfa.harvard.edu/saoimageds9"]) ])
                 AS_IF([test "x$has_topcat" = "xno"],

@@ -25,7 +25,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 
 /* For common options groups. */
 #include <gnuastro-internal/options.h>
-
+#if GAL_CONFIG_HAVE_OPENCL
+#include <gnuastro/cl-utils.h>
+#endif
 
 
 
@@ -66,6 +68,7 @@ enum option_keys_enum
   UI_KEY_NOKERNELFLIP,
   UI_KEY_NOKERNELNORM,
   UI_KEY_NOEDGECORRECTION,
+  UI_KEY_CL
 };
 
 

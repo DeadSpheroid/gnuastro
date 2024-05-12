@@ -1185,7 +1185,7 @@ gal_tile_full_values_smooth(gal_data_t *tilevalues,
 
   /* Do the smoothing. */
   if(tl->workoverch)
-    smoothed=gal_convolve_spatial(tilevalues, kernel, numthreads, 1, 1, 0);
+    smoothed=gal_convolve_spatial(tilevalues, kernel, numthreads, tl->numchannels, 1, 1, 0);
   else
     {
       /* Create the tile structure. */
@@ -1195,7 +1195,7 @@ gal_tile_full_values_smooth(gal_data_t *tilevalues,
       gal_tile_full_two_layers(tilevalues, &ttl);
 
       /* Do the convolution separately on each channel. */
-      smoothed=gal_convolve_spatial(ttl.tiles, kernel, numthreads, 1, 0, 0);
+      smoothed=gal_convolve_spatial(ttl.tiles, kernel, numthreads, tl->numchannels, 1, 0, 0);
 
       /* Clean up. */
       ttl.tilesize=ttl.numchannels=NULL;

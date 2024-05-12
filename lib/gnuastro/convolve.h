@@ -27,6 +27,14 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
    must be included before the C++ preparations below */
 #include <gnuastro/data.h>
 
+#if GAL_CONFIG_HAVE_OPENCL
+#include <CL/cl.h>
+#endif
+
+#ifndef IN_GNUASTRO_BUILD
+#include <gnuastro/config.h>
+#endif
+
 /* C++ Preparations */
 #undef __BEGIN_C_DECLS
 #undef __END_C_DECLS
@@ -40,24 +48,26 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 /* End of C++ preparations */
 
 /* Actual header contants (the above were for the Pre-processor). */
-__BEGIN_C_DECLS  /* From C++ preparations */
-
-
+__BEGIN_C_DECLS /* From C++ preparations */
 
 gal_data_t *
-gal_convolve_spatial(gal_data_t *tiles, gal_data_t *kernel,
-                     size_t numthreads, int edgecorrection,
-                     int convoverch, int conv_on_blank);
+gal_convolve_spatial (gal_data_t *input, gal_data_t *kernel,
+                        size_t numthreads, size_t *channels,
+                        int noedgecorrection, int convoverch, int conv_on_blank);
 
+#if GAL_CONFIG_HAVE_OPENCL
 
-void
-gal_convolve_spatial_correct_ch_edge(gal_data_t *tiles, gal_data_t *kernel,
-                                     size_t numthreads, int edgecorrection,
-                                     int conv_on_blank,
-                                     gal_data_t *tocorrect);
+gal_data_t *
+gal_convolve_cl (gal_data_t *input_image, gal_data_t *kernel_image,
+               char *kernel_name, int edgecorrect, size_t *channels,
+               int convoverch, cl_context context,
+               cl_device_id device);
 
+gal_data_t *
+gal_convolve_cl_unopt (gal_data_t *input_image, gal_data_t *kernel_image,
+             char *kernel_name, int noedgecorrect, size_t *channels,
+             int convoverch, cl_context context, cl_device_id device_id);
 
-
+#endif
 __END_C_DECLS    /* From C++ preparations */
-
 #endif

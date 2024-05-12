@@ -177,7 +177,7 @@ sky(struct statisticsparams *p)
     {
       if(!cp->quiet) gettimeofday(&t1, NULL);
       p->convolved=gal_convolve_spatial(tl->tiles, p->kernel,
-                                        cp->numthreads, 1,
+                                        cp->numthreads, tl->numchannels, 1,
                                         tl->workoverch, 0);
       if(p->checksky)
         gal_fits_img_write(p->convolved, p->checkskyname, NULL, 0);

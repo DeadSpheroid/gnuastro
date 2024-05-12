@@ -762,38 +762,51 @@ convolve_spatial(struct convolveparams *p)
   struct gal_options_common_params *cp=&p->cp;
 
 
-  /* Prepare the mesh structure. */
-  if(multidim) gal_tile_full_two_layers(p->input, &cp->tl);
+  // /* Prepare the mesh structure. */
+  // if(multidim) gal_tile_full_two_layers(p->input, &cp->tl);
 
-  /* Save the tile IDs if they are requested. */
-  if(multidim && cp->tl.tilecheckname)
-    {
-      check=gal_tile_block_check_tiles(cp->tl.tiles);
-      gal_fits_img_write(check, cp->tl.tilecheckname, NULL, 0);
-      gal_data_free(check);
-    }
+  // /* Save the tile IDs if they are requested. */
+  // if(multidim && cp->tl.tilecheckname)
+  //   {
+  //     check=gal_tile_block_check_tiles(cp->tl.tiles);
+  //     gal_fits_img_write(check, cp->tl.tilecheckname, NULL, 0);
+  //     gal_data_free(check);
+  //   }
 
   /* Do the spatial convolution. One of the main reason someone would
      want to do spatial domain convolution with this Convolve program
      is edge correction. So by default we assume it and will only
      ignore it if the user asks. */
-  out=gal_convolve_spatial(multidim ? cp->tl.tiles : p->input,
-                           p->kernel,
-                           cp->numthreads,
-                           multidim ? !p->noedgecorrection : 1,
-                           multidim ? cp->tl.workoverch : 1,
-                           p->conv_on_blank);
+  out = gal_convolve_spatial (p->input, p->kernel, cp->numthreads,
+                              cp->tl.numchannels, p->noedgecorrection,
+                              multidim ? cp->tl.workoverch : 1, p->conv_on_blank);
 
   /* Clean up: free the actual input and replace it's pointer with the
      convolved dataset to save as output. */
-  gal_tile_full_free_contents(&cp->tl);
+  // gal_tile_full_free_contents(&cp->tl);
   gal_data_free(p->input);
   p->input=out;
 }
 
+#if GAL_CONFIG_HAVE_OPENCL
+#define SRC_CONV "/home/warrenjacinto/Projects/gnuastro/lib/kernels/conv.cl"
+void convolve_cl(struct convolveparams *p)
+{
+  gal_data_t *out, *check;
+  int multidim=p->input->ndim>1;
+  struct gal_options_common_params *cp=&p->cp;
 
+  out = gal_convolve_cl_unopt (p->input, p->kernel, SRC_CONV, p->noedgecorrection,
+                     cp->tl.numchannels,
+                     multidim ? cp->tl.workoverch : 1,
+                     p->context, p->device_id);
 
-
+  /* Clean up: free the actual input and replace it's pointer with the
+     convolved dataset to save as output. */
+  gal_tile_full_free_contents(&cp->tl);
+  p->input=out;
+}
+#endif
 
 
 
@@ -819,7 +832,18 @@ convolve(struct convolveparams *p)
   struct gal_options_common_params *cp=&p->cp;
 
   /* Do the convolution. */
-  if(p->domain==CONVOLVE_DOMAIN_SPATIAL) convolve_spatial(p);
+  // printf("use_cl = %d\n", p->cl);
+  if(p->domain==CONVOLVE_DOMAIN_SPATIAL) 
+    {
+#if GAL_CONFIG_HAVE_OPENCL==1
+      if(p->cl==0)
+#endif
+        convolve_spatial(p);
+#if GAL_CONFIG_HAVE_OPENCL==1
+      else
+        convolve_cl(p);
+#endif
+    }
   else                                   convolve_frequency(p);
 
   /* Write Convolve's parameters as keywords into the first extension of

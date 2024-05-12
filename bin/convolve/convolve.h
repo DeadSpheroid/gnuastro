@@ -25,6 +25,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 
 #include <gnuastro/threads.h>
 #include <gsl/gsl_fft_complex.h>
+#if GAL_CONFIG_HAVE_OPENCL
+#include <gnuastro/cl-utils.h>
+#endif
 
 struct fftonthreadparams
 {

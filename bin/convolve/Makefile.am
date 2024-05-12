@@ -23,6 +23,9 @@
 AM_LDFLAGS  = -L\$(top_builddir)/lib
 AM_CPPFLAGS = -I\$(top_builddir)/bootstrapped/lib \
               -I\$(top_srcdir)/bootstrapped/lib \
+              -DPROG_SRC_DIR=\"$(top_srcdir)/bin/convolve\" \
+              -DSYSINCLUDE_DIR=\"$(prefix)/include/$(PACKAGE)\" \
+              -DCL_TARGET_OPENCL_VERSION=300 \
               -I\$(top_srcdir)/lib
 
 
@@ -39,7 +42,7 @@ astconvolve_SOURCES = main.c ui.c convolve.c
 
 EXTRA_DIST = main.h authors-cite.h args.h ui.h convolve.h
 
-
+pkginclude_HEADERS = astconvolve-conv.cl
 
 ## The configuration file (distribute and install).
 ## NOTE: the man page is created in doc/Makefile.am

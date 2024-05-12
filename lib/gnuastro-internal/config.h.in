@@ -39,6 +39,7 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 
 #define GAL_CONFIG_HAVE_PYTHON              @HAVE_PYTHON@
 #define GAL_CONFIG_HAVE_LIBGIT2             @HAVE_LIBGIT2@
+#define GAL_CONFIG_HAVE_OPENCL              @HAVE_OPENCL@
 #define GAL_CONFIG_HAVE_GNUMAKE_H           @HAVE_GNUMAKE_H@
 #define GAL_CONFIG_HAVE_WCSLIB_DIS_H        @HAVE_WCSLIB_DIS_H@
 #define GAL_CONFIG_HAVE_WCSLIB_MJDREF       @HAVE_WCSLIB_MJDREF@

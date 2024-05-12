@@ -40,6 +40,11 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <gnuastro/config.h>
 #endif
 
+#if GAL_CONFIG_HAVE_OPENCL
+#define CL_TARGET_OPENCL_VERSION 300
+#include <CL/cl.h>
+#endif
+
 #include <gnuastro/type.h>
 
 
@@ -220,6 +225,12 @@ typedef struct gal_data_t
   int             disp_fmt;  /* See 'gal_table_diplay_formats'.            */
   int           disp_width;  /* Width of space to print in ASCII.          */
   int       disp_precision;  /* Precision to print in ASCII.               */
+
+#if GAL_CONFIG_HAVE_OPENCL
+  cl_context       context;
+  int                  svm;
+#endif
+
 
   /* Pointers to other data structures. */
   struct gal_data_t  *next;  /* To use it as a linked list if necessary.   */

@@ -68,7 +68,7 @@ noisechisel_convolve(struct noisechiselparams *p)
           /* Make the convolved image. */
           if(!p->cp.quiet) gettimeofday(&t1, NULL);
           p->conv = gal_convolve_spatial(tl->tiles, p->kernel,
-                                         p->cp.numthreads, 1,
+                                         p->cp.numthreads, tl->numchannels, 1,
                                          tl->workoverch, 0);
 
           /* Report and write check images if necessary. */
@@ -107,7 +107,7 @@ noisechisel_convolve(struct noisechiselparams *p)
     {
       if(!p->cp.quiet) gettimeofday(&t1, NULL);
       p->wconv=gal_convolve_spatial(tl->tiles, p->widekernel,
-                                    p->cp.numthreads, 1,
+                                    p->cp.numthreads, tl->numchannels, 1,
                                     tl->workoverch, 0);
       gal_checkset_allocate_copy("CONVOLVED-WIDER", &p->wconv->name);
 

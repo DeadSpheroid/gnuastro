@@ -1140,7 +1140,7 @@ dimension_collapse_sortbased_conv(gal_data_t *work /*, int check*/)
   for(i=0;i<kernel->size;++i) karr[i]=1.0/kernel->size;
 
   /* Convolve the work array with the given kernel. */
-  out=gal_convolve_spatial(in, kernel, 1, 1, 0, 1);
+  out=gal_convolve_spatial(in, kernel, 1, NULL, 1, 0, 1);
 
   /* For a check.
   if(check)

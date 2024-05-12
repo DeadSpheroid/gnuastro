@@ -438,6 +438,8 @@ ui_read_column(struct convolveparams *p, int i0k1)
 static void
 ui_read_input(struct convolveparams *p)
 {
+  // clock_t start, end;
+  // start = clock();
   /* To see if we should read it as a table. */
   p->input=NULL;
 
@@ -462,6 +464,10 @@ ui_read_input(struct convolveparams *p)
      column. */
   if(p->input==NULL)
     p->input=ui_read_column(p, 0);
+  // end = clock();
+  // double time = ((double)(end - start) / CLOCKS_PER_SEC);
+  // printf ("  - Time taken in reading input from file: %lf\n",
+  //         time);
 }
 
 
@@ -473,6 +479,8 @@ ui_read_input(struct convolveparams *p)
 static void
 ui_read_kernel(struct convolveparams *p)
 {
+  // clock_t start, end;
+  // start = clock();
   /* Read the image into file. */
   if( p->kernelname
       && p->input->ndim>1
@@ -496,11 +504,11 @@ ui_read_kernel(struct convolveparams *p)
     error(EXIT_FAILURE, 0, "input and kernel must have the same number of "
           "dimensions, but they have %zu and %zu dimensions respectively",
           p->input->ndim, p->kernel->ndim);
+  // end = clock();
+  // double time = ((double)(end - start) / CLOCKS_PER_SEC);
+  // printf ("  - Time taken in reading kernel from file: %lf\n",
+  //         time);
 }
-
-
-
-
 
 static void
 ui_preparations(struct convolveparams *p)
@@ -710,11 +718,33 @@ static void
 ui_print_intro(struct convolveparams *p)
 {
   printf("%s started on %s", PROGRAM_NAME, ctime(&p->rawtime));
-  printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
   printf("  - Input: %s\n",
          gal_checkset_dataset_name(p->filename, p->cp.hdu));
   printf("  - Kernel: %s\n",
          gal_checkset_dataset_name(p->kernelname, p->khdu));
+
+#if GAL_CONFIG_HAVE_OPENCL
+  if(p->cl != 0)
+  {
+    const char* mode = "pthread CPU";
+    mode = (p->cl == 1)? "OpenCL GPU" : "OpenCL CPU";
+    printf("  - Mode of Operation: %s\n", mode);
+
+    char *device_name = gal_cl_get_device_name(p->device_id);
+    char *platform_name = gal_cl_get_platform_name(p->platform_id);
+
+    printf("  - Platform Selected: %s\n", platform_name);
+    printf("  - Device Selected: %s\n", device_name);
+    free(device_name);
+    free(platform_name);
+  }
+#endif
+
+  if(p->cl == 0)
+  {
+    printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
+  }
+
 }
 
 
@@ -771,6 +801,15 @@ ui_read_check_inputs_setup(int argc, char *argv[], struct convolveparams *p)
      be done after (possibly) printing the option values. */
   ui_check_options_and_arguments(p);
 
+#if GAL_CONFIG_HAVE_OPENCL
+  if (p->cl != 0)
+    {
+      gal_cl_init ((p->cl == 1) ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU,
+                   (cl_context *)&(p->context),
+                   (cl_platform_id *)&(p->platform_id),
+                   (cl_device_id *)&p->device_id);
+    }
+#endif
 
   /* Read/allocate all the necessary starting arrays. */
   ui_preparations(p);
@@ -810,8 +849,8 @@ ui_free_report(struct convolveparams *p, struct timeval *t1)
   free(p->khdu);
   free(p->cp.hdu);
   free(p->cp.output);
-  gal_data_free(p->input);
-  gal_data_free(p->kernel);
+  // gal_data_free(p->input);
+  // gal_data_free(p->kernel);
 
   /* Print the final message. */
   if(!p->cp.quiet)
