@@ -354,14 +354,14 @@ AS_IF([test "x$LIBM" = x], [],
 
 AC_LIB_HAVE_LINKFLAGS([OpenCL], [], [#include <CL/cl.h>])
 AS_IF([test "x$LIBOPENCL" = x],
-      [missing_optional_lib=yes; has_ocl=0;
+      [missing_optional_lib=yes; has_ocl=0; anywarnings=yes;
       AS_ECHO(["CL Not found"])],
       [
        LIBS="$LIBOPENCL $LIBS"
        has_ocl=1;
        AS_IF([ test "x$enable_shared" = "xno" ],
-             [LDADD="-lsvml -lintlc -lirng -limf $LIBOPENCL   $LDADD"],
-             [LDADD="-lsvml -lintlc -lirng -limf $LTLIBOPENCL $LDADD"]) 
+             [LDADD="$LIBOPENCL   $LDADD"],
+             [LDADD="$LTLIBOPENCL $LDADD"]) 
        AS_ECHO(["CL Found"])])
 AM_CONDITIONAL([COND_HASOPENCL], [test "x$has_ocl" = "x1"])
 AC_DEFINE_UNQUOTED([GAL_CONFIG_HAVE_OPENCL],
@@ -906,6 +906,8 @@ AS_IF([test "x$missing_mandatory" = "xyes"],
                       [ AS_ECHO([" - Missing cURL: https://curl.haxx.se"])                        ])
 dnl             AS_IF([test "x$has_numpy" = "x0"],
 dnl                   [ AS_ECHO([" - Missing Numpy (for Python wrappers): https://numpy.org"])    ])
+                AS_IF([test "x$has_ocl" = "x0"], 
+                      [ AS_ECHO([" - Missing OpenCL (for GPU access)"])])
                 AS_IF([test "x$has_ds9" = "xno"],
                       [ AS_ECHO([" - Missing SAO DS9: https://sites.google.com/cfa.harvard.edu/saoimageds9"]) ])
                 AS_IF([test "x$has_topcat" = "xno"],

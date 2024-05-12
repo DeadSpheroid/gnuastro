@@ -63,15 +63,15 @@ gal_cl_kernel_create(char *name, char *function_name, char *core_name,
 /*********************************************************************/
 /*************            data transfer            *******************/
 /*********************************************************************/
-cl_mem
+void
 gal_cl_copy_array_to_device(gal_data_t * in, cl_mem *input_mem_obj, cl_context context, 
                         cl_command_queue command_queue, int device);
 
-cl_mem
+void
 gal_cl_copy_dsize_to_device(gal_data_t * in, cl_mem *input_mem_obj, cl_context context, 
                         cl_command_queue command_queue, int device);
 
-cl_mem
+void
 gal_cl_copy_struct_to_device(gal_data_t *in, cl_mem *input_mem_obj, cl_context context, 
                         cl_command_queue command_queue, int device);
 
