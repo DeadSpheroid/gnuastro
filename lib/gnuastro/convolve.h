@@ -26,6 +26,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 /* Include other headers if necessary here. Note that other header files
    must be included before the C++ preparations below */
 #include <gnuastro/data.h>
+#ifndef IN_GNUASTRO_BUILD
+#include <gnuastro/config.h>
+#endif
 
 /* C++ Preparations */
 #undef __BEGIN_C_DECLS
@@ -56,6 +59,10 @@ gal_convolve_spatial_correct_ch_edge(gal_data_t *tiles, gal_data_t *kernel,
                                      int conv_on_blank,
                                      gal_data_t *tocorrect);
 
+gal_data_t *
+gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image, 
+            char * cl_kernel_name, char * function_name, char * core_name,
+            size_t global_item_size, size_t local_item_size, int device);
 
 
 __END_C_DECLS    /* From C++ preparations */
