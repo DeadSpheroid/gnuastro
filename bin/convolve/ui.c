@@ -704,11 +704,19 @@ static void
 ui_print_intro(struct convolveparams *p)
 {
   printf("%s started on %s", PROGRAM_NAME, ctime(&p->rawtime));
-  printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
+  // printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
   printf("  - Input: %s\n",
          gal_checkset_dataset_name(p->filename, p->cp.hdu));
   printf("  - Kernel: %s\n",
          gal_checkset_dataset_name(p->kernelname, p->khdu));
+  const char* mode = "pthread CPU";
+  if(p->cl != 0){
+    mode = (p->cl == 1)? "OpenCL GPU" : "OpenCL CPU";
+  }
+  printf("  - Mode of Operation: %s\n", mode);
+  if(p->cl == 0){
+    printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
+  }
 }
 
 

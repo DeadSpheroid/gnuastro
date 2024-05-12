@@ -360,8 +360,8 @@ AS_IF([test "x$LIBOPENCL" = x],
        LIBS="$LIBOPENCL $LIBS"
        has_ocl=1;
        AS_IF([ test "x$enable_shared" = "xno" ],
-             [LDADD="-lsvml -lintlc -lirng -limf $LIBOPENCL   $LDADD"],
-             [LDADD="-lsvml -lintlc -lirng -limf $LTLIBOPENCL $LDADD"]) 
+             [LDADD="$LIBOPENCL   $LDADD"],
+             [LDADD="$LTLIBOPENCL $LDADD"]) 
        AS_ECHO(["CL Found"])])
 AM_CONDITIONAL([COND_HASOPENCL], [test "x$has_ocl" = "x1"])
 AC_DEFINE_UNQUOTED([GAL_CONFIG_HAVE_OPENCL],

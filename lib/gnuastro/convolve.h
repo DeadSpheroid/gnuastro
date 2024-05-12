@@ -59,6 +59,8 @@ gal_convolve_spatial_correct_ch_edge(gal_data_t *tiles, gal_data_t *kernel,
                                      int conv_on_blank,
                                      gal_data_t *tocorrect);
 
+#if GAL_CONFIG_HAVE_OPENCL
+
 gal_data_t *
 gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image, 
             char * cl_kernel_name, char * function_name, char * core_name,
@@ -66,5 +68,5 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
 
 
 __END_C_DECLS    /* From C++ preparations */
-
+#endif
 #endif

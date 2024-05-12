@@ -188,6 +188,19 @@ struct argp_option program_options[] =
       GAL_OPTIONS_NOT_SET
     },
     {
+      "cl",
+      UI_KEY_CL,
+      "INT",
+      0,
+      "use OpenCL: gpu->'1', cpu->'2', (default)pthread->'0'",
+      GAL_OPTIONS_GROUP_OPERATING_MODE,
+      &p->cl,
+      GAL_TYPE_UINT8,
+      GAL_OPTIONS_RANGE_ANY,
+      GAL_OPTIONS_NOT_MANDATORY,
+      GAL_OPTIONS_NOT_SET
+    },
+    {
       "makekernel",
       UI_KEY_MAKEKERNEL,
       "INT",

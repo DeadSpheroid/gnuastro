@@ -792,6 +792,40 @@ convolve_spatial(struct convolveparams *p)
 }
 
 
+#define SRC_CONV SYSINCLUDE_DIR "/astconvolve-conv.cl"
+// #define MAGIC(x) #x
+void convolve_cl(struct convolveparams *p)
+{
+  gal_data_t *out, *check;
+  int multidim=p->input->ndim>1;
+  struct gal_options_common_params *cp=&p->cp;
+  // char *src_conv = MAGIC(#include "astconvolve-conv.cl");
+  /* Do the spatial convolution. One of the main reason someone would
+     want to do spatial domain convolution with this Convolve program
+     is edge correction. So by default we assume it and will only
+     ignore it if the user asks. */
+  // out=gal_convolve_spatial(multidim ? cp->tl.tiles : p->input,
+  //                          p->kernel,
+  //                          cp->numthreads,
+  //                          multidim ? !p->noedgecorrection : 1,
+  //                          multidim ? cp->tl.workoverch : 1,
+  //                          p->conv_on_blank);
+  if(p->cl==1)
+  {
+    out = gal_conv_cl(p->input,p->kernel, SRC_CONV, "convolution", "conv_core.h", p->input->size, 128, 1);
+  }
+  else
+  {
+    out = gal_conv_cl(p->input,p->kernel, SRC_CONV, "convolution", "conv_core.h", p->input->size, 128, 2);
+  }
+
+  /* Clean up: free the actual input and replace it's pointer with the
+     convolved dataset to save as output. */
+  gal_tile_full_free_contents(&cp->tl);
+  gal_data_free(p->input);
+  p->input=out;
+}
+
 
 
 
@@ -819,7 +853,14 @@ convolve(struct convolveparams *p)
   struct gal_options_common_params *cp=&p->cp;
 
   /* Do the convolution. */
-  if(p->domain==CONVOLVE_DOMAIN_SPATIAL) convolve_spatial(p);
+  // printf("use_cl = %d\n", p->cl);
+  if(p->domain==CONVOLVE_DOMAIN_SPATIAL) 
+    {
+      if(p->cl==0)
+        convolve_spatial(p);
+      else
+        convolve_cl(p);
+    }
   else                                   convolve_frequency(p);
 
   /* Write Convolve's parameters as keywords into the first extension of

@@ -33,6 +33,7 @@ if COND_HASOPENCL
   $(info "Found OpenCL")
   MAYBE_CL = cl_utils.c
   MAYBE_CL_H = $(headersdir)/cl_utils.h
+  MAYBE_CONVOLVE_CL = cl_convolve.c
 else
   $(info "What is opencl?")
 endif
@@ -77,8 +78,7 @@ lib_LTLIBRARIES = libgnuastro.la $(MAYBE_GNUMAKE)
 # Linking flags for the Gnuastro library.
 libgnuastro_la_LIBADD = $(top_builddir)/bootstrapped/lib/libgnu.la
 libgnuastro_la_LDFLAGS = -version-info $(GAL_LT_VERSION) $(CONFIG_LDADD) \
-                         -lc -no-undefined \
-                         -L/opt/intel/oneapi/2024.1/lib
+                         -lc -no-undefined
 
 # Gnuastro's GNU Make extensions
 libgnuastro_make_la: libgnuastro.la
@@ -93,6 +93,7 @@ libgnuastro_la_SOURCES = \
   $(MAYBE_NUMPY_C) \
   $(MAYBE_WCSDISTORTION) \
   $(MAYBE_CL) \
+  $(MAYBE_CONVOLVE_CL) \
   arithmetic.c \
   arithmetic-and.c \
   arithmetic-bitand.c \
@@ -118,7 +119,6 @@ libgnuastro_la_SOURCES = \
   blank.c \
   box.c \
   checkset.c \
-  cl_convolve.c \
   color.c \
   convolve.c \
   cosmology.c \

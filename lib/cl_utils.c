@@ -1,6 +1,7 @@
 #include <config.h>
 #include <stdio.h>
-#include <stddef.h>
+#include <stdlib.h>
+
 #include <gnuastro/cl_utils.h>
 
 /*********************************************************************/
@@ -65,7 +66,7 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
     }
     else
     {
-        printf("Using platform: %s\n", buffer);
+        printf("  - Using platform: %s\n", buffer);
     }
 
     ret = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), (void *)buffer, NULL);
@@ -75,12 +76,16 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
     }
     else
     {
-        printf("Using device: %s\n\n", buffer);
+        printf("  - Using device: %s\n\n", buffer);
     }
 
     *context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
-    *command_queue = clCreateCommandQueueWithProperties(*context, device_id, 0, &ret);
-
+    printf("There\n");
+    *command_queue = clCreateCommandQueueWithProperties(*context, device_id, CL_QUEUE_PROFILING_ENABLE, &ret);
+    if(ret != CL_SUCCESS){
+        printf("Error in creating command queue, code %d", ret);
+    }
+    printf("Here");
     // FILE *coreFile = fopen(core_name, "r");
     // FILE *kernelFile = fopen(kernel_name, "r");
 
@@ -100,7 +105,7 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
 
     size_t kernel_size = fread(result, 1, MAX_SOURCE_SIZE, kernelFile);
     fclose(kernelFile);
-
+    
     program = clCreateProgramWithSource(*context, 1,
                                         (const char **)&result,
                                         (const size_t *)&kernel_size, &ret);

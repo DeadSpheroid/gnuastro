@@ -66,6 +66,7 @@ enum option_keys_enum
   UI_KEY_NOKERNELFLIP,
   UI_KEY_NOKERNELNORM,
   UI_KEY_NOEDGECORRECTION,
+  UI_KEY_CL
 };
 
 
