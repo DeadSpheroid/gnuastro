@@ -989,8 +989,9 @@ dimension_collapse_sortbased_fill(struct dimension_sortbased_p *p,
                                   gal_data_t *conv, uint8_t clipflags,
                                   size_t wdsize, int check)
 {
-  size_t one=1;
   int std1_mad0=0;
+  uint8_t *u, *uf;
+  size_t one=1, sumflag;
   float *farr=fstat->array;
   gal_data_t *formask=conv?conv:work, *out=NULL;
   gal_data_t *tmp, *multip, *upper, *lower, *center, *spread;
@@ -1075,6 +1076,13 @@ dimension_collapse_sortbased_fill(struct dimension_sortbased_p *p,
   gal_binary_holes_fill(tmp, formask->ndim, -1);
   tmp=gal_binary_erode(tmp, 2, formask->ndim, 1);
   tmp=gal_binary_dilate(tmp, formask->ndim==1?4:2, formask->ndim, 1);
+
+  /* If the covered area is larger than a certain fraction of the
+     area, flag the whole dataset. */
+  sumflag=0;
+  uf=(u=tmp->array)+tmp->size; do sumflag+=*u; while(++u<uf);
+  if(sumflag>0.95*tmp->size)
+    {uf=(u=tmp->array)+tmp->size; do *u=1; while(++u<uf);}
 
   /* Apply the flag onto the input (to set the pixels to NaN). */
   gal_blank_flag_apply(work, tmp);

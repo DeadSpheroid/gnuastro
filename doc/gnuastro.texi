@@ -22016,7 +22016,12 @@ $ astarithmetic image.fits medianvalue -q
 @item sigclip-maskfilled
 Mask (set to blank/NaN) all the outlying elements (defined by @mymath{\sigma} or MAD clipping) in the inputs and put all the inputs back on the stack.
 The first popped operand is the termination criteria of the clipping, the second popped operand is the multiple of @mymath{\sigma} or MAD and the third is the number of input datasets that will be popped for the actual operation.
-If you are not yet familiar with these @mymath{\sigma} or MAD clipping, it is recommended to read this tutorial: @ref{Clipping outliers}.
+If you are not yet familiar with @mymath{\sigma} or MAD clipping, it is recommended to read this tutorial: @ref{Clipping outliers}.
+
+When more than 95@mymath{\%} of the area of an operand is masked, the full operand will be masked.
+This is necesasry in like this: one of your inputs has many outliers (for example it is much more noisy than the rest or its sky level has not been subtracted properly).
+Because this operator fills holes between outlying pixels, most of the area of the input will be masked, but the thin edges (where there are no ``holes'') will remain, causing different statistics in those thin edges of that input in your final stack.
+Through this mask coverage fraction (which is currently hard-coded@footnote{Please get in touch with us at @code{bug-gnuastro@@gnu.org} if you notice this problem and feel the fraction needs to be lowered (or generally to be set in each run).}), we ensure that such thin edges do not cause artifacts in the final stack.
 
 For example, with the second command below, we are masking the MAD clipped pixels of the 9 inputs (that are generated in @ref{Clipping outliers}) and writing them as separate HDUs of the output.
 The clipping is done with 5 times the MAD and the clipping starts when the relative difference between subsequent MADs is 0.01.
@@ -22721,6 +22726,11 @@ The MAD-clipping parameters (namely, the multiple of sigma and termination crite
 This is the most robust method to reject outliers; for more on filled re-clipping and its advantages, see @ref{Contiguous outliers}.
 For a more general tutorial on rejecting outliers, see @ref{Clipping outliers}.
 If you have not done this tutorial yet, we recommend you to take an hour or so and go through that tutorial for optimal understanding and results.
+
+When more than 95@mymath{\%} of the area of an operand is masked, the full operand will be masked.
+This is necesasry in like this: one of your inputs has many outliers (for example it is much more noisy than the rest or its sky level has not been subtracted properly).
+Because this operator fills holes between outlying pixels, most of the area of the input will be masked, but the thin edges (where there are no ``holes'') will remain, causing different statistics in those thin edges of that input in your final stack.
+Through this mask coverage fraction (which is currently hard-coded@footnote{Please get in touch with us at @code{bug-gnuastro@@gnu.org} if you notice this problem and feel the fraction needs to be lowered (or generally to be set in each run).}), we ensure that such thin edges do not cause artifacts in the final stack.
 
 For example, with the command below, the pixels of the input 2 dimensional @file{image.fits} will be collapsed to a single dimension output.
 The first popped operand is @code{2}, so it will collapse all the pixels that are vertically on top of each other.

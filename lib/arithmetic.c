@@ -2509,12 +2509,13 @@ arithmetic_multioperand_clip_mask_worker(void *in_prm)
     (struct arithmetic_multioperand_clip_mask_params *)tprm->params;
 
   /* Subsequent definitions. */
+  uint8_t *u, *uf;
   gal_data_t *use, *tmp;
-  size_t i, index, counter, ndim=p->list->ndim;
+  size_t i, index, counter, sumflag, ndim=p->list->ndim;
   int aflags=GAL_ARITHMETIC_FLAG_NUMOK; /* Don't free the inputs. */
 
-  /* Go over all the actions (pixels in this case) that were assigned to
-     this thread. */
+  /* Go over all the actions (input datasets in this case) that were
+     assigned to this thread. */
   for(i=0; tprm->indexs[i] != GAL_BLANK_SIZE_T; ++i)
     {
       /* For easy reading. */
@@ -2541,6 +2542,13 @@ arithmetic_multioperand_clip_mask_worker(void *in_prm)
       gal_binary_holes_fill(tmp, ndim, tmp->size/50);
       tmp=gal_binary_erode(tmp, 2, ndim, 1);
       tmp=gal_binary_dilate(tmp, 2, ndim, 1);
+
+      /* If the covered area is larger than a certain fraction of the
+         area, flag the whole dataset. */
+      sumflag=0;
+      uf=(u=tmp->array)+tmp->size; do sumflag+=*u; while(++u<uf);
+      if(sumflag>0.95*tmp->size)
+        {uf=(u=tmp->array)+tmp->size; do *u=1; while(++u<uf);}
 
       /* Set all the 1-valued pixels in the binary image to NaN in the
          input. */
