@@ -1741,7 +1741,6 @@ gal_statistics_no_blank_sorted(gal_data_t *input, int inplace)
         }
       else contig=input;
 
-
       /* Make sure there are no blanks in the array that will be
          used. After this step, we won't be dealing with 'input' any more,
          but with 'noblank'. */
@@ -2829,11 +2828,12 @@ statistics_clip(gal_data_t *input, float multip, float param,
   /* Measure and report the remaining elements if requested. */
   if(extrastats) statistics_clip_stats_extra(nbs, oa, extrastats);
 
-  /* Clean up and return. */
+  /* Fix the 'array' pointer, clean up and return. */
   nbs->array=nbs_array;
   gal_data_free(center_i);
   gal_data_free(spread_i);
-  if(nbs!=input) gal_data_free(nbs);
+  if(nbs==input) input->array=nbs->array;
+  else           gal_data_free(nbs);
   return out;
 }
 

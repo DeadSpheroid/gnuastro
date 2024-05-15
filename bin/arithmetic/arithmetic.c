@@ -1513,7 +1513,7 @@ arithmetic_set_operator(char *string, size_t *num_operands, int *inlib)
       else if (!strcmp(string, "collapse-mean"))
         { op=ARITHMETIC_OP_COLLAPSE_MEAN;         *num_operands=0; }
       else if (!strcmp(string, "collapse-number"))
-        { op=ARITHMETIC_OP_COLLAPSE_MEDIAN;       *num_operands=0; }
+        { op=ARITHMETIC_OP_COLLAPSE_NUMBER;       *num_operands=0; }
       else if (!strcmp(string, "collapse-median"))
         { op=ARITHMETIC_OP_COLLAPSE_MEDIAN;       *num_operands=0; }
       else if (!strcmp(string, "collapse-madclip-mad"))

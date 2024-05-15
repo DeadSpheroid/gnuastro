@@ -181,6 +181,9 @@ See the end of the file for license conditions.
     even when the output is not FITS (plain-text or on the standard
     output). Reported by Sepideh Eskandarlou.
 
+  - bug #65743: Arithmetic's collapse-number mistakenly calculating
+    collapse-median instead. Reported by Sepideh Eskandarlou.
+
 
 
 

@@ -81,8 +81,8 @@ gal_data_alloc(void *array, uint8_t type, size_t ndim, size_t *dsize,
           __func__, sizeof *out);
 
   /* Initialize the allocated array. */
-  gal_data_initialize(out, array, type, ndim, dsize, wcs, clear, minmapsize,
-                      quietmmap, name, unit, comment);
+  gal_data_initialize(out, array, type, ndim, dsize, wcs, clear,
+                      minmapsize, quietmmap, name, unit, comment);
 
   /* Return the final structure. */
   return out;

@@ -918,7 +918,7 @@ dimension_csb_copy(gal_data_t *in, size_t from, gal_data_t *work,
 static gal_data_t *
 dimension_collapse_sortbased_operation(struct dimension_sortbased_p *p,
                                        gal_data_t *work, uint8_t clipflags,
-                                       uint8_t isfill)
+                                       uint8_t isfill, size_t wdsize)
 {
   gal_data_t *out=NULL;
 
@@ -928,6 +928,7 @@ dimension_collapse_sortbased_operation(struct dimension_sortbased_p *p,
     case DIMENSION_COLLAPSE_MEDIAN:
       out=gal_statistics_median(work, 1);
       break;
+
     case DIMENSION_COLLAPSE_MADCLIP_MAD:
     case DIMENSION_COLLAPSE_MADCLIP_STD:
     case DIMENSION_COLLAPSE_MADCLIP_MEAN:
@@ -941,8 +942,8 @@ dimension_collapse_sortbased_operation(struct dimension_sortbased_p *p,
       /* When we are dealing with a clip-fill operator, the order of
          the elements matter, so we don't want it to be done inplace.*/
       out=gal_statistics_clip_mad(work, p->sclipmultip,
-                                   p->sclipparam, clipflags,
-                                   isfill?0:1, 1);
+                                  p->sclipparam, clipflags,
+                                  isfill?0:1, 1);
       break;
 
     case DIMENSION_COLLAPSE_SIGCLIP_MAD:
@@ -967,6 +968,13 @@ dimension_collapse_sortbased_operation(struct dimension_sortbased_p *p,
             "recognized", __func__, PACKAGE_BUGREPORT, p->operator);
     }
 
+  /* All the statistical operators that are based on sorting will free the
+     input array if it doesn't have any elements! But we are re-using the
+     'work' array many times. So we need to re-allocate the array here. */
+  if(work->array==NULL)
+    work->array=gal_pointer_allocate(work->type, wdsize, 0, __func__,
+                                     "work->array");
+
   /* Return the output. */
   return out;
 }
@@ -979,7 +987,7 @@ static gal_data_t *
 dimension_collapse_sortbased_fill(struct dimension_sortbased_p *p,
                                   gal_data_t *fstat, gal_data_t *work,
                                   gal_data_t *conv, uint8_t clipflags,
-                                  int check)
+                                  size_t wdsize, int check)
 {
   size_t one=1;
   int std1_mad0=0;
@@ -1087,7 +1095,8 @@ dimension_collapse_sortbased_fill(struct dimension_sortbased_p *p,
   /* Apply the operation: note that 'isfill' is zero here because we don't
      care about the order of elements any more ('isfill' is only used to do
      the operation inplace or not). */
-  out=dimension_collapse_sortbased_operation(p, work, clipflags, 0);
+  out=dimension_collapse_sortbased_operation(p, work, clipflags, 0,
+                                             wdsize);
 
   /* Clean up and return. */
   gal_data_free(tmp);
@@ -1289,13 +1298,15 @@ dimension_collapse_sortbased_worker(void *in_prm)
 
       /* Do the necessary statistical operation. */
       stat=dimension_collapse_sortbased_operation(p, conv?conv:work,
-                                                  clipflags, isfill);
+                                                  clipflags, isfill,
+                                                  wdsize);
 
       /* If this is a "filling" operation, then repeat the operation with
          the fill. */
       if(isfill)
         stat=dimension_collapse_sortbased_fill(p, stat, work, conv,
-                                               clipflags, index==-1);
+                                               clipflags, wdsize,
+                                               index==-1);
 
       /* Set the index in the output 'stat' array. These can't be set in
          the main operation 'switch' because the functions are different,
