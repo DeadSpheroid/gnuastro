@@ -104,7 +104,7 @@ gal_pdf_write(gal_data_t *in, char *filename, float widthincm,
               int dontoptimize, gal_data_t *marks)
 {
   size_t w_h_in_pt[2];
-  char *command, *device;
+  char *device, *devwp, *devhp, *devopt;
   char *epsname=gal_checkset_malloc_cat(filename, ".ps");
 
   /* Write the EPS file. */
@@ -118,22 +118,27 @@ gal_pdf_write(gal_data_t *in, char *filename, float widthincm,
   if(gal_jpeg_name_is_jpeg(filename)) device="jpeg";
   else                                device="pdfwrite";
 
-  /* Write the ghostscript command to compile the EPS file to PDF. */
-  if( asprintf(&command, "gs -q -o %s -sDEVICE=%s "
-               "-dDEVICEWIDTHPOINTS=%zu -dDEVICEHEIGHTPOINTS=%zu "
-               "-dPDFFitPage %s", filename, device,
-               w_h_in_pt[0]+2*borderwidth, w_h_in_pt[1]+2*borderwidth,
-               epsname)<0 )
+  /* Build the necessary strings. */
+  if( asprintf(&devwp, "-dDEVICEWIDTHPOINTS=%zu",
+               w_h_in_pt[0]+2*borderwidth)<0 )
+    error(EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
+  if( asprintf(&devhp, "-dDEVICEHEIGHTPOINTS=%zu",
+               w_h_in_pt[1]+2*borderwidth)<0 )
+    error(EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
+  if( asprintf(&devopt, "-sDEVICE=%s", device)<0 )
     error(EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
 
-  /* Run Ghostscript. */
-  if(system(command))
+  /* Run Ghostscript (if the command changes, also change the command in
+     the error message). */
+  if( execl(PATH_GHOSTSCRIPT, "gs", "-q", "-o", filename, devopt,
+            devwp, devhp, "-dPDFFitPage", epsname, (char *)0) )
     error(EXIT_FAILURE, 0, "the Ghostscript command (printed after "
           "this message) to convert the EPS file to PDF was not "
           "successful! The EPS file ('%s') is left if you want to "
           "convert it through any other means (for example the "
-          "'epspdf' program). The Ghostscript command was: %s",
-          epsname, command);
+          "'epspdf' program). The Ghostscript command was: %s "
+          "-q -o %s %s %s %s -dPDFFitPage %s", PATH_GHOSTSCRIPT,
+          epsname, filename, devopt, devwp, devhp, epsname);
 
   /* Delete the EPS file. */
   errno=0;
@@ -141,6 +146,8 @@ gal_pdf_write(gal_data_t *in, char *filename, float widthincm,
     error(EXIT_FAILURE, errno, "%s", epsname);
 
   /* Clean up. */
-  free(command);
+  free(devhp);
+  free(devwp);
+  free(devopt);
   free(epsname);
 }

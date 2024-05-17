@@ -736,7 +736,10 @@ AS_IF([test "x$has_ghostscript" = "xyes"],
       [AC_MSG_CHECKING(Ghostscript version)
        gsversion=$(gs --version)
        AX_COMPARE_VERSION([9.10], [gt], [$gsversion], [has_ghostscript=no])
-       AC_MSG_RESULT( $gsversion )])
+       AC_MSG_RESULT( $gsversion )
+       AC_DEFINE_UNQUOTED([PATH_GHOSTSCRIPT], ["$(which gs)"],
+                          [Location of the host system's Ghostscript binary])
+       ])
 # Note: 'has_ghostscript' can be set to 'no' within the AS_IF above, so
 # 'anywarnings' cannot be an [RUN-IF-FALSE] argument to the AS_IF above.
 AS_IF([test "x$has_ghostscript" = "xno"], [anywarnings=yes])
