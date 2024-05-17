@@ -28,6 +28,7 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include <gnuastro/eps.h>
 #include <gnuastro/pdf.h>
@@ -103,6 +104,8 @@ gal_pdf_write(gal_data_t *in, char *filename, float widthincm,
               uint32_t borderwidth, uint8_t bordercolor,
               int dontoptimize, gal_data_t *marks)
 {
+  pid_t pid;
+  int childstat=0;
   size_t w_h_in_pt[2];
   char *device, *devwp, *devhp, *devopt;
   char *epsname=gal_checkset_malloc_cat(filename, ".ps");
@@ -129,16 +132,33 @@ gal_pdf_write(gal_data_t *in, char *filename, float widthincm,
     error(EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
 
   /* Run Ghostscript (if the command changes, also change the command in
-     the error message). */
-  if( execl(PATH_GHOSTSCRIPT, "gs", "-q", "-o", filename, devopt,
-            devwp, devhp, "-dPDFFitPage", epsname, (char *)0) )
-    error(EXIT_FAILURE, 0, "the Ghostscript command (printed after "
-          "this message) to convert the EPS file to PDF was not "
-          "successful! The EPS file ('%s') is left if you want to "
-          "convert it through any other means (for example the "
-          "'epspdf' program). The Ghostscript command was: %s "
-          "-q -o %s %s %s %s -dPDFFitPage %s", PATH_GHOSTSCRIPT,
-          epsname, filename, devopt, devwp, devhp, epsname);
+     the error message). We are not using the 'system()' command because
+     that call '/bin/sh', which may not always be usable within the running
+     environment; see https://savannah.nongnu.org/bugs/?65677.
+
+     For a very nice summary on fork/execl, see the first answer in the
+     link below.
+     https://stackoverflow.com/questions/4204915/please-explain-the-exec-function-and-its-family
+
+     In summary: the child gets 'pid=0' and the parent gets the process ID
+     of the child. The parent then waits for the child to finish and
+     continues. */
+  pid=fork();
+  if(pid<0) error(EXIT_FAILURE, 0, "%s: could not build fork", __func__);
+  if(pid==0)
+    execl(PATH_GHOSTSCRIPT, "gs", "-q", "-o", filename, devopt,
+          devwp, devhp, "-dPDFFitPage", epsname, NULL);
+  else waitpid(pid, &childstat, 0);
+  if(childstat)
+    error(EXIT_FAILURE, 0, "the Ghostscript command (printed at the "
+          "end of this message) to convert/compile the EPS file (made "
+          "by Gnuastro) to PDF was not successful (Ghostscript returned "
+          "with status %d; its error message is shown above)! The EPS "
+          "file ('%s') is left if you want to convert it through any "
+          "other means (for example the 'epspdf' program). The "
+          "Ghostscript command was: %s -q -o %s %s %s %s -dPDFFitPage "
+          "%s", childstat, epsname, PATH_GHOSTSCRIPT, filename, devopt,
+          devwp, devhp, epsname);
 
   /* Delete the EPS file. */
   errno=0;
