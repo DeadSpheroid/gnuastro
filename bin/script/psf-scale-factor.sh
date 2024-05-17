@@ -374,9 +374,10 @@ $scriptname: no center coordinates provided. You can specify the object's centra
 EOF
     exit 1
 else
-    ncenter=$(echo $center | awk 'BEGIN{FS=","} \
-                                  {for(i=1;i<=NF;++i) c+=$i!=""} \
-                                  END{print c}')
+    ncenter=$(echo $center \
+                  | awk 'BEGIN{FS=","} \
+                         {for(i=1;i<=NF;++i) c+=$i!=""} \
+                         END{print c}')
     if [ x$ncenter != x2 ]; then
         cat <<EOF
 $scriptname: '--center' (or '-c') only takes two values, but $ncenter were given in '$center'
@@ -387,9 +388,10 @@ fi
 
 # If x-shifts is provided.
 if [ x"$xshifts" != x ]; then
-    nxshifts=$(echo $xshifts | awk 'BEGIN{FS=","} \
-                                   {for(i=1;i<=NF;++i) c+=$i!=""} \
-                                   END{print c}')
+    nxshifts=$(echo $xshifts \
+                   | awk 'BEGIN{FS=","} \
+                          {for(i=1;i<=NF;++i) c+=$i!=""} \
+                          END{print c}')
     if [ x$nxshifts != x3 ]; then
         cat <<EOF
 $scriptname: '--xshifts' (or '-x') takes three values (xmin,xstep,xmax), but $nxshifts were given in '$xshifts'
@@ -397,7 +399,9 @@ EOF
         exit 1
     fi
     xstep=""
-    xstep=$(echo $xshifts | awk 'BEGIN{FS=","} {if ($2 <= 0.0) print "xstep <= 0.0"}')
+    xstep=$(echo $xshifts \
+                | awk 'BEGIN{FS=","} \
+                       {if ($2 <= 0.0) print "xstep <= 0.0"}')
     if [ x"$xstep" != x ]; then
         cat <<EOF
 $scriptname: the 'xstep' from the option --xshifts=xmin,xstep,xmax (or '-x') is equal or lower than zero ($xshifts), but it has to be a value above zero
@@ -412,9 +416,10 @@ fi
 
 # If y-shifts is provided.
 if [ x"$yshifts" != x ]; then
-    nyshifts=$(echo $yshifts | awk 'BEGIN{FS=","} \
-                                   {for(i=1;i<=NF;++i) c+=$i!=""} \
-                                   END{print c}')
+    nyshifts=$(echo $yshifts \
+                   | awk 'BEGIN{FS=","} \
+                          {for(i=1;i<=NF;++i) c+=$i!=""} \
+                          END{print c}')
     if [ x$nyshifts != x3 ]; then
         cat <<EOF
 $scriptname: '--yshifts' (or '-x') takes three values (xmin,xstep,xmax), but $nyshifts were given in '$yshifts'
@@ -422,7 +427,9 @@ EOF
         exit 1
     fi
     xstep=""
-    xstep=$(echo $yshifts | awk 'BEGIN{FS=","} {if ($2 <= 0.0) print "ystep <= 0.0"}')
+    xstep=$(echo $yshifts \
+                | awk 'BEGIN{FS=","} \
+                       {if ($2 <= 0.0) print "ystep <= 0.0"}')
     if [ x"$xstep" != x ]; then
         cat <<EOF
 $scriptname: the 'ystep' from the option --yshifts=xmin,ystep,xmax (or '-y') is equal or lower than zero ($yshifts), but it has to be a value above zero
@@ -488,6 +495,7 @@ normradiusmax=$(echo "$normradii" | awk 'BEGIN{FS=","} {print $2}')
 # With the center coordinates, generate a specific label for the object
 # consisting in its coordinates.
 objectid="$xcoord"_"$ycoord"
+
 
 
 
@@ -562,22 +570,23 @@ if [ "$mode" = wcs ]; then
     cdelt2=$(astfits $inputs --hdu=$hdu --pixelscale --quiet | awk '{print $2}')
 
 else
-    # In principle, the PSF does not have WCS information. Here, fake WCS info
-    # is included in order to use warp and center/re-size the PSF to the same
-    # size than the warped image. Fake WCS is constructed as follow: reference
-    # pixel is the center pixel. This pixel is assigned to be RA, Dec = 180.0,
-    # 0.0 deg. Pixel scale is set to 1.0 arcsec/pixel in both axis.
+    # In principle, the PSF does not have WCS information. Here, fake WCS
+    # info is included in order to use warp and center/re-size the PSF to
+    # the same size than the warped image. The fake WCS is constructed as
+    # follows: reference pixel is the center pixel. This pixel is assigned
+    # to be RA, Dec = 180.0, 0.0 deg. Pixel scale is set to 1.0
+    # arcsec/pixel in both axis.
     crval1=180.0
     crval2=0.0
     cdelt1=1.0
     cdelt2=1.0
+
     # For the IMAGE: center coordinates in wcs and img
+    fake_wcs=$tmpdir/fake-wcs-$objectid.fits
     naxis1=$(astfits $inputs --hdu=$hdu --keyval NAXIS1 --quiet)
     naxis2=$(astfits $inputs --hdu=$hdu --keyval NAXIS2 --quiet)
     center1=$(echo $naxis1 | awk '{print $1/2}')
     center2=$(echo $naxis2 | awk '{print $1/2}')
-
-    fake_wcs=$tmpdir/fake-wcs-$objectid.fits
     echo "1 $center1 $center2 1 1 1 1 1 1 1" \
         | astmkprof --oversample=1 \
                     --type=uint8 \
@@ -695,16 +704,16 @@ for xs in $(seq $xshiftswcs); do
     for ys in $(seq $yshiftswcs); do
 
         # Compute the shifts in WCS
-	xspix=$(astarithmetic $xs $xpscale / --quiet \
+        xspix=$(astarithmetic $xs $xpscale / --quiet \
                               | awk '{printf "%.10f\n", $1}')
-	yspix=$(astarithmetic $ys $ypscale / --quiet \
+        yspix=$(astarithmetic $ys $ypscale / --quiet \
                               | awk '{printf "%.10f\n", $1}')
 
         # New shifted center in WCS
         xcwcs_shift=$(astarithmetic $xcwcs $xs + --quiet)
         ycwcs_shift=$(astarithmetic $ycwcs $ys + --quiet)
 
-	# To ease the filename reading, put the offsets in pixels
+        #To ease the filename reading, put the offsets in pixels
         label_shift=xs_ys_"$xspix"_"$yspix"
 
 
@@ -753,30 +762,33 @@ for xs in $(seq $xshiftswcs); do
         # Crop and unlabel the segmentation image
         # ---------------------------------------
         #
-        # If the user provides a segmentation image, treat it appropiately in order
-        # to mask all objects that are not the central one. If not, just consider
-        # that the cropped and masked image is the cropped (not masked) image. The
-        # process is as follow:
-        #   - Compute the central clump and object labels. This is done with the
-        #     option '--oneelemstdout' of Crop.
+        # If the user provides a segmentation image, treat it appropiately
+        # in order to mask all objects that are not the central one. If
+        # not, just consider that the cropped and masked image is the
+        # cropped (not masked) image. The process is as follow:
+        #   - Compute the central clump and object labels. This is done
+        #     with the option '--oneelemstdout' of Crop.
         #   - Crop the original mask image.
-        #   - Crop the original mask image to a central region (core), in order to
-        #     compute what is the central object id. This is necessary to unmask
-        #     this object.
-	#   - In the original cropped mask, convert pixels belonging to the central
-        #     object to zeros. By doing this, the central object becomes as sky.
+        #   - Crop the original mask image to a central region (core), in
+        #     order to compute what is the central object id. This is
+        #     necessary to unmask this object.
+        #   - In the original cropped mask, convert pixels belonging to the
+        #     central object to zeros. By doing this, the central object
+        #     becomes as sky.
         #   - Mask all non zero pixels in the mask image as nan values.
         if [ x"$segment" != x ]; then
+
             # Find the object and clump labels of the target.
             clab=$(astcrop $segment --hdu=CLUMPS --mode=img --width=1,1 \
                            --oneelemstdout --center=$xcimg,$ycimg --quiet)
             olab=$(astcrop $segment --hdu=OBJECTS --mode=img --width=1,1 \
                            --oneelemstdout --center=$xcimg,$ycimg --quiet)
 
-            # If for any reason, a clump or object label couldn't be initialized at
-            # the given coordiante, simply ignore this step. But print a warning so
-            # the user is informed of the situation (and that this is a bug: 'clab'
-            # should be initialized!).
+            # If for any reason, a clump or object label couldn't be
+            # initialized at the given coordiante, simply ignore this
+            # step. But print a warning so the user is informed of the
+            # situation (and that this is a bug: 'clab' should be
+            # initialized!).
             if [ x"$clab" = x   -o   x"$olab" = x ]; then
                 if [ x"$quiet" = x ]; then
                     cat <<EOF
@@ -790,26 +802,26 @@ EOF
                     echo "$scriptname: $segment: at $center, found clump $clab in object $olab"
                 fi
 
-		# In order to warp the objects and clumps image, WCS
-		# information is needed. If mode is wcs, just copy the HDU.
-		# If mode is img (no wcs info), it is necessary to inject
-		# the fake WCS information in advance.
+                # In order to warp the objects and clumps image, WCS
+                # information is needed. If mode is wcs, just copy the HDU.
+                # If mode is img (no wcs info), it is necessary to inject
+                # the fake WCS information in advance.
                 clumps_wcs=$tmpdir/clumps-wcs-$objectid-$label_shift.fits
                 objects_wcs=$tmpdir/objects-wcs-$objectid-$label_shift.fits
                 if [ "$mode" = wcs ]; then
                     astfits $segment --copy CLUMPS --output $clumps_wcs
                     astfits $segment --copy OBJECTS --output $objects_wcs
                 else
-        	    astarithmetic $segment --hdu CLUMPS \
+                    astarithmetic $segment --hdu CLUMPS \
                                   --wcsfile=$fake_wcs --output=$clumps_wcs
-        	    astarithmetic $segment --hdu OBJECTS \
+                    astarithmetic $segment --hdu OBJECTS \
                                   --wcsfile=$fake_wcs --output=$objects_wcs
                 fi
 
-		# Crop the object and clump images. We don't use Warp
-		# because it is not able to properly account integer values
-		# images because they become float32 and thus the
-		# segmentation clumps/objects are not correct.
+                # Crop the object and clump images. We don't use Warp
+                # because it is not able to properly account integer values
+                # images because they become float32 and thus the
+                # segmentation clumps/objects are not correct.
                 croped_clp=$tmpdir/croped-clumps-$objectid-$label_shift.fits
                 croped_obj=$tmpdir/croped-objects-$objectid-$label_shift.fits
                 astcrop $clumps_wcs \
@@ -839,12 +851,12 @@ EOF
             warped_masked=$warped
         fi
 
-	# Set the used the center position for the output. If the original
-	# mode requested was IMG, the current center postion (that is in
-	# WCS) needs to be transformed to IMG.
+        # Set the used the center position for the output. If the original
+        # mode requested was IMG, the current center postion (that is in
+        # WCS) needs to be transformed to IMG.
         xc_out=$xcwcs_shift
         yc_out=$ycwcs_shift
-	if [ x"$mode" = x"img" ]; then
+        if [ x"$mode" = x"img" ]; then
             xcyc_shift=$(echo "$xcwcs_shift,$ycwcs_shift" \
                            | asttable  --column='arith $1 $2 wcs-to-img' \
                                        --wcsfile=$inputs_wcs --wcshdu=1 $quiet)

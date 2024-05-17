@@ -35945,14 +35945,14 @@ The result is that all objects and clumps that contaminate the central source ar
 Sigma clipping parameters used in the end to find the final scale factor from the distribution of all pixels used.
 For more on sigma-clipping, see @ref{Sigma clipping}.
 
-@itemx --xshifts=FLT,FLT,FLT
+@item --xshifts=FLT,FLT,FLT
 Shifts on the centering position provided by @option{--center} in units of pixels.
 The three parameters used by the program @code{seq} to create the different shifted positions.
 For example, @option{--xshifts=-3.0,0.4,+1.0} will shift the center position from -3.0 pixels to +1.0 pixels in step of 0.4 pixels, along the x direction.
 It will compute the scaling factor for all of those position, and the scale factor for wich the standard deviation is the smallest will be provided as the best center.
 The re-computed center position is also provided as part of the output.
 
-@itemx --yshifts=FLT,FLT,FLT
+@item --yshifts=FLT,FLT,FLT
 Same than the @option{--xshifts} but for the y direction.
 See above for more information.
 
