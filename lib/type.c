@@ -72,26 +72,26 @@ gal_type_sizeof(uint8_t type)
 
     case GAL_TYPE_FLOAT32:
       if( sizeof (float) != 4 )
-        error(EXIT_FAILURE, 0, "%s: 'float' is not 32 bits on this machine",
-              __func__);
+        error(EXIT_FAILURE, 0, "%s: 'float' is not 32 bits on this "
+              "machine", __func__);
       return sizeof (float);
 
     case GAL_TYPE_FLOAT64:
       if( sizeof (double) != 8 )
-        error(EXIT_FAILURE, 0, "%s: 'double' is not 64 bits on this machine",
-              __func__);
+        error(EXIT_FAILURE, 0, "%s: 'double' is not 64 bits on this "
+              "machine", __func__);
       return sizeof (double);
 
     case GAL_TYPE_COMPLEX32:
       if( sizeof (float) != 4 )
-        error(EXIT_FAILURE, 0, "%s: 'float' is not 32 bits on this machine",
-              __func__);
+        error(EXIT_FAILURE, 0, "%s: 'float' is not 32 bits on this "
+              "machine", __func__);
       return sizeof (gsl_complex_float);
 
     case GAL_TYPE_COMPLEX64:
       if( sizeof (double) != 8 )
-        error(EXIT_FAILURE, 0, "%s: 'double' is not 64 bits on this machine",
-              __func__);
+        error(EXIT_FAILURE, 0, "%s: 'double' is not 64 bits on this "
+              "machine", __func__);
       return sizeof (gsl_complex);
 
     case GAL_TYPE_STRING:
@@ -102,9 +102,9 @@ gal_type_sizeof(uint8_t type)
             __func__, type);
     }
 
-  error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s so we can find "
-        "the cause of the problem. Control should not have reached the end of "
-        "this function", __func__, PACKAGE_BUGREPORT);
+  error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s so we can "
+        "find the cause of the problem. Control should not have reached "
+        "the end of this function", __func__, PACKAGE_BUGREPORT);
   return -1;
 }
 

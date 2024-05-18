@@ -29,10 +29,12 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 
 #include <gnuastro/data.h>
+#include <gnuastro/pointer.h>
 
 #include <gnuastro-internal/timing.h>
 #include <gnuastro-internal/checkset.h>
@@ -489,6 +491,59 @@ gal_checkset_noprefix_isequal(char *string, char *prefix,
   return !strcmp(string, tocompare);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**************************************************************/
+/**********               Run commands             ************/
+/**************************************************************/
+/* We are not using the 'system()' command because that call '/bin/sh',
+   which may not always be usable within the running environment; see
+   https://savannah.nongnu.org/bugs/?65677. */
+int
+gal_checkset_exec(char *executable_abs_address, gal_list_str_t *args)
+{
+  pid_t pid;
+  char **argv;
+  int childstat=0;
+  gal_list_str_t *tmp;
+  size_t i, numargs=gal_list_str_number(args);
+
+  /* Allocate the array  */
+  argv=gal_pointer_allocate(GAL_TYPE_STRING, numargs+1, 0,
+                            __func__, "argv");
+
+  /* Fill the argument list array. */
+  tmp=args;
+  for(i=0;i<numargs;++i){ argv[i]=tmp->v; tmp=tmp->next; }
+  argv[numargs]=NULL;
+
+  /* Fork a new process to run 'exec'. */
+  pid=fork();
+  if(pid<0) error(EXIT_FAILURE, 0, "%s: could not build fork", __func__);
+  if(pid==0) execv(executable_abs_address, argv);   /* Child.  */
+  else       waitpid(pid, &childstat, 0);           /* Parent. */
+
+  /* Return the status of the child. */
+  free(argv);
+  return childstat;
+}
 
 
 

@@ -104,6 +104,12 @@ int
 gal_checkset_noprefix_isequal(char *string, char *prefix,
                               const char *tocompare);
 
+/**************************************************************/
+/**********               Run commands             ************/
+/**************************************************************/
+int
+gal_checkset_exec(char *executable_abs_address, gal_list_str_t *args);
+
 
 /**************************************************************/
 /********** Set file names and check if they exist ************/

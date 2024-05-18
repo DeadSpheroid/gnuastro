@@ -94,7 +94,8 @@ gal_pointer_allocate(uint8_t type, size_t size, int clear,
               size * gal_type_sizeof(type), varname);
       else
         error(EXIT_FAILURE, errno, "%s: %zu bytes couldn't be allocated",
-              funcname ? funcname : __func__, size * gal_type_sizeof(type));
+              funcname ? funcname : __func__,
+              size * gal_type_sizeof(type));
     }
 
   return array;
