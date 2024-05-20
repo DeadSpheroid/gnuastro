@@ -634,6 +634,7 @@ fi
 
 
 
+
 # Warp and unlabel the segmentation image
 # ---------------------------------------
 #
@@ -688,29 +689,29 @@ EOF
                           --wcsfile=$fake_wcs --output=$objects_wcs
         fi
 
-        # Warp the object and clump images.
-        warped_clp=$tmpdir/warped-clumps-$objectid.fits
-        warped_obj=$tmpdir/warped-objects-$objectid.fits
-        astwarp $clumps_wcs \
-                --gridfile=$warped \
-                --output=$warped_clp $quiet
-        astwarp $objects_wcs \
-                --gridfile=$warped \
-                --output=$warped_obj $quiet
-
-        # Mask all the undesired regions.
-        warped_masked=$tmpdir/warped-masked-$objectid.fits
-        astarithmetic $warped     --hdu=1 float32 set-i \
-                      $warped_obj --hdu=1 int16   set-o \
-                      $warped_clp --hdu=1 int16   set-c \
+        # Maske the detection map of Objects and Clumps of target in image.
+        cropped_masked=$tmpdir/cropped-masked.fits
+        astarithmetic $segment  --hdu=INPUT-NO-SKY set-i \
+                      $segment  --hdu=CLUMPS       set-c \
+                      $segment  --hdu=OBJECTS      set-o \
                       \
                       c o $olab ne 0 where c $clab eq -1 where 0 gt \
-                      1 dilate set-cmask \
+                      1 dilate set-mask \
                       o o $olab eq 0 where set-omask \
-                      i omask cmask or nan where \
-                      --output=$warped_masked $quiet
-    fi
+                      mask omask mask or nan where -o$cropped_masked
 
+        # Warp the mask image.
+        cropped_masked_warp=$tmpdir/cropped-masked-warp.fits
+        astwarp $cropped_masked \
+                --gridfile=$warped $quiet \
+                --output=$cropped_masked_warp
+
+        # Mask extra objects in warp image.
+        warped_masked=$tmpdir/warped-masked-$objectid.fits
+        astarithmetic $warped              -h1 set-w \
+                      $cropped_masked_warp -h1 set-m \
+                      w m isblank nan where -o$warped_masked
+    fi
 
     # Apply the signal-to-noise threshold if the user provided one, and
     # only keep the central object.
