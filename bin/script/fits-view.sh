@@ -46,6 +46,7 @@ ds9mode=""
 ds9scale=""
 ds9extra=""
 ds9center=""
+ds9region=""
 globalhdu=""
 ds9geometry=""
 version=@VERSION@
@@ -100,6 +101,7 @@ $scriptname options:
   -e, --ds9extra=STR      Extra options to pass to DS9 after default ones.
   -s, --ds9scale=STR      Custom value to '-scale' option in DS9.
   -c, --ds9center=FLT,FLT Coordinates of center in shown DS9 window.
+  -r, --ds9region=STR[,...] DS9 region(s) to load.
   -O, --ds9mode=img/wcs   Coord system to interpret '--ds9center' (img/wcs).
   -m, --ds9colorbarmulti  Separate color bars for each loaded image.
   -p, --prefix=STR        Directory containing DS9 or TOPCAT executables.
@@ -214,6 +216,9 @@ do
         -c|--ds9center)       ds9center="$2";                      check_v "$1" "$ds9center"; shift;shift;;
         -c=*|--ds9center=*)   ds9center="${1#*=}";                 check_v "$1" "$ds9center"; shift;;
         -c*)                  ds9center=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$ds9center"; shift;;
+        -r|--ds9region)       ds9region="$2";                      check_v "$1" "$ds9region"; shift;shift;;
+        -r=*|--ds9region=*)   ds9region="${1#*=}";                 check_v "$1" "$ds9region"; shift;;
+        -r*)                  ds9region=$(echo "$1"  | sed -e's/-r//');  check_v "$1" "$ds9region"; shift;;
         -O|--ds9mode)         ds9mode="$2";                       check_v "$1" "$ds9mode"; shift;shift;;
         -O=*|--ds9mode=*)     ds9mode="${1#*=}";                  check_v "$1" "$ds9mode"; shift;;
         -O*)                  ds9mode=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$ds9mode"; shift;;
@@ -351,6 +356,15 @@ ds9scaleopt="-scale $ds9scale"
 
 
 
+#Set the DS9 region(s) to load.
+if [ ! x"$ds9region" = x ]; then
+  ds9region="-region "$(echo $ds9region | sed 's/,/ -region /g')
+fi
+
+
+
+
+
 # Set the DS9 pan option.
 ds9pan=""
 if [ x"$ds9center" != x ]; then
@@ -472,6 +486,7 @@ else
                                      -view multi $multicolorbars \
                                      -lock slice image \
                                      $ds9pan \
+                                     $ds9region \
                                      $ds9extra"
                 else
 
@@ -499,6 +514,7 @@ else
                                      -colorbar lock yes \
                                      -view multi $multicolorbars \
                                      $ds9pan \
+                                     $ds9region \
                                      $ds9extra"
                 fi
 

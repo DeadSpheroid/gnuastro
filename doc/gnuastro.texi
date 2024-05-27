@@ -34341,6 +34341,11 @@ The central coordinate for DS9's view of the FITS image after it opens.
 This is equivalent to the ``Pan'' button in DS9.
 The nature of the coordinates will be determined by the @option{--ds9mode} option that is described below.
 
+@item -r=STR[,STR[,STR]]
+@itemx --ds9region=STR[,STR[,STR]]
+Name of DS9 region file(s) to load within the DS9 window once it opens.
+Any number of region files can be loaded with a single call to this command (separated by comas).
+
 @item -O img/wcs
 @itemx --ds9mode=img/wcs
 The coordinate system (or mode) to interpret the values given to @option{--ds9center}.
