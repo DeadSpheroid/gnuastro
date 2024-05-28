@@ -206,22 +206,22 @@ do
         # Output options
         -G|--ds9geometry)     ds9geometry="$2";                    check_v "$1" "$ds9geometry"; shift;shift;;
         -G=*|--ds9geometry=*) ds9geometry="${1#*=}";               check_v "$1" "$ds9geometry"; shift;;
-        -G*)                  ds9geometry=$(echo "$1"  | sed -e's/-g//');  check_v "$1" "$ds9geometry"; shift;;
+        -G*)                  ds9geometry=$(echo "$1"  | sed -e's/-G//');  check_v "$1" "$ds9geometry"; shift;;
         -s|--ds9scale)        ds9scale="$2";                       check_v "$1" "$ds9scale"; shift;shift;;
         -s=*|--ds9scale=*)    ds9scale="${1#*=}";                  check_v "$1" "$ds9scale"; shift;;
         -s*)                  ds9scale=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$ds9scale"; shift;;
         -e|--ds9extra)        ds9extratmp="$2";                    check_v "$1" "$ds9extratmp"; shift;shift;;
         -e=*|--ds9extra=*)    ds9extratmp="${1#*=}";               check_v "$1" "$ds9extratmp"; shift;;
-        -e*)                  ds9extratmp=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$ds9extratmp"; shift;;
+        -e*)                  ds9extratmp=$(echo "$1"  | sed -e's/-e//');  check_v "$1" "$ds9extratmp"; shift;;
         -c|--ds9center)       ds9center="$2";                      check_v "$1" "$ds9center"; shift;shift;;
         -c=*|--ds9center=*)   ds9center="${1#*=}";                 check_v "$1" "$ds9center"; shift;;
-        -c*)                  ds9center=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$ds9center"; shift;;
+        -c*)                  ds9center=$(echo "$1"  | sed -e's/-c//');  check_v "$1" "$ds9center"; shift;;
         -r|--ds9region)       ds9region="$2";                      check_v "$1" "$ds9region"; shift;shift;;
         -r=*|--ds9region=*)   ds9region="${1#*=}";                 check_v "$1" "$ds9region"; shift;;
         -r*)                  ds9region=$(echo "$1"  | sed -e's/-r//');  check_v "$1" "$ds9region"; shift;;
         -O|--ds9mode)         ds9mode="$2";                       check_v "$1" "$ds9mode"; shift;shift;;
         -O=*|--ds9mode=*)     ds9mode="${1#*=}";                  check_v "$1" "$ds9mode"; shift;;
-        -O*)                  ds9mode=$(echo "$1"  | sed -e's/-s//');  check_v "$1" "$ds9mode"; shift;;
+        -O*)                  ds9mode=$(echo "$1"  | sed -e's/-O//');  check_v "$1" "$ds9mode"; shift;;
         -m|--ds9colorbarmulti)    ds9colorbarmulti=1; shift;;
         -m*|--ds9colorbarmulti=*) on_off_option_error --ds9colorbarmulti -m;;
         -p|--prefix)          prefix="$2";                         check_v "$1" "$prefix"; shift;shift;;

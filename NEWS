@@ -42,6 +42,10 @@ See the end of the file for license conditions.
     short format of '-g'); similar to the same option in Arithmetic or
     ConvertType.
 
+  --ds9region: load any number of DS9 region files (separated by comas and
+    given to this option) into the DS9 window that will be opened. This was
+    added by Giacomo Lorenzetti.
+
   - The default DS9 'sls' colormap contrast and bias are adjusted so the
     largest value does not have a white color, but is dark red. This was
     done because white is DS9's default color for blank pixels and
@@ -191,6 +195,11 @@ See the end of the file for license conditions.
 
   - bug #65743: Arithmetic's collapse-number mistakenly calculating
     collapse-median instead. Reported by Sepideh Eskandarlou.
+
+  - bug #65801: astscript-fits-view could not properly parse the short
+    versions of the '--ds9geometry', '--ds9extra', '--ds9center' and
+    '--ds9mode' when the value was touching the short option name. Found
+    and fixed by Giacomo Lorenzetti.
 
   - bug #65822: MakeProfiles does not write negative values with --replace.
 
