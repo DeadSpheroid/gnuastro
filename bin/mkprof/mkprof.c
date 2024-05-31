@@ -191,28 +191,28 @@ saveindividual(struct mkonthread *mkp)
                         0, NULL, 0);
   if( mkp->func==PROFILE_SERSIC || mkp->func==PROFILE_MOFFAT )
     gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "PINDEX", 0,
-                          &p->r[id], 0, "Index (Sersic or Moffat) of profile"
-                          "in catalog", 0, NULL, 0);
+                          &p->r[id], 0, "Index (Sersic or Moffat) of "
+                          "profile in catalog", 0, NULL, 0);
   if(ndim==2)
     {
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "PA_DEG", 0,
                             &p->p1[id], 0, "Position angle of profile in "
                             "catalog", 0, "deg", 0);
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "AXISRATIO", 0,
-                            &p->q1[id], 0, "Axis ratio of profile in catalog",
-                            0, NULL, 0);
+                            &p->q1[id], 0, "Axis ratio of profile in "
+                            "catalog", 0, NULL, 0);
     }
   else
     {
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "PA1_DEG", 0,
-                            &p->p1[id], 0, "First X-Z-X Euler angle in 3D", 0,
-                            "deg", 0);
+                            &p->p1[id], 0, "First X-Z-X Euler angle in "
+                            "3D", 0, "deg", 0);
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "PA2_DEG", 0,
-                            &p->p2[id], 0, "Second X-Z-X Euler angle in 3D", 0,
-                            "deg", 0);
+                            &p->p2[id], 0, "Second X-Z-X Euler angle in "
+                            "3D", 0, "deg", 0);
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "PA3_DEG", 0,
-                            &p->p3[id], 0, "Third X-Z-X Euler angle in 3D", 0,
-                            "deg", 0);
+                            &p->p3[id], 0, "Third X-Z-X Euler angle in "
+                            "3D", 0, "deg", 0);
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "AXISRATIO1", 0,
                             &p->q1[id], 0, "Axis ratio along second dim",
                             0, NULL, 0);
@@ -230,8 +230,8 @@ saveindividual(struct mkonthread *mkp)
                         (void *)(p->rng_name), 0,
                         "Name of random number generator", 0, NULL, 0);
   gal_fits_key_list_add(&keys, GAL_TYPE_ULONG, "RNGSEED", 0,
-                        &mkp->rng_seed, 0, "Seed of random number generator",
-                        0, NULL, 0);
+                        &mkp->rng_seed, 0, "Seed of random number "
+                        "generator", 0, NULL, 0);
   gal_fits_key_list_add(&keys, GAL_TYPE_SIZE_T, "NUMRANDOM", 0,
                         &p->numrandom, 0,
                         "Number of random points in central pixels", 0,
@@ -247,8 +247,8 @@ saveindividual(struct mkonthread *mkp)
                         &p->oversample, 0, "Oversampling factor", 0,
                         NULL, 0);
   gal_fits_key_list_add(&keys, GAL_TYPE_UINT8, "TUNITINP", 0,
-                        &p->tunitinp, 0, "Truncation is in units of pixels, "
-                        "not radius", 0, NULL, 0);
+                        &p->tunitinp, 0, "Truncation is in units of "
+                        "pixels, not radius", 0, NULL, 0);
   if( !isnan(p->zeropoint) )
       gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "ZEROPOINT", 0,
                             &p->zeropoint, 0, "Zeropoint magnitude", 0,
@@ -367,7 +367,6 @@ mkprof_build_single(struct mkonthread *mkp, long *fpixel_i, long *lpixel_i,
           if(dsize[i] != ibq->image->dsize[i]) needs_crop=1;
         }
 
-
       /* Define the individual overlap tile. */
       if(needs_crop)
         {
@@ -381,7 +380,6 @@ mkprof_build_single(struct mkonthread *mkp, long *fpixel_i, long *lpixel_i,
       ibq->overlap_i=gal_data_alloc(ptr, ibq->image->type, ndim, dsize,
                                     NULL, 0, -1, 1, NULL, NULL, NULL);
       ibq->overlap_i->block=ibq->image;
-
 
       /* Define the merged overlap tile. */
       ind=gal_dimension_coord_to_index(ndim, p->out->dsize, start_mrg);
@@ -618,9 +616,20 @@ mkprof_write(struct mkprofparams *p)
   double sum;
   char *jobname;
   struct timeval t1;
+  float *o, *of, oinit=NAN;
   gal_data_t *out=p->out, *log;
   struct builtqueue *ibq=NULL, *tbq;
   size_t complete=0, num=p->num, clog;
+
+  /* If we want to replace the pixel values, initialize the output array
+     with an impossible value (smallest possible 32-bit floating point
+     number). This is because we are always replacing the pixels with the
+     maximum to ensure reproducibility in multi-threaded operations. */
+  if(p->replace)
+    {
+      gal_type_min(GAL_TYPE_FLOAT32, &oinit);
+      of=(o=out->array)+out->size; do *o++=oinit; while(o<of);
+    }
 
   /* Write each image into the output array. */
   while(complete<p->num)
@@ -649,7 +658,11 @@ mkprof_write(struct mkprofparams *p)
          array. */
       if(ibq->overlaps && out)
         GAL_TILE_PO_OISET(float,float,ibq->overlap_i,ibq->overlap_m,1,0, {
-            *o  = p->replace ? ( *i>*o ? *i : *o ) :  (*i + *o);
+            /* The '*i>*o' condition is there to have a reproducible output
+               in multi-threaded scenarios (where the order can differ). */
+            *o  = ( p->replace
+                    ? ( *o==oinit ? *i : ( *i>*o ? *i : *o ) )
+                    :  (*i + *o) );
             sum += *i;
           });
 
@@ -702,6 +715,15 @@ mkprof_write(struct mkprofparams *p)
       tbq=ibq->next;
       free(ibq);
       ibq=tbq;
+    }
+
+
+  /* In case we had initialized the output pixels, set all the ones that
+     were not filled back to zero. */
+  if(p->replace)
+    {
+      of=(o=out->array)+out->size;
+      do *o = *o==oinit ? 0.0 : *o; while(++o<of);
     }
 
 

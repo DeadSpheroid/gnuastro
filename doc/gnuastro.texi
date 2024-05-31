@@ -33721,6 +33721,10 @@ $ astscript-radial-profile image.fits
 ## up to  a radial distance of 19 pixels, use the mean value.
 $ astscript-radial-profile image.fits --center=44,37 --rmax=19
 
+## Generate a 2D polar plot with the same properties as above:
+$ astscript-radial-profile image.fits --center=44,37 --rmax=19 \
+                           --polar
+
 ## Generate the radial profile centered at x=44 and y=37 (in pixels),
 ## up to a radial distance of 100 pixels, compute sigma clipped
 ## mean and standard deviation (sigclip-mean and sigclip-std) using
@@ -33943,12 +33947,16 @@ $ astscript-fits-view radial-tmp/values.fits \
 
 @item -g
 @itemx --polar
-To generate 2D polar-plot, as a table.
-Which is contained azimuthal angle, radius and mean vlues of each pixel.
-Using @option{--azimuth} option is mandatory with it.
-This option can not to be used with @option{--oversample} and @option{--undersample} options.
-If the output is not a FITS file, the polar output will be saved in another table with the same name of output with polar.
-Otherwise, if the output is a FITS, in second extension of the output of polar-plot is existed as a table and in third extension the image.
+Generate a 2D polar-plot image in the second HDU of the output (called @code{POLAR-PLOT}).
+A polar plot is a projection of the original pixel grid into polar coordinates (where the horizontal axis is the azimuthal angle and the vertical axis is the radius).
+
+By default it assumes the full azimuthal range (from 0 to 360 degrees); if a narrower azimuthal range is desired, use @option{--azimuth} (for example @option{--azimuth=30,50} to only generate the polar plot between 30 and 50 degrees of azimuth).
+
+The output image contains WCS information to map the pixel coordinates into the polar coordinates.
+This is especially useful when the azimuthal range is not the full range: the first pixel in the horizonal axis is not 0 degrees.
+
+Currently, the polar plot cannot to be used with @option{--oversample} and @option{--undersample} options (please get in touch with us if you need it).
+Until it is implemented, you can use the @option{--scale} option of @ref{Warp} to do the oversampling of the input image yourself and generate the polar plot from that.
 
 
 @item -m STR

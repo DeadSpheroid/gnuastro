@@ -114,7 +114,7 @@ $scriptname options:
   -Q, --axis-ratio=FLT     Axis ratio for ellipse profiles (A/B).
   -a, --azimuth=FLT,FLT    Azimuthal angles range (from the major axis).
   -p, --position-angle=FLT Position angle for ellipse profiles.
-  -g, --polar              Polar grid (Radius vs Azimuth angle).
+  -g, --polar              Polar plot (azimuth angle vs. radius).
   -s, --sigmaclip=FLT,FLT  Sigma-clip multiple and tolerance.
   -z, --zeropoint=FLT      Zeropoint magnitude of input dataset.
   -Z, --zeroisnotblank     0.0 in float or double images are not blank.
@@ -124,7 +124,7 @@ $scriptname options:
   -t, --tmpdir             Directory to keep temporary files.
   -k, --keeptmp            Keep temporal/auxiliar files.
   -m, --measure=STR        Measurement operator (mean, sigclip-mean, etc.).
-  -P, --precision=INT      Number of digits after the decimal point for radius.
+  -P, --precision=INT      Number of digits after decimal point for radius.
   -v, --oversample=INT     Oversample for higher resolution radial profile.
   -u, --undersample=INT    Undersample for lower resolution radial profile.
   -i, --instd=FLT/STR      Sky standard deviation per pixel, as a single
@@ -436,20 +436,19 @@ fi
 # If no specific measurement has been requested, use the mean.
 if [ x"$measure" = x ]; then measure=mean; fi
 
-# For polar-plot azimuth option is mandatory. Because without azimuthal, we
-# can not create a polar-plot.
-if [ x"$azimuth" = x ] && [ x$polar != x0 ]; then
+# Without azimuthal angle, we can not create a polar-plot.
+if [ x"$azimuth" = x ] && [ x$polar = x1 ]; then
     azimuth="0,360"
 fi
 
 # If the user call the '--undersample' and '--oversample' option. On the
 # other hand, they use '--polar' option with these options
-if [ x$polar != x0 ] && [ x"$undersample" != x ] ; then
-    echo "If you want to use the --undersample, please remove the --polar option."; exit 1
+if [ x$polar = x1 ] && [ x"$undersample" != x ] ; then
+    echo "$scriptname: the polar plot does not yet support --undersample; please get in touch with us at 'bug-gnuastro@gnu.org' for its possible addition"; exit 1
 fi
 
-if [ x$polar != x0 ] && [ x"$oversample" != x ] ; then
-    echo "If you want to use the --oversample, please remove the --polar option."; exit 1
+if [ x$polar = x1 ] && [ x"$oversample" != x ] ; then
+    echo "$scriptname: the polar plot does not yet support --oversample; please get in touch with us at 'bug-gnuastro@gnu.org' for its possible addition"; exit 1
 fi
 
 
@@ -497,7 +496,7 @@ fi
 
 
 
-# Calculate the maximum radiusf
+# Calculate the maximum radius
 # ----------------------------
 #
 # If the user didn't set the '--rmax' parameter, then compute the maximum
@@ -697,7 +696,7 @@ echo "1 $xcenter $ycenter 7 $rmax 1 $positionangle $axisratio 1 1" \
                  --circumwidth=1 --replace --output=$radialaperturesholed
 astarithmetic $radialaperturesholed set-i \
               i 0 ne 1 fill-holes set-good \
-              i good i 1 + where $precfactor x uint32\
+              i good i 1 + where $precfactor x uint32 \
               $quiet --output $radialapertures
 rm $radialaperturesholed
 
@@ -773,10 +772,10 @@ if [ x"$azimuth" != x ]; then
                      | awk ' {if ($1<$2) print "and"; \
                               else       print "or"}')
     astarithmetic --output=$aperturesraw $quiet \
-                  $radialapertures  -h1 set-radial \
-                  $azimuthapertures -h1 set-azimuth \
-                  azimuth $azimuth_ini ge \
-                  azimuth $azimuth_fin le $condition \
+                  $radialapertures  -h1 uint32 set-radial \
+                  $azimuthapertures -h1 uint16 set-azimuth \
+                  azimuth $azimuth_ini uint16 ge \
+                  azimuth $azimuth_fin uint16 le $condition \
                   radial 1 eq or set-arc \
                   radial arc 1 uint8 ne 0 uint8 where
 else
@@ -800,12 +799,20 @@ else                           finalzp="--zeropoint=$zeropoint";
 fi
 if [ x$polar = x0 ]; then polaropt=""
 else
+    # We are using 'raw_azimuth_fin' because it can be set to zero when the
+    # value was 360. Note also that we should convert to an integer at the
+    # start (before 'set-i'), otherwise, in floating point, the 'gt'
+    # condition is going to miss the outer edge.
+    condition=$(echo $azimuth_ini $azimuth_fin \
+                     | awk ' {if ($1<$2) print "or"; \
+                              else       print "and"}')
     intazimuthapertures=$tmpdir/azimuth-raw-int.fits
-    astarithmetic $azimuthapertures uint32 --output=$intazimuthapertures
+    astarithmetic $azimuthapertures uint16 set-i i \
+                  i $azimuth_ini     uint16 lt \
+                  i $raw_azimuth_fin uint16 gt $condition \
+                  0 where uint32 --output=$intazimuthapertures $quiet
     polaropt="--clumpsfile=$intazimuthapertures --clumpshdu=1 --clumpscat"
 fi
-
-
 
 
 
@@ -879,9 +886,9 @@ finalmeasure=$(echo "$measure" \
 #   the center, but after adding this, the '--sb-error' column was nicely
 #   consistent with the scatter in the mock profiles at central radii.
 cat=$tmpdir/catalog.fits
-astmkcatalog $apertures --hdu=1 --valuesfile=$values --valueshdu=1 --ids \
-             $finalinstd $finalmeasure $finalsigmaclip $finalzp $polaropt \
-	     --spatialresolution=0.0 --output=$cat $quiet
+astmkcatalog $apertures --hdu=1 --valuesfile=$values --valueshdu=1 \
+             --ids $finalinstd $finalmeasure $finalsigmaclip $finalzp \
+             $polaropt --spatialresolution=0.0 --output=$cat $quiet
 
 
 
@@ -897,8 +904,9 @@ astmkcatalog $apertures --hdu=1 --valuesfile=$values --valueshdu=1 --ids \
 radraw=$tmpdir/radii.fits
 if [ x"$oversample" != x ]; then
 
-    asttable $cat -c'arith OBJ_ID float32 '$precfactor' / 1 - '$oversample' /' \
-             -o$radraw --colmetadata=1,RADIUS,pix,"Radial distance"
+    asttable $cat -o$radraw \
+             --colmetadata=1,RADIUS,pix,"Radial distance" \
+             -c'arith OBJ_ID float32 '$precfactor' / 1 - '$oversample' /'
 
 elif [ x"$undersample" != x ]; then
 
@@ -945,81 +953,126 @@ asttable $radraw --catcolumnfile=$cat $restcols --output=$outraw \
 # MakeCatalog). Therefore, once the final radii are set (accounting for
 # over/under sampling), we should make sure that the final output doesn't
 # contain radii larger than what the user asked for.
-asttable $outraw --range=RADIUS,0,$rmax --output=$output
+#
+# We are not using '$output' here, because the user may have asked to make
+# a polar plot and we may confront some bugs in the middle. It is better
+# that the final output only be built after everything is complete.
+outputraw=$tmpdir/output.fits
+asttable $outraw --range=RADIUS,0,$rmax --output=$outputraw
 
+
+
+
+
+# Polar plot
+# ----------
+#
 # If the polar option is called by the user then the second extension of
 # the catalog that is created based on the azimuth (as clump) and radial
 # (as objects) will be added to the final PSF.
 if [ x$polar != x0 ]; then
 
-    # Limit the radius and change the metadata.
+    # Set metadata on the polar-plot catalog for easy operations below (and
+    # for debugging). To include the maximum radius (99 in case of
+    # '--rmax=100'), because Table's '--range' option doesn't include the
+    # maximum number and we are dealing with integers, we need to add
+    # 'rmax' with one.
     polarcat=$tmpdir/polar-catalog.fits
-    asttable $cat -hCLUMPS --range=HOST_OBJ_ID,0,$rmax \
+    rmaxpone=$(astarithmetic $rmax uint32 1 + --quiet)
+    asttable $cat -hCLUMPS --range=HOST_OBJ_ID,0,$rmaxpone \
              --colmetadata=HOST_OBJ_ID,RADIUS,pix,"Radial distance" \
-             --colmetadata=ID_IN_HOST_OBJ,AZIMUTH,degree,"Azimuth angel" \
+             --colmetadata=ID_IN_HOST_OBJ,AZIMUTH,degree,"Azimuth angle" \
              --output=$polarcat
 
-    # If polar option call then check the output is FITS file or not. The
-    # output should be a FITS file because just in fits files we can write
-    # the outputs of the polar option in the second extenction.
-    if astfits $output &> /dev/null; then
+    # Find the maximum value of radius and azimuth angel.
+    maxrad=$(aststatistics  $polarcat -h1 -cRADIUS  --maximum)
+    maxazim=$(aststatistics $polarcat -h1 -cAZIMUTH --maximum)
+    minazim=$(aststatistics $polarcat -h1 -cAZIMUTH --minimum)
 
-        # Find the maximum value of radius and azimuth angel.
-        maxrad=$(aststatistics $polarcat -h1 -cRADIUS --maximum)
-        maxazim=$(aststatistics $polarcat -h1 -cAZIMUTH --maximum)
-
-        # Check if we have zero value in the measurement column replace
-        # them with maximum value of measurment plus one.
-        numzero=$(asttable $polarcat --equal=3,0 | wc -l)
-        if ! [ $numzero = 0 ]; then
-            mv $polarcat $polarcat.fits
-            maxmesure=$(aststatistics $polarcat.fits -h1 -c3 --maximum -q)
-            placeholder=$(astarithmetic $maxmesure 1 + -q)
-            asttable $polarcat.fits -cRADIUS,AZIMUTH \
-                     -c'arith $3 set-m m m 0 eq '$placeholder' where' \
-                     --output=$polarcat
-        fi
-
-
-        # Add the polar-plot to the third extension of the output.
-        mkprof=$tmpdir/polar-plot-profile.fits
-        asttable $polarcat -h1 -cRADIUS,AZIMUTH -c3  \
-            | awk '{print(1, $2, $1, 4, 0, 0, 0, 0, $3, 0)}' \
-            | astmkprof --mforflatpix --mode=img --oversample=1 \
-                        --mergedsize=$maxazim,$maxrad --clearcanvas --replace --quiet \
-                        --output=$mkprof
-
-        # In polar-plot image replavce the zero pixels with NAN value and
-        # replace pixels that have maximum value plus one with zero value.
-        if  [ $numzero = 0 ]; then
-            mv $mkprof $mkprof.fits
-            astarithmetic $mkprof.fits set-p \
-                          p p 0 eq nan where \
-                          --output=$mkprof
-        else
-            mv $mkprof $mkprof.fits
-            astarithmetic $mkprof.fits                  set-p \
-                          p p 0            eq nan where set-z \
-                          z z $placeholder eq 0   where \
-                          --output=$mkprof
-        fi
-
-        # Add second extension to the final outpu that is the polar-plot
-        # table and in third extension is the polar-plot image.
-        astfits $polarcat --copy=1 --output=$output
-        astfits $mkprof --copy=1 --output=$output
-
+    # In the end, many azimuth angles close to radius zero are not going to
+    # be filled at all! We need to set those to NaN within the radial
+    # profile script (because there was no data there and we want to
+    # preserve the zero-valued pixels in our radial profiles). So here
+    # (before calling MakeProfiles), we replace any possible zeros in the
+    # input table with a pre-defined number (the maximum value in the image
+    # plus one), and later, rever this specific number back to zero.
+    polarcatz=$tmpdir/polar-catalog-no-zeros.fits
+    numzero=$(asttable $polarcat --equal=3,0 | wc -l)
+    if [ $numzero = 0 ]; then
+        ln -sf $polarcat $polarcatz
     else
-
-        # IF the output is not a FITS file save it in another files with
-        # name of the output that has polar in it name and save exatcly in
-        # the output directory.
-        suffix=$(echo $output | awk 'BEGIN{FS="."}{print $NF}')
-        polar_catalog=$(echo $output | sed 's|.'$suffix'|-polar.'$suffix'|')
-        asttable $polarcat --output=$polar_catalog
-
+        maxmesure=$(aststatistics $polarcat -h1 -c3 --maximum -q)
+        placeholder=$(astarithmetic $maxmesure 1 + -q)
+        asttable $polarcat -cRADIUS,AZIMUTH --output=$polarcatz \
+                 -c'arith $3 set-m m m 0 eq '$placeholder' where'
     fi
+
+    # Generate the raw polar plot. When the user sets a non-zero minimum
+    # azimuthal angle, we need the full range of azimuthal angles here, so
+    # the azimuthal width is effectively just the maximum azimuthal
+    # angle. If the minimum is non-zero, we will later crop the output to
+    # remove the all-zero columns of the output image.
+    ppraw=$tmpdir/polar-plot-raw.fits
+    asttable $polarcat -h1 -cAZIMUTH,RADIUS,3  \
+        | awk '{print(1, $1, $2, 4, 0, 0, 0, 0, $3, 0)}' \
+        | astmkprof --mforflatpix --mode=img --oversample=1 \
+                    --mergedsize=$maxazim,$maxrad --clearcanvas \
+                    --output=$ppraw $quiet \
+                    --crpix=1,1 \
+                    --pc=1,0,0,1 \
+                    --cdelt=1,1 \
+                    --cunit=deg,pix \
+                    --ctype=AZI,RAD \
+                    --crval=1,0
+
+    # If the minimum azimuthal angle is not zero, then we need to crop the
+    # zero-valued regions (as described above).
+    ppcrop=$tmpdir/polar-plot-crop.fits
+    if [ $minazim = 0 ]; then
+        ln -sf $ppraw $ppcrop
+    else
+        astcrop $ppraw --mode=img --section=$minazim:$maxazim,: \
+                --output=$ppcrop $quiet
+    fi
+
+    # Any zero-valued pixel in the output of MakeProfiles means that there
+    # was no input data there so we should set them to Nan! Recall that
+    # above, if there was any actual zeros, they were replaced and we set
+    # them back to zero after setting the NaNs.
+    ppout=$tmpdir/polar-plot.fits
+    if  [ $numzero = 0 ]; then
+        astarithmetic $ppcrop set-p p p 0 eq nan where \
+                      --output=$ppout $quiet
+    else
+        astarithmetic $ppcrop                       set-p \
+                      p p 0            eq nan where set-z \
+                      z z $placeholder eq 0   where \
+                      --output=$ppout $quiet
+    fi
+
+    # If the output is a FITS file, then add a new HDU. Otherwise (for
+    # example output is plain-text), we need to make a new file)
+    if astfits $outputraw &> /dev/null; then
+        exthdu=2
+        polarfile=$outputraw
+    else
+        exthdu=1
+        suffix=$(echo $outputraw | awk 'BEGIN{FS="."}{print $NF}')
+        polarfile=$(echo $outputraw \
+                        | sed 's|.'$suffix'|-polar.'$suffix'|')
+    fi
+
+    # Copy the image into the desired output file and set its HDU name.
+    astfits $ppout --copy=1 --output=$polarfile
+    astfits $outputraw --hdu=$exthdu --update=EXTNAME,POLAR-PLOT
 fi
+
+
+
+
+
+# Write the final output.
+cp $outputraw $output
 
 
 
