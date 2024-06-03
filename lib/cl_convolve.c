@@ -15,7 +15,6 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     clock_t start_init, end_init;
     double cpu_time_used_init;
 
-    start_init = clock();
 
     /* initializations */
     int ret=0;
@@ -24,14 +23,14 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     cl_context context = NULL;
     cl_device_id device_id = NULL;
     cl_command_queue command_queue = NULL;
-    cl_int image_width = input_image->dsize[1];
-    cl_int image_height = input_image->dsize[0];
     cl_kernel kernel;
     cl_event conv_event;
     cl_mem cl_image_array,cl_image_dsize;
     cl_mem cl_kernel_array,cl_kernel_dsize;
 
     printf("  - Using OpenCL kernel: %s\n", cl_kernel_name);
+    start_init = clock();
+
     kernel = gal_cl_kernel_create(cl_kernel_name, function_name,core_name, 
                                                 device_id, &context, &command_queue, device);
     clFinish(command_queue);
@@ -68,13 +67,6 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
 
 
 
-
-
-
-
-
-
-
     // clock_t start_conv, end_conv;
     // double cpu_time_used_conv;
 
@@ -86,15 +78,17 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&cl_output);
 
     // start_conv = clock();
-    printf("Here");
     /* launch the kernel */
     ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, 
                                     NULL, 0, NULL, &conv_event);
     // clWaitForEvents(1, &conv_event);
     clFinish(command_queue);
     // end_conv = clock();
+    if(ret != CL_SUCCESS)
+    {
+        printf("Error launching kernel, Error code: %d", ret);
+    }
     // cpu_time_used_conv = ((double)(end_conv - start_conv)) / CLOCKS_PER_SEC;
-
 
     cl_ulong time_start;
     cl_ulong time_end;
@@ -102,11 +96,8 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     clGetEventProfilingInfo(conv_event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
     clGetEventProfilingInfo(conv_event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
     double nanoSeconds = time_end-time_start;
-    printf("  - OpenCl Execution time is: %0.3f s \n",nanoSeconds / 1000000000.0);
-    printf("  - Time taken in convolution: %f\n", nanoSeconds / 1000000000.0);
-
-
-
+    printf("  - Time taken in convolution is: %f\n",nanoSeconds / 1000000000.0);
+    // printf("  - Time taken as per CPU clock is: %f\n", cpu_time_used_conv);
 
 
     clock_t start_copy_to, end_copy_to;
@@ -120,6 +111,8 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     end_copy_to = clock();
     cpu_time_used_copy_to = ((double)(end_copy_to - start_copy_to)) / CLOCKS_PER_SEC;
     printf("  - Time taken in copying result to host: %f\n", cpu_time_used_copy_to);
+
+
 
     // Clean up
     ret = clFlush(command_queue);
