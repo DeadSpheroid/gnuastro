@@ -34361,6 +34361,21 @@ Do not show a single color bar for all the loaded images.
 By default this script will call DS9 in a way that a single color bar is shown for any number of images.
 A single color bar is preferred for two reasons: 1) when there are a lot of images, they consume a large fraction of the display area. 2) the color-bars are locked by this script, so there is no difference between!
 With this option, you can have separate color bars under each image.
+
+@item -e STR
+@itemx --ds9extra=STR
+Any other custom options you would like to directly pass to DS9.
+This option can be called multiple times.
+The string(s) given to this option will be the final component of the DS9 command that this script generates.
+This allows you to over-ride/customize previously set options (for example in large scripts).
+
+Besides enabling all DS9 options that don't have a high-level wrapper in this script, you can also use this option to re-order the way the options of this script call DS9.
+This is because this script ignores the order that you have requested options and will always put the high-level functions in a fixed order.
+Before calling DS9, this script will print the command that it executes so you can see the order explicitly before DS9 opens.
+
+Since DS9 does not recognize a @key{=} between the option name and value, a @key{SPACE} is usually necessary.
+Therefore, be sure to put them in a single string within double quotes (so the spaces are preserved and passed to DS9 correctly).
+For example usage of this option within this manual, see @ref{Column statistics color-magnitude diagram} or @ref{Subtracting the PSF}.
 @end table
 
 
