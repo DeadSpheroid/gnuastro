@@ -54,6 +54,7 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
     if (ret != CL_SUCCESS)
     {
         printf("Error finding devices\n");
+        exit(1);
     }
 
     char buffer[256];

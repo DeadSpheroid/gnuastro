@@ -791,7 +791,7 @@ convolve_spatial(struct convolveparams *p)
   p->input=out;
 }
 
-
+#if GAL_CONFIG_HAVE_OPENCL==1
 #define SRC_CONV SYSINCLUDE_DIR "/astconvolve-conv.cl"
 // #define MAGIC(x) #x
 void convolve_cl(struct convolveparams *p)
@@ -825,9 +825,7 @@ void convolve_cl(struct convolveparams *p)
   gal_data_free(p->input);
   p->input=out;
 }
-
-
-
+#endif
 
 
 
@@ -856,10 +854,14 @@ convolve(struct convolveparams *p)
   // printf("use_cl = %d\n", p->cl);
   if(p->domain==CONVOLVE_DOMAIN_SPATIAL) 
     {
+#if GAL_CONFIG_HAVE_OPENCL==1
       if(p->cl==0)
+#endif
         convolve_spatial(p);
+#if GAL_CONFIG_HAVE_OPENCL==1
       else
         convolve_cl(p);
+#endif
     }
   else                                   convolve_frequency(p);
 
