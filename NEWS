@@ -203,6 +203,8 @@ See the end of the file for license conditions.
 
   - bug #65822: MakeProfiles does not write negative values with --replace.
 
+  - bug #65833: Convolve crashes when the kernel only has a single element.
+
 
 
 

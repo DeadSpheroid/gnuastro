@@ -493,8 +493,9 @@ ui_read_kernel(struct convolveparams *p)
   /* Make sure that the kernel and input have the same number of
      dimensions. */
   if(p->kernel->ndim!=p->input->ndim)
-    error(EXIT_FAILURE, 0, "input datasets must have the same number of "
-          "dimensions");
+    error(EXIT_FAILURE, 0, "input and kernel must have the same number of "
+          "dimensions, but they have %zu and %zu dimensions respectively",
+          p->input->ndim, p->kernel->ndim);
 }
 
 

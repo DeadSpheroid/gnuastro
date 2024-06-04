@@ -38612,6 +38612,8 @@ Similar to @code{gal_dimension_collapse_mclip_number}, but with filled re-clippi
 
 @deftypefun size_t gal_dimension_remove_extra (size_t @code{ndim}, size_t @code{*dsize}, struct wcsprm @code{*wcs})
 Remove extra dimensions (those that only have a length of 1) from the basic size information of a dataset.
+If the total number of elements (in all dimensions) is 1, this function will not remove anything (because an ``extra'' is only meaningful when some dimensions have more than one element length).
+
 @code{ndim} is the number of dimensions and @code{dsize} is an array with @code{ndim} elements containing the size along each dimension in the C dimension order.
 When @code{wcs!=NULL}, the respective dimension will also be removed from the WCS.
 

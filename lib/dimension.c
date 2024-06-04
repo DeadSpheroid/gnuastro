@@ -1802,21 +1802,32 @@ gal_dimension_collapse_sclip_fill_number(gal_data_t *in, size_t c_dim,
 size_t
 gal_dimension_remove_extra(size_t ndim, size_t *dsize, struct wcsprm *wcs)
 {
-  size_t i, j;
+  size_t i, j, size=1;
 
-  for(i=0;i<ndim;++i)
-    if(dsize[i]==1)
-      {
-        /* Correct the WCS. */
-        if(wcs) gal_wcs_remove_dimension(wcs, ndim-i);
+  /* When there is only one element in the dataset, "extra" dimensions are
+     not defined. This is because we define "extra" by dimensions of length
+     1, so when there is only a single element everything will be "extra"
+     and the function will return 0 dimensions!  See
+     https://savannah.gnu.org/bugs/index.php?65833 for example.  Therefore,
+     the dimensions should be preserved and this function should not do
+     anything. */
+  for(i=0;i<ndim;++i) size*=dsize[i];
+  if(size>1)
+    {
+      for(i=0;i<ndim;++i)
+        if(dsize[i]==1)
+          {
+            /* Correct the WCS. */
+            if(wcs) gal_wcs_remove_dimension(wcs, ndim-i);
 
-        /* Shift all subsequent dimensions to replace this one. */
-        for(j=i;j<ndim-1;++j) dsize[j]=dsize[j+1];
+            /* Shift all subsequent dimensions to replace this one. */
+            for(j=i;j<ndim-1;++j) dsize[j]=dsize[j+1];
 
-        /* Decrement the 'i' and the total number of dimension. */
-        --i;
-        --ndim;
-      }
+            /* Decrement the 'i' and the total number of dimension. */
+            --i;
+            --ndim;
+          }
+    }
 
   /* Return the number of dimensions. */
   return ndim;
