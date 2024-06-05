@@ -957,7 +957,15 @@ asttable $radraw --catcolumnfile=$cat $restcols --output=$outraw \
 # We are not using '$output' here, because the user may have asked to make
 # a polar plot and we may confront some bugs in the middle. It is better
 # that the final output only be built after everything is complete.
-outputraw=$tmpdir/output.fits
+#
+# When a polar plot is not requested, we can immediately write the output,
+# otherwise, we need to add a second HDU, so we will not write the final
+# output yet.
+if [ x$polar = x0 ]; then outputraw=$output
+else
+    osuffix=$(echo $output | awk 'BEGIN{FS="."}{print $NF}')
+    outputraw=$tmpdir/output.$osuffix
+fi
 asttable $outraw --range=RADIUS,0,$rmax --output=$outputraw
 
 
@@ -967,10 +975,8 @@ asttable $outraw --range=RADIUS,0,$rmax --output=$outputraw
 # Polar plot
 # ----------
 #
-# If the polar option is called by the user then the second extension of
-# the catalog that is created based on the azimuth (as clump) and radial
-# (as objects) will be added to the final PSF.
-if [ x$polar != x0 ]; then
+# Generate the polar plot if it was requested.
+if [ x$polar = x1 ]; then
 
     # Set metadata on the polar-plot catalog for easy operations below (and
     # for debugging). To include the maximum radius (99 in case of
@@ -1051,29 +1057,28 @@ if [ x$polar != x0 ]; then
     fi
 
     # If the output is a FITS file, then add a new HDU. Otherwise (for
-    # example output is plain-text), we need to make a new file)
+    # example output is plain-text), we need to make a new file.
     if astfits $outputraw &> /dev/null; then
         exthdu=2
         polarfile=$outputraw
     else
+        # Set its properties.
         exthdu=1
-        suffix=$(echo $outputraw | awk 'BEGIN{FS="."}{print $NF}')
-        polarfile=$(echo $outputraw \
-                        | sed 's|.'$suffix'|-polar.'$suffix'|')
+        polarfile=$(echo $output | sed -e's|.'$osuffix'|-polar.fits|')
+
+        # In case it already exists, delete it (because we later
+        # "--copy"). Recall that we are in the scenario that the actual
+        # radial profile was not FITS.
+        if [ -f $polarfile ]; then rm $polarfile; fi
     fi
 
     # Copy the image into the desired output file and set its HDU name.
     astfits $ppout --copy=1 --output=$polarfile
-    astfits $outputraw --hdu=$exthdu --update=EXTNAME,POLAR-PLOT
+    astfits $polarfile --hdu=$exthdu --update=EXTNAME,POLAR-PLOT
+
+    # Copy the 'rawoutput' into the final output.
+    cp $outputraw $output
 fi
-
-
-
-
-
-# Write the final output.
-cp $outputraw $output
-
 
 
 
