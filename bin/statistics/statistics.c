@@ -415,6 +415,80 @@ statistics_interpolate_and_write(struct statisticsparams *p,
 
 
 
+static gal_data_t *
+statistics_on_tile_clip(struct statisticsparams *p, gal_data_t *tile,
+                        int operator)
+{
+  int s1m0=0;
+  uint8_t cflag;
+  size_t ind, one=1;
+  gal_data_t *clip, *out;
+
+  /* Pre-operation settings. */
+  switch(operator)
+    {
+    /* MAD-clipping */
+    case UI_KEY_MADCLIPMAD:
+      s1m0=0; cflag=0; ind=GAL_STATISTICS_CLIP_OUTCOL_MAD; break;
+    case UI_KEY_MADCLIPNUMBER:
+      s1m0=0; cflag=0; ind=GAL_STATISTICS_CLIP_OUTCOL_NUMBER_USED; break;
+    case UI_KEY_MADCLIPMEDIAN:
+      s1m0=0; cflag=0; ind=GAL_STATISTICS_CLIP_OUTCOL_MEDIAN; break;
+    case UI_KEY_MADCLIPSTD:
+      s1m0=0; cflag=GAL_STATISTICS_CLIP_OUTCOL_OPTIONAL_STD;
+      ind=GAL_STATISTICS_CLIP_OUTCOL_STD; break;
+    case UI_KEY_MADCLIPMEAN:
+      s1m0=0; cflag=GAL_STATISTICS_CLIP_OUTCOL_OPTIONAL_MEAN;
+      ind=GAL_STATISTICS_CLIP_OUTCOL_MEAN; break;
+
+    /* Sigma-clipping */
+    case UI_KEY_SIGCLIPSTD:
+      s1m0=1; cflag=0; ind=GAL_STATISTICS_CLIP_OUTCOL_STD; break;
+    case UI_KEY_SIGCLIPNUMBER:
+      s1m0=1; cflag=0; ind=GAL_STATISTICS_CLIP_OUTCOL_NUMBER_USED; break;
+    case UI_KEY_SIGCLIPMEDIAN:
+      s1m0=1; cflag=0; ind=GAL_STATISTICS_CLIP_OUTCOL_MEDIAN; break;
+    case UI_KEY_SIGCLIPMAD:
+      s1m0=0; cflag=GAL_STATISTICS_CLIP_OUTCOL_OPTIONAL_MAD;
+      ind=GAL_STATISTICS_CLIP_OUTCOL_MAD; break;
+    case UI_KEY_SIGCLIPMEAN:
+      s1m0=0; cflag=GAL_STATISTICS_CLIP_OUTCOL_OPTIONAL_MEAN;
+      ind=GAL_STATISTICS_CLIP_OUTCOL_MEAN; break;
+
+    /* None of the above (a bug!). */
+    default:
+      error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s to fix "
+            "the problem. The operator identifier %d should not have "
+            "been given to this function", __func__, PACKAGE_BUGREPORT,
+            operator);
+    }
+
+  /* Do the clipping, and a small sanity check on the type of the output
+     (in case it changes in the future). */
+  clip = ( s1m0
+           ? gal_statistics_clip_mad(tile, p->mclipparams[0],
+                                     p->mclipparams[1], cflag,
+                                     0, 1)
+           : gal_statistics_clip_sigma(tile, p->sclipparams[0],
+                                       p->sclipparams[1], cflag,
+                                       0, 1) );
+
+  /* Write the desired value into the output. */
+  out=gal_data_alloc(NULL, clip->type, 1, &one, NULL, 0, -1, 1,
+                     NULL, NULL, NULL);
+  memcpy( out->array,
+          gal_pointer_increment(clip->array, ind, clip->type),
+          gal_type_sizeof(clip->type) );
+
+  /* Return the clipped dataset */
+  gal_data_free(clip);
+  return out;
+}
+
+
+
+
+
 static void
 statistics_on_tile(struct statisticsparams *p)
 {
@@ -440,21 +514,33 @@ statistics_on_tile(struct statisticsparams *p)
         case UI_KEY_NUMBER:
           type=GAL_TYPE_INT32; break;
 
+        case UI_KEY_MODE:
+        case UI_KEY_MEDIAN:
         case UI_KEY_MINIMUM:
         case UI_KEY_MAXIMUM:
-        case UI_KEY_MEDIAN:
-        case UI_KEY_MODE:
         case UI_KEY_QUANTFUNC:
           type=p->input->type; break;
 
         case UI_KEY_SUM:
-        case UI_KEY_MEAN:
         case UI_KEY_STD:
+        case UI_KEY_MEAN:
+        case UI_KEY_MODESYM:
         case UI_KEY_QUANTILE:
         case UI_KEY_MODEQUANT:
-        case UI_KEY_MODESYM:
         case UI_KEY_MODESYMVALUE:
           type=GAL_TYPE_FLOAT64; break;
+
+        case UI_KEY_MADCLIPSTD:
+        case UI_KEY_SIGCLIPSTD:
+        case UI_KEY_MADCLIPMAD:
+        case UI_KEY_SIGCLIPMAD:
+        case UI_KEY_MADCLIPMEAN:
+        case UI_KEY_SIGCLIPMEAN:
+        case UI_KEY_MADCLIPNUMBER:
+        case UI_KEY_SIGCLIPNUMBER:
+        case UI_KEY_MADCLIPMEDIAN:
+        case UI_KEY_SIGCLIPMEDIAN:
+          type=GAL_TYPE_FLOAT32; break;
 
         default:
           error(EXIT_FAILURE, 0, "%s: a bug! %d is not a recognized "
@@ -532,10 +618,24 @@ statistics_on_tile(struct statisticsparams *p)
               tmp=ttmp;
               break;
 
+            case UI_KEY_MADCLIPSTD:
+            case UI_KEY_SIGCLIPSTD:
+            case UI_KEY_MADCLIPMAD:
+            case UI_KEY_SIGCLIPMAD:
+            case UI_KEY_MADCLIPMEAN:
+            case UI_KEY_SIGCLIPMEAN:
+            case UI_KEY_MADCLIPNUMBER:
+            case UI_KEY_SIGCLIPNUMBER:
+            case UI_KEY_MADCLIPMEDIAN:
+            case UI_KEY_SIGCLIPMEDIAN:
+              tmp=statistics_on_tile_clip(p, tile, operation->v);
+              break;
+
             default:
-              error(EXIT_FAILURE, 0, "%s: a bug! please contact us at %s to "
-                    "fix the problem. The operation code %d is not "
-                    "recognized", __func__, PACKAGE_BUGREPORT, operation->v);
+              error(EXIT_FAILURE, 0, "%s: a bug! please contact us at %s "
+                    "to fix the problem. The operation code %d is not "
+                    "recognized", __func__, PACKAGE_BUGREPORT,
+                    operation->v);
             }
 
           /* Put the output value into the 'values' array and clean up. */
@@ -1249,9 +1349,11 @@ print_clip(struct statisticsparams *p, int sig1_mad0)
      call other operators also. */
   result = ( sig1_mad0
              ? gal_statistics_clip_sigma(p->sorted, clipparams[0],
-                                         clipparams[1], flags, 0, p->cp.quiet)
+                                         clipparams[1], flags, 0,
+                                         p->cp.quiet)
              : gal_statistics_clip_mad(p->sorted, clipparams[0],
-                                       clipparams[1], flags, 0, p->cp.quiet) );
+                                       clipparams[1], flags, 0,
+                                       p->cp.quiet) );
   a=result->array;
 
   /* Finish the introduction. */

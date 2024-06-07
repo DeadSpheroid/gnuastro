@@ -3336,7 +3336,7 @@ gal_options_print_state(struct gal_options_common_params *cp)
   switch(sum)
     {
     /* No printing option has been called, so just return. */
-    case 0:  return;
+    case 0: return;
 
     /* (Only) one of the printing options has been called, so we'll need to
        print the values in the proper place. */

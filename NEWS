@@ -208,6 +208,8 @@ See the end of the file for license conditions.
   - bug #65847: make check FAILs on color-faint-gray script when libjpeg
     not found. Reported by Takashi Ichikawa.
 
+  - bug #65853: Statistics crashes with the --ontile option.
+
 
 
 

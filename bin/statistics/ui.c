@@ -218,19 +218,17 @@ ui_add_to_single_value(struct argp_option *option, char *arg,
                       char *filename, size_t lineno, void *params)
 {
   size_t i;
+  char *str;
   double *d;
   gal_data_t *inputs=NULL;
   struct statisticsparams *p=(struct statisticsparams *)params;
 
   /* In case of printing the option values. */
   if(lineno==-1)
-    error(EXIT_FAILURE, 0, "currently the options to be printed in one "
-          "row (like '--number', '--mean', and etc) do not support "
-          "printing with the '--printparams' ('-P'), or writing into "
-          "configuration files due to lack of time when implementing "
-          "these features. You can put them into configuration files "
-          "manually. Please get in touch with us at '%s', so we can "
-          "implement it", PACKAGE_BUGREPORT);
+    {
+      gal_checkset_allocate_copy("1", &str);
+      return str;
+    }
 
   /* Some of these options take values and some don't. */
   if(option->type==GAL_OPTIONS_NO_ARG_TYPE)
