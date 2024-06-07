@@ -205,6 +205,9 @@ See the end of the file for license conditions.
 
   - bug #65833: Convolve crashes when the kernel only has a single element.
 
+  - bug #65847: make check FAILs on color-faint-gray script when libjpeg
+    not found. Reported by Takashi Ichikawa.
+
 
 
 

@@ -52,6 +52,7 @@ if [ ! -f $dep3name ]; then echo "$dep3name doesn't exist."; exit 77; fi
 if [ ! -f $dep4name ]; then echo "$dep4name doesn't exist."; exit 77; fi
 if [ ! -f $dep5name ]; then echo "$dep5name doesn't exist."; exit 77; fi
 if [ ! -f $fits1name ]; then echo "$fits1name doesn't exist."; exit 77; fi
+if [ "x$haslibjpeg" != "xyes" ];then echo "libjpeg not present.";  exit 77;fi
 
 
 
