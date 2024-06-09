@@ -406,9 +406,6 @@ statistics_interpolate_and_write(struct statisticsparams *p,
   /* Write the values. */
   gal_tile_full_values_write(values, &cp->tl, !p->ignoreblankintiles,
                              output, NULL, 0);
-  gal_fits_key_write_filename("input", p->inputname, &p->cp.ckeys, 1,
-                              p->cp.quiet);
-  gal_fits_key_write(p->cp.ckeys, output, "0", "NONE", 1, 0);
 }
 
 
@@ -663,6 +660,11 @@ statistics_on_tile(struct statisticsparams *p)
       gal_data_free(values);
       if(operation->v==UI_KEY_QUANTFUNC) gal_data_free(tmpv);
     }
+
+  /* Write the keywords in the 0-th extension. */
+  gal_fits_key_write_filename("input", p->inputname, &p->cp.ckeys, 1,
+                              p->cp.quiet);
+  gal_fits_key_write(p->cp.ckeys, output, "0", "NONE", 1, 0);
 
   /* Clean up. */
   free(output);
