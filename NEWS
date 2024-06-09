@@ -210,6 +210,9 @@ See the end of the file for license conditions.
 
   - bug #65853: Statistics crashes with the --ontile option.
 
+  - bug #65862: Output directory ignored when Statistics is called with
+    the '--ontile' option.
+
 
 
 

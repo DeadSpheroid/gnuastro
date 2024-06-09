@@ -497,13 +497,23 @@ statistics_on_tile(struct statisticsparams *p)
   gal_data_t *tile, *values;
   size_t tind, dsize=1, mind=-1;
   uint8_t type=GAL_TYPE_INVALID;
+  uint8_t keepinputdir=p->cp.keepinputdir;
   gal_data_t *tmp=NULL, *tmpv=NULL, *ttmp;
   struct gal_options_common_params *cp=&p->cp;
   struct gal_tile_two_layer_params *tl=&p->cp.tl;
-  char *output=gal_checkset_automatic_output(cp, cp->output
-                                             ? cp->output
-                                             : p->inputname,
-                                             "_ontile.fits");
+  char *output;
+
+  /* Save the Sky and its standard deviation. We want the output to have a
+     '_sky.fits' suffix. So we'll temporarily re-set 'p->cp.keepinputdir'
+     if the user asked for a specific name. Note that we copied the actual
+     value in the 'keepinputdir' above (in the definition). */
+  p->cp.keepinputdir = p->cp.output ? 1 : keepinputdir;
+  output=gal_checkset_automatic_output(cp,
+                                       ( cp->output
+                                         ? cp->output
+                                         : p->inputname ),
+                                       "_ontile.fits");
+  p->cp.keepinputdir=keepinputdir;
 
   /* Do the operation on each tile. */
   for(operation=p->singlevalue; operation!=NULL; operation=operation->next)

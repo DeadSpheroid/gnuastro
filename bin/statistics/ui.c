@@ -404,6 +404,7 @@ ui_check_only_options(struct statisticsparams *p)
   gal_list_i32_t *tmp;
   struct gal_tile_two_layer_params *tl=&p->cp.tl;
 
+
   /* Check if the format of the output table is valid, given the type of
      the output. */
   gal_tableintern_check_fits_format(p->cp.output, p->cp.tableformat);
@@ -414,6 +415,7 @@ ui_check_only_options(struct statisticsparams *p)
     error(EXIT_FAILURE, 0, "at least one of the single-value measurements "
           "(for example '--median') must be requested with the '--ontile' "
           "option: there is no value to put in each tile");
+
 
   /* Tessellation related options. */
   if( p->ontile || p->sky )
