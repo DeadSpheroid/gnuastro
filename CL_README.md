@@ -1,5 +1,21 @@
 # Information about building Gnuastro with OpenCL enabled
 
+## Getting OpenCL
+If you already have OpenCL set up, skip to the next section for testing OpenCL.
+Firstly for **Nvidia** GPUs, 
+```bash
+sudo apt install nvidia-cuda-toolkit ocl-icd-opencl-dev
+```
+
+This alone is enough, but if you want CPU support too,
+
+For **Intel** CPUs, 
+```bash
+sudo apt install pocl-opencl-icd libpocl-dev libpocl2 libpocl2-common
+```
+
+For **AMD** CPUs and GPUs consider building POCL from source, or using an older version of the AMD SDK.
+
 ## Testing if OpenCL is correctly configured
 
 You can check to see if OpenCL is successfully set up on your system with `clinfo`
@@ -33,22 +49,6 @@ You should see output like this,
 (.text+0x1b): undefined reference to `main'
 collect2: error: ld returned 1 exit status
 ```
-
-## Getting OpenCL
-Firstly for **Nvidia** GPUs, 
-```bash
-sudo apt install nvidia-cuda-toolkit ocl-icd-opencl-dev
-```
-
-This alone is enough, but if you want CPU support too,
-
-For **Intel** CPUs, 
-```bash
-sudo apt install pocl-opencl-icd libpocl-dev libpocl2 libpocl2-common
-```
-
-For **AMD** CPUs and GPUs consider building POCL from source, or using an older version of the AMD SDK.
-
 
 ## Building Gnuastro
 
