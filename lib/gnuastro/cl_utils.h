@@ -1,7 +1,7 @@
 #ifndef __GAL_CL_UTILS_H__
 #define __GAL_CL_UTILS_H__
 
-#define CL_TARGET_OPENCL_VERSION 300
+// #define CL_TARGET_OPENCL_VERSION 300
 #include <gnuastro/data.h>
 #include <CL/cl.h>
 #define MAX_SOURCE_SIZE (0x100000)

@@ -796,20 +796,13 @@ convolve_spatial(struct convolveparams *p)
 // #define MAGIC(x) #x
 void convolve_cl(struct convolveparams *p)
 {
-  gal_data_t *out, *check;
-  int multidim=p->input->ndim>1;
+  gal_data_t *out;
   struct gal_options_common_params *cp=&p->cp;
-  // char *src_conv = MAGIC(#include "astconvolve-conv.cl");
-  /* Do the spatial convolution. One of the main reason someone would
-     want to do spatial domain convolution with this Convolve program
-     is edge correction. So by default we assume it and will only
-     ignore it if the user asks. */
-  // out=gal_convolve_spatial(multidim ? cp->tl.tiles : p->input,
-  //                          p->kernel,
-  //                          cp->numthreads,
-  //                          multidim ? !p->noedgecorrection : 1,
-  //                          multidim ? cp->tl.workoverch : 1,
-  //                          p->conv_on_blank);
+//   char *src_conv =" "
+// #include "astconvolve-conv.cl"
+// " ";
+
+  // printf("test\n\n %s", src_conv);
   if(p->cl==1)
   {
     out = gal_conv_cl(p->input,p->kernel, SRC_CONV, "convolution", "conv_core.h", p->input->size, 128, 1);
