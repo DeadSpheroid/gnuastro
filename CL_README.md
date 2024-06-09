@@ -14,6 +14,9 @@ For **Intel** CPUs,
 sudo apt install pocl-opencl-icd libpocl-dev libpocl2 libpocl2-common
 ```
 
+This installs the POCL project's implementation for Intel CPUs.
+Intel however does provide their own propietary implementation, but that package is rather bloated and moreover has worse performance than the POCL one.
+
 For **AMD** CPUs and GPUs consider building POCL from source, or using an older version of the AMD SDK.
 
 ## Testing if OpenCL is correctly configured
@@ -21,7 +24,7 @@ For **AMD** CPUs and GPUs consider building POCL from source, or using an older 
 You can check to see if OpenCL is successfully set up on your system with `clinfo`
 ```bash
 sudo apt install clinfo
-clinfo | grep -C 1 "Device Name"
+clinfo -l
 ```
 It should display something like
 ```bash
