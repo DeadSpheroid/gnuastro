@@ -66,7 +66,10 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
 
 
 
-
+    // NOTE: Using the clock() function to measure the time taken for convolution gives
+    // the wrong time, since clock() measures CPU cycles used by the program
+    // including any threads launched by it, so it measures the sum of clock cycles used
+    // by each thread for convolution, instead of wall time
     // clock_t start_conv, end_conv;
     // double cpu_time_used_conv;
 
