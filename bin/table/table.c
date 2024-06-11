@@ -1342,7 +1342,7 @@ table_colmetadata(struct tableparams *p)
               "starting from 1), or their name (the first column "
               "found with the given name will be used)", meta->name);
 
-      /* The matching column is found and we know that atleast one value is
+      /* The matching column is found and we know that at least one value is
          already given (otherwise 'gal_options_parse_name_and_values' would
          abort the program). The first given string is the new name. */
       strarr=meta->array;

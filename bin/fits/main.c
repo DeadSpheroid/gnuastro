@@ -49,7 +49,7 @@ main (int argc, char *argv[])
   r=fits(&p);
 
   /* Free all non-freed allocations. */
-  ui_free_and_report(&p);
+  ui_free_report(&p);
 
   /* Return successfully. */
   return r;

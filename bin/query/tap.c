@@ -226,7 +226,7 @@ tap_query_construct_noblank(struct queryparams *p, char **outstr)
 
   for(tmp=p->noblank; tmp!=NULL; tmp=tmp->next)
     {
-      /* Write 'rangestr'. */
+      /* Write 'noblankstr'. */
       if(prevstr)
         {
           if( asprintf(&noblankstr, "%s AND %s IS NOT NULL",
@@ -240,7 +240,7 @@ tap_query_construct_noblank(struct queryparams *p, char **outstr)
           error(EXIT_FAILURE, 0,
                 "%s: asprintf allocation ('noblankstr', 2)", __func__);
 
-      /* Put the 'rangestr' in previous-range string for the next
+      /* Put the 'noblankstr' in previous-range string for the next
          round.*/
       prevstr=noblankstr;
     }
@@ -299,7 +299,7 @@ tap_query_construct_sort(struct queryparams *p)
 
   for(tmp=p->sort; tmp!=NULL; tmp=tmp->next)
     {
-      /* Write 'rangestr'. */
+      /* Write 'sortstr'. */
       if(prevstr)
         {
           if( asprintf(&sortstr, "%s,%s", prevstr, tmp->v) < 0 )
@@ -312,7 +312,7 @@ tap_query_construct_sort(struct queryparams *p)
           error(EXIT_FAILURE, 0,
                 "%s: asprintf allocation ('sortstr', 2)", __func__);
 
-      /* Put the 'rangestr' in previous-range string for the next
+      /* Put the 'sortstr' in previous-range string for the next
          round.*/
       prevstr=sortstr;
     }

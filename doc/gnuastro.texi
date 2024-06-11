@@ -1474,7 +1474,7 @@ Therefore, the unofficial version number `@code{3.92.8-29c8}', corresponds to th
 The unofficial version number is sort-able (unlike the raw hash) and as shown above is descriptive of the state of the unofficial release.
 Of course an official release is preferred for publication (since its tarballs are easily available and it has gone through more tests, making it more stable), so if an official release is announced prior to your publication's final review, please consider updating to the official release.
 
-The major version number is set by a major goal which is defined by the developers and user community before hand, for example, see @ref{GNU Astronomy Utilities 1.0}.
+The major version number is set by a major goal which is defined by the developers and user community beforehand, for example, see @ref{GNU Astronomy Utilities 1.0}.
 The incremental work done in minor releases are commonly small steps in achieving the major goal.
 Therefore, there is no limit on the number of minor releases and the difference between the (hypothetical) versions 2.927 and 3.0 can be a small (negligible to the user) improvement that finalizes the defined goals.
 
@@ -15351,7 +15351,7 @@ But as mentioned above, non-volatile memory has much slower I/O speed than the R
 Hence in such situations, the programs will become noticeably slower (sometimes by factors of 10 times slower, depending on your non-volatile memory speed).
 
 Because of the drop in I/O speed (and thus the speed of your running program), the moment that any to-be-allocated dataset is memory-mapped, Gnuastro's programs and libraries will notify you with a descriptive statement like below (can happen in any phase of their analysis).
-It shows the location of the memory-mapped file, its size, complemented with a small description of the cause, a pointer to this section of the book for more information on how to deal with it (if necessary), and what to do to suppress it.
+It shows the location of the memory-mapped file, and its size, complemented with a small description of the cause, a pointer to this section of the book for more information on how to deal with it (if necessary), and how to suppress it.
 
 @example
 astarithmetic: ./gnuastro_mmap/Fu7Dhs: temporary memory-mapped file
@@ -40068,7 +40068,7 @@ filename and HDU as input instead of an already opened CFITSIO
 
 @deftypefun void gal_fits_key_list_add (gal_fits_list_key_t @code{**list}, uint8_t @code{type}, char @code{*keyname}, int @code{kfree}, void @code{*value}, int @code{vfree}, char @code{*comment}, int @code{cfree}, char @code{*unit}, int @code{ufree})
 Add a keyword to the top of list of header keywords that need to be written into a FITS file.
-In the end, the keywords will have to be freed, so it is important to know before hand if they were allocated or not (hence the presence of the arguments ending in @code{free}).
+In the end, the keywords will have to be freed, so it is important to know beforehand if they were allocated or not (hence the presence of the arguments ending in @code{free}).
 If the space for the respective element is not allocated, set these arguments to @code{0} (zero).
 
 You can call this function multiple times on a single list add several keys that will be written in one call to @code{gal_fits_key_write} or @code{gal_fits_key_write_in_ptr}.
@@ -40077,7 +40077,7 @@ Hence, the written keys will have the inverse order of your calls to this functi
 To avoid this problem, you can either use @code{gal_fits_key_list_add_end} instead (which will add each key to the end of the list, not to the top like this function).
 Alternatively, you can use @code{gal_fits_key_list_reverse} after adding all the keys with this function.
 
-@strong{Important note for strings}: the value should be the pointer to the string its-self (@code{char *}), not a pointer to a pointer (@code{char **}).
+@strong{Important note for strings}: the value should be the pointer to the string itself (@code{char *}), not a pointer to a pointer (@code{char **}).
 @end deftypefun
 
 @deftypefun void gal_fits_key_list_add_end (gal_fits_list_key_t @code{**list}, uint8_t @code{type}, char @code{*keyname}, int @code{kfree}, void @code{*value}, int @code{vfree}, char @code{*comment}, int @code{cfree}, char @code{*unit}, int @code{ufree})
@@ -40157,7 +40157,7 @@ Write the WCS header string (produced with WCSLIB's @code{wcshdo} function) into
 This function will put a few blank keyword lines along with a comment @code{WCS information} before writing each keyword record.
 @end deftypefun
 
-@deftypefun void gal_fits_key_write (gal_fits_list_key_t @code{**keylist}, char @code{*filename}, char @code{*hdu}, char @code{*hdu_option_name}, int @code{freekeys}, int @code{create_fits_not_exists})
+@deftypefun void gal_fits_key_write (gal_fits_list_key_t @code{*keylist}, char @code{*filename}, char @code{*hdu}, char @code{*hdu_option_name}, int @code{freekeys}, int @code{create_fits_not_exists})
 Write the list of keywords in @code{keylist} into the @code{hdu} extension of the file called @code{filename}.
 If the file may not exist before this function is activated, set @code{create_fits_not_exists} to non-zero and set the HDU to @code{"0"}.
 If the keywords should be freed after they are written, set the @code{freekeys} value to non-zero.
@@ -40184,13 +40184,13 @@ int main()
   gal_fits_key_list_add_end(&keylist, GAL_TYPE_FLOAT32, keyname, 0,
                             &value, 0, comment, 0, unit, 0);
   gal_fits_key_list_title_add(&keylist, "Matching metadata", 0);
-  gal_fits_key_write(&keylist, filename, "1", "NONE", 1, 0);
+  gal_fits_key_write(keylist, filename, "1", "NONE", 1, 0);
   return EXIT_SUCCESS;
 @}
 @end example
 @end deftypefun
 
-@deftypefun void gal_fits_key_write_in_ptr (gal_fits_list_key_t @code{**keylist}, fitsfile @code{*fptr}, int @code{freekeys})
+@deftypefun void gal_fits_key_write_in_ptr (gal_fits_list_key_t @code{*keylist}, fitsfile @code{*fptr}, int @code{freekeys})
 Write the list of keywords in @code{keylist} into the given CFITSIO @code{fitsfile} pointer and free keylist.
 For more on the input @code{keylist}, see the description and example for @code{gal_fits_key_write}, above.
 @end deftypefun
@@ -47176,7 +47176,7 @@ This is more suited for people who commonly contribute to the code (see @ref{For
 @end enumerate
 
 In both cases, your commits (with your name and information) will be preserved and your contributions will thus be fully recorded in the history of Gnuastro and in the @file{AUTHORS} file and this book (second page in the PDF format) once they have been incorporated into the official repository.
-Needless to say that in such cases, be sure to follow the bug or task trackers (or subscribe to the @command{gnuastro-devel} mailing list) and contact us before hand so you do not do something that someone else is already working on.
+Needless to say that in such cases, be sure to follow the bug or task trackers (or subscribe to the @command{gnuastro-devel} mailing list) and contact us beforehand so you do not do something that someone else is already working on.
 In that case, you can get in touch with them and help the job go on faster, see @ref{Gnuastro project webpage}.
 This workflow is currently mostly borrowed from the general recommendations of Git@footnote{@url{https://github.com/git/git/blob/master/Documentation/SubmittingPatches}} and GitHub.
 But since Gnuastro is currently under heavy development, these might change and evolve to better suit our needs.

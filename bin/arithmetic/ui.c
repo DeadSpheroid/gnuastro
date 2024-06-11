@@ -537,7 +537,7 @@ ui_read_check_inputs_setup(int argc, char *argv[], struct arithmeticparams *p)
 /************      Free allocated, report         *************/
 /**************************************************************/
 void
-freeandreport(struct arithmeticparams *p, struct timeval *t1)
+ui_free_report(struct arithmeticparams *p, struct timeval *t1)
 {
   /* Free the simple strings. */
   free(p->cp.output);

@@ -1700,7 +1700,7 @@ struct multioperandparams
     n=0;                                                                \
     for(i=0;i<p->dnum;++i)                                              \
       {                                                                 \
-        /* Only integers and non-NaN floats: v==v is 1. */              \
+        /* Only integers and non-NaN floats: b==b is 1. */              \
         if(p->hasblank[i])                                              \
           use = ( b==b                                                  \
                   ? ( a[i][j]!=b       ? 1 : 0 )     /* Integer */      \
@@ -1795,7 +1795,7 @@ struct multioperandparams
                                                                         \
         for(i=0;i<p->dnum;++i)  /* Loop over each array. */             \
           {                                                             \
-            /* Only integers and non-NaN floats: v==v is 1. */          \
+            /* Only integers and non-NaN floats: b==b is 1. */          \
             if(p->hasblank[i])                                          \
               use = ( b==b                                              \
                       ? ( a[i][j]!=b       ? 1 : 0 )      /* Integer */ \
@@ -1829,7 +1829,7 @@ struct multioperandparams
                                                                         \
         for(i=0;i<p->dnum;++i)  /* Loop over each array. */             \
           {                                                             \
-            /* Only integers and non-NaN floats: v==v is 1. */          \
+            /* Only integers and non-NaN floats: b==b is 1. */          \
             if(p->hasblank[i])                                          \
               use = ( b==b                                              \
                       ? ( a[i][j]!=b       ? 1 : 0 )     /* Integer */  \
@@ -1863,7 +1863,7 @@ struct multioperandparams
                                                                         \
         for(i=0;i<p->dnum;++i)  /* Loop over each array. */             \
           {                                                             \
-            /* Only integers and non-NaN floats: v==v is 1. */          \
+            /* Only integers and non-NaN floats: b==b is 1. */          \
             if(p->hasblank[i])                                          \
               use = ( b==b                                              \
                       ? ( a[i][j]!=b       ? 1 : 0 )     /* Integer */  \
@@ -1897,7 +1897,7 @@ struct multioperandparams
                                                                         \
         for(i=0;i<p->dnum;++i)  /* Loop over each array. */             \
           {                                                             \
-            /* Only integers and non-NaN floats: v==v is 1. */          \
+            /* Only integers and non-NaN floats: b==b is 1. */          \
             if(p->hasblank[i])                                          \
               use = ( b==b                                              \
                       ? ( a[i][j]!=b       ? 1 : 0 )     /* Integer */  \
@@ -1937,7 +1937,7 @@ struct multioperandparams
         /* Loop over each array: 'i' is input dataset's index. */       \
         for(i=0;i<p->dnum;++i)                                          \
           {                                                             \
-            /* Only integers and non-NaN floats: v==v is 1. */          \
+            /* Only integers and non-NaN floats: b==b is 1. */          \
             if(p->hasblank[i])                                          \
               use = ( b==b                                              \
                       ? ( a[i][j]!=b       ? 1 : 0 )     /* Integer */  \

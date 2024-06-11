@@ -1306,53 +1306,7 @@ gal_fits_key_date_to_seconds(char *fitsdate, char **subsecstr,
    linked list of 'gal_data_t'. Before calling this function, you just have
    to set the 'name' and desired 'type' values of each element in the list
    to the keyword you want it to keep the value of. The given 'name' value
-   will be directly passed to CFITSIO to read the desired keyword. This
-   function will allocate space to keep the value. Here is one example of
-   using this function:
-
-      gal_data_t *keysll=gal_data_array_calloc(N);
-
-      for(i=0;i<N-2;++i) keysll[i]->next=keysll[i+1];
-
-      \\ Put a name and type for each element.
-
-      gal_fits_key_read_from_ptr(fptr, keysll, 0, 0);
-
-      \\ use the values as you like.
-
-      gal_data_array_free(keysll, N, 1);
-
-   If the 'array' pointer of each keyword's dataset is not NULL, then it is
-   assumed that the space has already been allocated. If it is NULL, then
-   space will be allocated internally here.
-
-   Strings need special consideration: the reason is that generally,
-   'gal_data_t' needs to also allow for array of strings (as it supports
-   arrays of integers for example). Hence two allocations will be done here
-   (one if 'array!=NULL') and 'keysll[i].array' must be interpretted as
-   'char **': one allocation for the pointer, one for the actual
-   characters. You don't have to worry about the freeing,
-   'gal_data_array_free' will free both allocations. So to read a string,
-   one easy way would be the following:
-
-      char *str, **strarray;
-      strarr = keysll[i].array;
-      str    = strarray[0];
-
-   If CFITSIO is unable to read a keyword for any reason the 'status'
-   element of the respective 'gal_data_t' will be non-zero. You can check
-   the successful reading of the keyword from the 'status' value in each
-   keyword's 'gal_data_t'. If it is zero, then the keyword was found and
-   succesfully read. Otherwise, it a CFITSIO status value. You can use
-   CFITSIO's error reporting tools or 'gal_fits_io_error' for reporting the
-   reason. A tip: when the keyword doesn't exist, then CFITSIO's status
-   value will be 'KEY_NO_EXIST'.
-
-   CFITSIO will start searching for the keywords from the last place in the
-   header that it searched for a keyword. So it is much more efficient if
-   the order that you ask for keywords is based on the order they are
-   stored in the header.
- */
+   will be directly passed to CFITSIO to read the desired keyword. */
 void
 gal_fits_key_read_from_ptr(fitsfile *fptr, gal_data_t *keysll,
                            int readcomment, int readunit)

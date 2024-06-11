@@ -884,7 +884,7 @@ ui_read_check_inputs_setup(int argc, char *argv[], struct fitsparams *p)
 /************      Free allocated, report         *************/
 /**************************************************************/
 void
-ui_free_and_report(struct fitsparams *p)
+ui_free_report(struct fitsparams *p)
 {
   /* Free the allocated arrays: */
   free(p->cp.output);

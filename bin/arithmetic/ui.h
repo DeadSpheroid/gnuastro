@@ -63,6 +63,6 @@ size_t *
 ui_read_ndim_dsize(char *filename, char *hdu, size_t *ndim);
 
 void
-freeandreport(struct arithmeticparams *p, struct timeval *t1);
+ui_free_report(struct arithmeticparams *p, struct timeval *t1);
 
 #endif

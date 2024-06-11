@@ -49,7 +49,7 @@ main (int argc, char *argv[])
   arithmetic(&p);
 
   /* Free any allocated space. */
-  freeandreport(&p, &t1);
+  ui_free_report(&p, &t1);
 
   /* Return successfully. */
   return 0;

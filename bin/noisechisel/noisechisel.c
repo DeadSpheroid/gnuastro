@@ -165,7 +165,7 @@ noisechisel_output(struct noisechiselparams *p)
     }
 
 
-  /* Write the detected pixels and useful information into it's header. */
+  /* Write the detected pixels and useful information into its header. */
   gal_fits_key_list_add(&keys, GAL_TYPE_FLOAT32, "DETSN", 0,
                         &p->detsnthresh, 0,
                         "Minimum S/N of true pseudo-detections", 0,
@@ -190,7 +190,7 @@ noisechisel_output(struct noisechiselparams *p)
   keys=NULL;
 
 
-  /* Write the Sky image into the output */
+  /* Write the Sky image into the output. */
   if(p->sky->name) free(p->sky->name);
   p->sky->name="SKY";
   gal_tile_full_values_write(p->sky, &p->cp.tl, !p->ignoreblankintiles,
@@ -254,7 +254,7 @@ noisechisel(struct noisechiselparams *p)
   /* Find the final Sky and Sky STD values. */
   sky_and_std(p, p->skyname);
 
-  /* Abort if the user only wanted to see until this point.*/
+  /* Abort if the user only wanted to see until this point. */
   if(p->skyname && !p->continueaftercheck)
     ui_abort_after_check(p, p->skyname, NULL,
                          "derivation of final Sky (and its STD) value");
