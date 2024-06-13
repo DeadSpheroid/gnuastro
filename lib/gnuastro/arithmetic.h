@@ -157,6 +157,7 @@ enum gal_arithmetic_operators
   GAL_ARITHMETIC_OP_JY_TO_COUNTS, /* Janskys to Counts (AB zeropoint). */
   GAL_ARITHMETIC_OP_MAG_TO_JY,    /* Magnitude to Janskys. */
   GAL_ARITHMETIC_OP_JY_TO_MAG,    /* Janskys to Magnitude. */
+  GAL_ARITHMETIC_OP_ZEROPOINT_CHANGE, /* Change the zero point. */
   GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY,/* Counts to SDSS nanomaggies. */
   GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS,/* SDSS nanomaggies to counts. */
   GAL_ARITHMETIC_OP_AU_TO_PC,     /* Astronomical units (AU) to Parsecs (PC). */

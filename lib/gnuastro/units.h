@@ -100,6 +100,10 @@ double
 gal_units_jy_to_counts(double jy, double zeropoint_ab);
 
 double
+gal_units_zeropoint_change(double counts, double zeropoint_ab,
+                           double custom_zp);
+
+double
 gal_units_counts_to_nanomaggy(double counts, double zeropoint_ab);
 
 double

@@ -118,7 +118,32 @@ arithmetic_check_float_input(gal_data_t *in, int operator, char *numstr)
 */
 
 
+/* Given two datasets, if either one is a number, or both are the same size
+   (a good scenario) don't do anything. Otherwise, print an error
+   message. */
+static void
+arithmetic_sizes_bad_one_good(gal_data_t *a, gal_data_t *b, int flags,
+                              int operator)
+{
+  if( !( (flags & GAL_ARITHMETIC_FLAG_NUMOK) && (a->size==1 || b->size==1))
+      && gal_dimension_is_different(a, b) )
+    error(EXIT_FAILURE, 0, "%s: the non-number inputs to '%s' don't "
+          "have the same dimension/size", __func__,
+          gal_arithmetic_operator_string(operator));
+  return;
+}
 
+
+
+
+
+static gal_data_t *
+arithmetic_to_certain_type(gal_data_t *in, uint8_t desired_type, int flags)
+{
+  return ( in->type==desired_type
+           ? in
+           : gal_data_copy_to_new_type(in, desired_type) );
+}
 
 
 
@@ -2835,17 +2860,10 @@ arithmetic_binary(int operator, int flags, gal_data_t *l, gal_data_t *r)
     }
 
 
-  /* Simple sanity check on the input sizes. */
-  if( !( (flags & GAL_ARITHMETIC_FLAG_NUMOK) && (l->size==1 || r->size==1))
-      && gal_dimension_is_different(l, r) )
-    error(EXIT_FAILURE, 0, "%s: the non-number inputs to '%s' don't "
-          "have the same dimension/size", __func__,
-          gal_arithmetic_operator_string(operator));
-
-
-  /* Print a warning if the inputs are both integers, but have different
-     signs (the user needs to know that the output may not be what they
-     expect!).*/
+  /* Sanity checks: on the sizes and if the inputs are both integers, but
+     have different signs (the user needs to know that the output may not
+     be what they expect!).*/
+  arithmetic_sizes_bad_one_good(l, r, flags, operator);
   if( (flags & GAL_ARITHMETIC_FLAG_QUIET)==0 )
     arithmetic_binary_int_sanity_check(l, r, operator);
 
@@ -3012,11 +3030,8 @@ arithmetic_function_binary_flt(int operator, int flags, gal_data_t *il,
     }
 
 
-  /* Simple sanity check on the input sizes. */
-  if( !( (flags & GAL_ARITHMETIC_FLAG_NUMOK) && (il->size==1 || ir->size==1))
-      && gal_dimension_is_different(il, ir) )
-    error(EXIT_FAILURE, 0, "%s: the input datasets don't have the same "
-          "dimension/size", __func__);
+  /* Check on the input sizes (one can be a number). */
+  arithmetic_sizes_bad_one_good(il, ir, flags, operator);
 
 
   /* Convert the values to double precision floating point if they are
@@ -3119,6 +3134,98 @@ arithmetic_function_binary_flt(int operator, int flags, gal_data_t *il,
       if (l!=il) gal_data_free(l);
       if (r!=ir) gal_data_free(r);
     }
+
+  /* Return */
+  return o;
+}
+
+
+
+
+
+/* Functions that take three arguments. */
+#define TERFUNC_RUN_FUNCTION(OP){                                       \
+    double *oa=o->array, *of=oa + o->size;                              \
+    double *la=l->array, *ma=m->array, *ra=r->array;                    \
+    do                                                                  \
+      {                                                                 \
+        *oa=OP(*la, *ma, *ra);                                          \
+        if(l->size>1) {++la;} if(m->size>1) {++ma;} if(r->size>1) {++ra;} \
+      }                                                                 \
+    while(++oa<of);                                                     \
+  }
+
+static gal_data_t *
+arithmetic_function_ternary_flt(int operator, int flags, gal_data_t *il,
+                               gal_data_t *im, gal_data_t *ir)
+
+{
+  struct wcsprm *owcs=NULL;
+  gal_data_t *l, *m, *r, *o=NULL;
+  size_t zero=0, ondim, *odsize, minmapsize;
+  int quietmmap=il->quietmmap && im->quietmmap && ir->quietmmap;
+
+  /* The datasets may be empty. In this case, the output should also be
+     empty (we can have tables and images with 0 rows or pixels!). */
+  if(    il->size==0 || il->array==NULL
+      || im->size==0 || im->array==NULL
+      || ir->size==0 || ir->array==NULL )
+    {
+      /* If we should free the inputs, then immediately free the middle
+         dataset which we do not need. Then check to see which one of the
+         inputs is already allocated and free it, then  */
+      if(flags & GAL_ARITHMETIC_FLAG_FREE) gal_data_free(il);
+      if(flags & GAL_ARITHMETIC_FLAG_FREE) gal_data_free(im);
+      if(flags & GAL_ARITHMETIC_FLAG_FREE) gal_data_free(ir);
+      o=gal_data_alloc(NULL, GAL_TYPE_FLOAT64, 1, &zero, NULL, 0, -1, 1,
+                       NULL, NULL, NULL);
+    }
+
+  /* Simple sanity check on the input sizes (they should all either be a
+     single number, or have exactly the same number of dimensions). */
+  arithmetic_sizes_bad_one_good(il, im, flags, operator);
+  arithmetic_sizes_bad_one_good(il, ir, flags, operator);
+  arithmetic_sizes_bad_one_good(im, ir, flags, operator);
+
+  /* Convert the values to double precision floating point. */
+  l=arithmetic_to_certain_type(il, GAL_TYPE_FLOAT64, flags);
+  m=arithmetic_to_certain_type(im, GAL_TYPE_FLOAT64, flags);
+  r=arithmetic_to_certain_type(ir, GAL_TYPE_FLOAT64, flags);
+
+  /* Set the output parameters. */
+  minmapsize=(l->minmapsize < m->minmapsize
+              ? (l->minmapsize<r->minmapsize?l->minmapsize:r->minmapsize)
+              : (m->minmapsize<r->minmapsize?m->minmapsize:r->minmapsize));
+  if( l->size > m->size )
+    {
+      if( l->size > r->size ) { ondim=l->ndim; odsize=l->dsize; }
+      else                    { ondim=r->ndim; odsize=r->dsize; }
+    }
+  else
+    {
+      if( m->size > r->size ) { ondim=m->ndim; odsize=m->dsize; }
+      else                    { ondim=r->ndim; odsize=r->dsize; }
+    }
+  owcs = l->wcs ? l->wcs : (m->wcs ? m->wcs : r->wcs);
+
+  /* Allocate the output and do the operation */
+  o=gal_data_alloc(NULL, GAL_TYPE_FLOAT64, ondim, odsize, owcs, 0,
+                   minmapsize, quietmmap, NULL, NULL, NULL);
+  switch(operator)
+    {
+    case GAL_ARITHMETIC_OP_ZEROPOINT_CHANGE:
+      TERFUNC_RUN_FUNCTION( gal_units_zeropoint_change ); break;
+    default:
+      error(EXIT_FAILURE, 0, "%s: operator code %d not recognized",
+            __func__, operator);
+    }
+
+  /* Clean up. */
+  if(l!=il) gal_data_free(l);
+  if(m!=im) gal_data_free(m);
+  if(r!=ir) gal_data_free(r);
+  if(flags & GAL_ARITHMETIC_FLAG_FREE)
+    { gal_data_free(il); gal_data_free(im); gal_data_free(ir); }
 
   /* Return */
   return o;
@@ -3979,6 +4086,8 @@ gal_arithmetic_set_operator(char *string, size_t *num_operands)
     { op=GAL_ARITHMETIC_OP_COUNTS_TO_JY;      *num_operands=2;  }
   else if (!strcmp(string, "jy-to-counts"))
     { op=GAL_ARITHMETIC_OP_JY_TO_COUNTS;      *num_operands=2;  }
+  else if (!strcmp(string, "zeropoint-change"))
+    { op=GAL_ARITHMETIC_OP_ZEROPOINT_CHANGE; *num_operands=3;}
   else if (!strcmp(string, "counts-to-nanomaggy"))
     { op=GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY; *num_operands=2;}
   else if (!strcmp(string, "nanomaggy-to-counts"))
@@ -4341,6 +4450,7 @@ gal_arithmetic_operator_string(int operator)
     case GAL_ARITHMETIC_OP_SB_TO_COUNTS:    return "sb-to-counts";
     case GAL_ARITHMETIC_OP_COUNTS_TO_JY:    return "counts-to-jy";
     case GAL_ARITHMETIC_OP_JY_TO_COUNTS:    return "jy-to-counts";
+    case GAL_ARITHMETIC_OP_ZEROPOINT_CHANGE: return "zeropoint-change";
     case GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY: return "counts-to-nanomaggy";
     case GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS: return "nanomaggy-to-counts";
     case GAL_ARITHMETIC_OP_MAG_TO_JY:       return "mag-to-jy";
@@ -4641,6 +4751,13 @@ gal_arithmetic(int operator, size_t numthreads, int flags, ...)
       d1 = va_arg(va, gal_data_t *);
       d2 = va_arg(va, gal_data_t *);
       out=arithmetic_function_binary_flt(operator, flags, d1, d2);
+      break;
+
+    case GAL_ARITHMETIC_OP_ZEROPOINT_CHANGE:
+      d1 = va_arg(va, gal_data_t *);
+      d2 = va_arg(va, gal_data_t *);
+      d3 = va_arg(va, gal_data_t *);
+      out=arithmetic_function_ternary_flt(operator, flags, d1, d2, d3);
       break;
 
     /* More complex operators. */

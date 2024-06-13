@@ -12,12 +12,17 @@ See the end of the file for license conditions.
     outputs as extra HDUs (by default, the output file is deleted). If the
     output does not exist, then this option has no affect.
 
-  - New operators:
+  - New operators (also avaialble in "Column Arithmetic" of the Table
+    progam):
 
     - filter-madclip-mean: filter/smooth the input using MAD-clipped mean.
 
     - filter-madclip-median: filter/smooth the input using MAD-clipped
       median.
+
+    - free: free (from memory) the top operand on the stack of
+      operands. This is useful in combination with operators that produce
+      more than one output operand.
 
     - madclip-maskfilled: mask (set to NaN) all input elements that are
       outliers (defined by MAD-clipping). Combined with the stacking
@@ -27,9 +32,8 @@ See the end of the file for license conditions.
     - siglclip-maskfilled: similar to 'madclip-maskfilled', but defining
       outliers by Sigma-clipping.
 
-    - free: free (from memory) the top operand on the stack of
-      operands. This is useful in combination with operators that produce
-      more than one output operand.
+    - zeropoint-change: change the zero point of the input data set to a
+      new zero point.
 
 *** Statistics
 
@@ -88,6 +92,10 @@ See the end of the file for license conditions.
 *** Library
 - gal_statistics_concentration: measure the concentration of values around
   the median; see the book for the details.
+
+- gal_units_zeropoint_change: change the zero point of the input data set
+  to an output zero point.
+
 ** Removed features
 ** Changed features
 *** All programs

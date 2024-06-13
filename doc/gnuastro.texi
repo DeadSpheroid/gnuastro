@@ -8935,8 +8935,8 @@ $ for f in i r g; do \
 @noindent
 @strong{Accounting for zero points:} An important step that we have not implemented in this section is to unify the zero points of the three filters.
 In the case of SDSS (and some other surveys), the images have already been brought to the same zero point, but that is not generally the case.
-So before subtracting sky (and estimating the standard deviation) you should also unify the zero points of your images (for example through Arithmetic's @code{counts-to-nanomaggy} or @code{counts-to-jy} described in @ref{Unit conversion operators}).
-If you don't already have the zero point of your images, see the dedicated tutorial: @ref{Zero point of an image}.
+So before subtracting sky (and estimating the standard deviation) you should also unify the zero points of your images (for example through Arithmetic's @code{counts-to-customzp}, @code{counts-to-nanomaggy} or @code{counts-to-jy} described in @ref{Unit conversion operators}).
+If you don't already have the zero point of your images, see the dedicated tutorial to measure it: @ref{Zero point of an image}.
 @end cartouche
 
 Now that we know the noise fluctuates around zero in all three images, we can start to define the values for the @option{--fluxlow} and @option{--fluxhigh}.
@@ -21867,6 +21867,18 @@ $ astarithmetic sdss-image.fits 22.5 counts-to-jy
 Convert Janskys to counts (usually CCD outputs) through an AB-magnitude based zero point.
 This is the inverse operation of the @code{counts-to-jy}, see there for usage example.
 
+@item zeropoint-change
+@cindex Zero point change
+Change the zero point of the input dataset to a new zero point.
+For example, with the command below, we are changing the zero point of an image from 26.892 to 27.0:
+
+@example
+$ astarithmetic image.fits 26.892 27.0 zeropoint-change
+@end example
+
+Note that the input or output zero points can also be an image (with the same size as the input image).
+This is very useful to correct situations where the zero point can change over the image (happens in single exposures) and you want to unify it across the whole image (to build a deep stacked image).
+
 @item counts-to-nanomaggy
 @cindex Nanomaggy
 Convert counts to Nanomaggy (with fixed zero point of 22.5, used as the pixel units of many surveys like SDSS).
@@ -21875,6 +21887,8 @@ For example if your image has a zero point of 24.93, you can convert it to Nanom
 @example
 $ astarithmetic image.fits 24.93 counts-to-nanomaggy
 @end example
+
+This is just a wrapper over the @code{zeropoint-change} operator where the output zero point is 22.5.
 
 @item nanomaggy-to-counts
 @cindex Nanomaggy
@@ -21885,6 +21899,8 @@ For example if you would like to convert an image in units of Nanomaggy (for exa
 @example
 $ astarithmetic image.fits 25.92 nanomaggy-to-counts
 @end example
+
+This is just a wrapper over the @code{zeropoint-change} operator where the input zero point is 22.5.
 
 @item mag-to-jy
 Convert AB magnitudes to Janskys, see @ref{Brightness flux magnitude}.
@@ -44517,14 +44533,21 @@ Convert the input value (assumed to be in Astronomical Units) to Parsecs.
 For the conversion equation, see the description of @code{au-to-pc} operator in @ref{Arithmetic operators}.
 @end deftypefun
 
+@deftypefun double gal_units_zeropoint_change (double @code{counts}, double @code{zeropoint_in}, double @code{zeropoint_out})
+@cindex Zero point change
+Convert the zero point of @code{counts} (which is @code{zeropoint_in}) to @code{zeropoint_out}.
+@end deftypefun
+
 @deftypefun double gal_units_counts_to_nanomaggy (double @code{counts}, double @code{zeropoint_ab})
 @cindex Nanomaggy
 @cindex Magnitude (nanomaggy)
 Convert counts to Nanomaggy (with fixed zero point of 22.5) through an AB magnitude-based zero point.
+This is just a wrapper around @code{gal_units_zeropoint_change} with @code{zeropoint_out=22.5}.
 @end deftypefun
 
 @deftypefun double gal_units_nanomaggy_to_counts (double @code{counts}, double @code{zeropoint_ab})
 Convert Nanomaggy (with fixed zero point of 22.5) to counts through an AB magnitude-based zero point.
+This is just a wrapper around @code{gal_units_zeropoint_change} with @code{zeropoint_in=22.5}.
 @end deftypefun
 
 @deftypefun double gal_units_pc_to_au (double @code{pc})

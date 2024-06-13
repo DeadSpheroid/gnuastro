@@ -463,19 +463,30 @@ gal_units_jy_to_counts(double jy, double zeropoint_ab)
 
 
 
-/* Convert counts to nanomaggy. The job of this function is equivalent to
-   the double-call bellow. We just don't want to repeat some extra
-   multiplication/divisions.
+/* Convert counts to a custom zero point. The job of this function is
+   equivalent to the double-call bellow. We just don't want to repeat some
+   extra multiplication/divisions.
 
-     gal_units_jy_to_counts(gal_units_counts_to_jy(counts, zeropoint_ab),
-                            22.5)
+     gal_units_jy_to_counts(gal_units_counts_to_jy(counts, zeropoint_in),
+                            custom_out)
 */
+double
+gal_units_zeropoint_change(double counts, double zeropoint_in,
+                           double zeropoint_out)
+{
+  return ( counts
+           * pow(10, -1 * zeropoint_in  / 2.5)
+           / pow(10, -1 * zeropoint_out / 2.5) );
+}
+
+
+
+
+
 double
 gal_units_counts_to_nanomaggy(double counts, double zeropoint_ab)
 {
-  return ( counts
-           * pow(10, -1 * zeropoint_ab / 2.5)
-           / pow(10, -1 * 22.5         / 2.5) );
+  return gal_units_zeropoint_change(counts, zeropoint_ab, 22.5);
 }
 
 
@@ -485,9 +496,7 @@ gal_units_counts_to_nanomaggy(double counts, double zeropoint_ab)
 double
 gal_units_nanomaggy_to_counts(double counts, double zeropoint_ab)
 {
-  return ( counts
-           / pow(10, -1 * zeropoint_ab / 2.5)
-           * pow(10, -1 * 22.5         / 2.5) );
+  return gal_units_zeropoint_change(counts, 22.5, zeropoint_ab);
 }
 
 
