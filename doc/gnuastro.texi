@@ -21869,7 +21869,7 @@ This is the inverse operation of the @code{counts-to-jy}, see there for usage ex
 
 @item zeropoint-change
 @cindex Zero point change
-Change the zero point of the input dataset to a new zero point.
+Change the zero point of the input dataset to a new zero point (output will always be 64-bit floating point).
 For example, with the command below, we are changing the zero point of an image from 26.892 to 27.0:
 
 @example
