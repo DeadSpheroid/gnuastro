@@ -3597,19 +3597,19 @@ arithmetic_constants_standard(int operator)
     case GAL_ARITHMETIC_OP_PI:    /* Circle circumfernece to diameter. */
       value[0]=M_PI; break;
     case GAL_ARITHMETIC_OP_C:                   /* The speed of light. */
-      value[0]=GSL_CONST_MKS_SPEED_OF_LIGHT;
+      value[0]=GSL_CONST_MKS_SPEED_OF_LIGHT; break;
     case GAL_ARITHMETIC_OP_G:           /* The gravitational constant. */
-      value[0]=GSL_CONST_MKS_GRAVITATIONAL_CONSTANT;
+      value[0]=GSL_CONST_MKS_GRAVITATIONAL_CONSTANT; break;
     case GAL_ARITHMETIC_OP_H:                     /* Plank's constant. */
-      value[0]=GSL_CONST_MKS_PLANCKS_CONSTANT_H;
+      value[0]=GSL_CONST_MKS_PLANCKS_CONSTANT_H; break;
     case GAL_ARITHMETIC_OP_AU:       /* Astronomical Unit (in meters). */
-      value[0]=GSL_CONST_MKS_ASTRONOMICAL_UNIT;
+      value[0]=GSL_CONST_MKS_ASTRONOMICAL_UNIT; break;
     case GAL_ARITHMETIC_OP_LY:             /* Light years (in meters). */
-      value[0]=GSL_CONST_MKS_LIGHT_YEAR;
+      value[0]=GSL_CONST_MKS_LIGHT_YEAR; break;
     case GAL_ARITHMETIC_OP_AVOGADRO:             /* Avogadro's number. */
-      value[0]=GSL_CONST_NUM_AVOGADRO;
+      value[0]=GSL_CONST_NUM_AVOGADRO; break;
     case GAL_ARITHMETIC_OP_FINESTRUCTURE:  /* Fine-structure constant. */
-      value[0]=GSL_CONST_NUM_FINE_STRUCTURE;
+      value[0]=GSL_CONST_NUM_FINE_STRUCTURE; break;
 
     default:
       error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at '%s' to "
