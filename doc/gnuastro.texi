@@ -21908,6 +21908,27 @@ Convert AB magnitudes to Janskys, see @ref{Brightness flux magnitude}.
 @item jy-to-mag
 Convert Janskys to AB magnitude, see @ref{Brightness flux magnitude}.
 
+@item jy-to-wavelength-flux-density
+@cindex Jansky (Jy)
+@cindex Wavelength flux density
+@cindex Flux density (wavelength)
+Convert Janskys to wavelength flux density (in units of @mymath{erg/cm^2/s/\AA}) at a certain wavelength (given in units of Angstroms).
+Recall that Jansky is also a unit of flux density, but it is in units of frequency (@mymath{erg/cm^2/s/Hz}).
+For example at the wavelength of 5556, Vega's frequency flux density is 3500 Janskys.
+To convert this to wavelength flux density, you can use this command:
+
+@example
+$ astarithmetic 3.5e3 5556 jy-to-wavelength-flux-density
+@end example
+
+If your input values are in units of counts or magnitudes, you can use the @code{mag-to-jy} or @code{count-to-jy} operators described above.
+For example, if you want the wavelength flux density of a source with magnitude 21 in the J-PAS J0660 filter (centered at approximately @mymath{6600\AA}), you can use this command:
+
+@example
+$ astarithmetic 21 mag-to-jy 6600 \
+                jy-to-wavelength-flux-density
+@end example
+
 @item au-to-pc
 @cindex Parsecs
 @cindex Astronomical Units (AU)
@@ -29380,7 +29401,7 @@ Using the zero point magnitude (@mymath{Z}), we can write the magnitude relation
 
 @dispmath{m = -2.5\log_{10}(B) + Z}
 
-@cindex Janskys (Jy)
+@cindex Jansky (Jy)
 @cindex AB magnitude
 @cindex Magnitude, AB
 Gnuastro has an installed script to estimate the zero point of any image, see @ref{Zero point estimation} (it contains practical tutorials to help you get started fast).

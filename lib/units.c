@@ -515,6 +515,16 @@ gal_units_jy_to_mag(double jy)
 
 
 double
+gal_units_jy_to_wavelength_flux_density(double jy, double angstrom)
+{
+  return jy * 2.99792458e-05 / (angstrom*angstrom);
+}
+
+
+
+
+
+double
 gal_units_mag_to_jy(double mag)
 {
   double zp=0;

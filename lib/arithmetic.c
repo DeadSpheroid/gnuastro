@@ -3025,8 +3025,8 @@ arithmetic_function_binary_flt(int operator, int flags, gal_data_t *il,
   if( il->size==0 || il->array==NULL || ir->size==0 || ir->array==NULL )
     {
       if(il->array==0 || il->array==NULL)
-        {   if(flags & GAL_ARITHMETIC_FLAG_FREE) gal_data_free(ir); return il;}
-      else {if(flags & GAL_ARITHMETIC_FLAG_FREE) gal_data_free(il); return ir;}
+        {   if(flags&GAL_ARITHMETIC_FLAG_FREE)gal_data_free(ir);return il;}
+      else {if(flags&GAL_ARITHMETIC_FLAG_FREE)gal_data_free(il);return ir;}
     }
 
 
@@ -3095,6 +3095,9 @@ arithmetic_function_binary_flt(int operator, int flags, gal_data_t *il,
       BINFUNC_F_OPERATOR_SET( gal_units_counts_to_jy, +0 ); break;
     case GAL_ARITHMETIC_OP_JY_TO_COUNTS:
       BINFUNC_F_OPERATOR_SET( gal_units_jy_to_counts, +0 ); break;
+    case GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY:
+      BINFUNC_F_OPERATOR_SET( gal_units_jy_to_wavelength_flux_density,
+                              +0 ); break;
     case GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY:
       BINFUNC_F_OPERATOR_SET( gal_units_counts_to_nanomaggy, +0 ); break;
     case GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS:
@@ -4108,6 +4111,9 @@ gal_arithmetic_set_operator(char *string, size_t *num_operands)
     { op=GAL_ARITHMETIC_OP_LY_TO_AU;          *num_operands=1;  }
   else if( !strcmp(string, "au-to-ly"))
     { op=GAL_ARITHMETIC_OP_AU_TO_LY;          *num_operands=1;  }
+  else if (!strcmp(string, "jy-to-wavelength-flux-density"))
+    { op=GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY;
+      *num_operands=2;  }
 
   /* Celestial coordinate conversions. */
   else if (!strcmp(string, "eq-b1950-to-eq-j2000"))
@@ -4455,6 +4461,8 @@ gal_arithmetic_operator_string(int operator)
     case GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS: return "nanomaggy-to-counts";
     case GAL_ARITHMETIC_OP_MAG_TO_JY:       return "mag-to-jy";
     case GAL_ARITHMETIC_OP_JY_TO_MAG:       return "jy-to-mag";
+    case GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY:
+      return "jy-to-wavelength-flux-density";
     case GAL_ARITHMETIC_OP_AU_TO_PC:        return "au-to-pc";
     case GAL_ARITHMETIC_OP_PC_TO_AU:        return "pc-to-au";
     case GAL_ARITHMETIC_OP_LY_TO_PC:        return "ly-to-pc";
@@ -4748,6 +4756,7 @@ gal_arithmetic(int operator, size_t numthreads, int flags, ...)
     case GAL_ARITHMETIC_OP_MAG_TO_COUNTS:
     case GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS:
     case GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY:
+    case GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY:
       d1 = va_arg(va, gal_data_t *);
       d2 = va_arg(va, gal_data_t *);
       out=arithmetic_function_binary_flt(operator, flags, d1, d2);

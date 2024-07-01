@@ -15,6 +15,9 @@ See the end of the file for license conditions.
   - New operators (also avaialble in "Column Arithmetic" of the Table
     progam):
 
+    - jy-to-wavelength-flux-density: converts Janskys to wavelength flux
+      density (erg/cm^2/s/Å) at the given wavelength.
+
     - filter-madclip-mean: filter/smooth the input using MAD-clipped mean.
 
     - filter-madclip-median: filter/smooth the input using MAD-clipped
@@ -92,6 +95,9 @@ See the end of the file for license conditions.
 *** Library
 - gal_statistics_concentration: measure the concentration of values around
   the median; see the book for the details.
+
+- gal_units_jy_to_wavelength_flux_density: convert Janskys to wavelength
+  flux density.
 
 - gal_units_zeropoint_change: change the zero point of the input data set
   to an output zero point.

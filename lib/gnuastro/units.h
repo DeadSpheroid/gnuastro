@@ -113,6 +113,9 @@ double
 gal_units_jy_to_mag(double jy);
 
 double
+gal_units_jy_to_wavelength_flux_density(double jy, double wavelength);
+
+double
 gal_units_mag_to_jy(double mag);
 
 double
