@@ -1880,7 +1880,7 @@ txt_write_metadata(FILE *fp, gal_data_t *datall, char **fmts,
 {
   gal_data_t *data;
   size_t i, j, num=0;
-  char *tmp, *nstr, *tstr;
+  char *c, *tmp, *nstr, *tstr;
   int nlen, twt, nw=0, uw=0, tw=0, bw=0;
 
   /* Get the maximum width for each information field. */
@@ -1911,7 +1911,6 @@ txt_write_metadata(FILE *fp, gal_data_t *datall, char **fmts,
       data=data->next;
     }
 
-
   /* When there are more than 9 columns, we don't want to have cases
      like '# Column 1 :' (note the space between '1' and ':', this
      space won't exist for the 2 digit colum numbers).
@@ -1929,9 +1928,10 @@ txt_write_metadata(FILE *fp, gal_data_t *datall, char **fmts,
   nlen=strlen(nstr);
   for(data=datall; data!=NULL; data=data->next)
     {
-      /* Print the number into the number string, then add the ':'
-         immediately after the number. */
-      sprintf(nstr, "%zu", i+1);
+      /* Initialize the string to an empty string, print the number into
+         the number string, then add the ':' immediately after the
+         number. */
+      for(c=nstr;*c!='\0';++c) {*c=' ';} sprintf(nstr, "%zu", i+1);
       for(j=1;j<nlen;++j)
         if(!isdigit(nstr[j])) nstr[j] = isdigit(nstr[j-1]) ? ':' : ' ';
 
@@ -1956,7 +1956,6 @@ txt_write_metadata(FILE *fp, gal_data_t *datall, char **fmts,
       free(tstr);
       ++i;
     }
-
 
   /* Clean up and return. */
   free(nstr);

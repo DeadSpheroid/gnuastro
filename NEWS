@@ -229,6 +229,10 @@ See the end of the file for license conditions.
 
   - bug #65935: Arithmetic crashes with constants like speed of light.
 
+  - bug #65939: Column numbers in plain-text table metadata with +100
+    columns incorrectly written for the first 9 (single-digit) columns;
+    found with the help of Sepideh Eskandarlou.
+
 
 
 
