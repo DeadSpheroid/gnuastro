@@ -157,6 +157,20 @@ See the end of the file for license conditions.
     Jesús Vega and Raul Infante-Sainz and solved with the help of Greg
     Wooledge and Dennis Williamson.
 
+*** CosmicCalculator
+
+  - The names of spectral lines which include their rest frame wavelength
+    is rounded to the nearest integer. For example the OIII line at
+    wavelength of 5006.84 Angstroms is now called O-III-5007. Until now,it
+    was confusingly/wrongly called O-III-5006!
+
+*** Library
+
+  - speclines.h: marcos specifying spectral lines have been corrected to
+    round wavelengths to nearest integer (see description of changes in
+    CosmicCalculator). For example the old 'GAL_SPECLINES_O_III_5006' is
+    now called 'GAL_SPECLINES_O_III_5007'.
+
 *** astscript-fits-view
   - The short format of the '--ds9geometry' option is '-G' (until now it
     was '-g'). This was necessary to allow the '-g' of this script to have
@@ -232,6 +246,10 @@ See the end of the file for license conditions.
   - bug #65939: Column numbers in plain-text table metadata with +100
     columns incorrectly written for the first 9 (single-digit) columns;
     found with the help of Sepideh Eskandarlou.
+
+  - bug #65941: Name of spectral lines with wavelengh were not rounded to
+    smallest nearest integer (see description of change in
+    CosmicCalculator).
 
 
 

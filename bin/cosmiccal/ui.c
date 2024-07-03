@@ -492,7 +492,7 @@ ui_list_lines(struct cosmiccalparams *p)
     {
       /* Get the wavelength (in angstroms) for this line and print it. */
       ang=gal_speclines_line_angstrom(i);
-      printf("%-20g%s\n",
+      printf("%-15.3f %s\n",
              ( p->listlinesatz
                ? ( ang * (1+p->redshift) ) : ang ) * p->lineunitmultip,
              gal_speclines_line_name(i));
@@ -505,7 +505,7 @@ ui_list_lines(struct cosmiccalparams *p)
       /* Get the wavelength (in angstroms) for this line and print it. */
       j=i+GAL_SPECLINES_LIMIT_LYMAN;
       ang=gal_speclines_line_angstrom(j);
-      printf("%-20g%s\n",
+      printf("%-15.3f %s\n",
              ( p->listlinesatz
                ? ( ang * (1+p->redshift) ) : ang ) * p->lineunitmultip,
              gal_speclines_line_name(j));
