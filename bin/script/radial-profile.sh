@@ -195,6 +195,27 @@ Paper introducing this script
         adsnote = {Provided by the SAO/NASA Astrophysics Data System}
   }
 
+Paper introducing the --polar option
+------------------------------------
+  @ARTICLE{2024RNAAS...8..168E,
+         author = {{Eskandarlou}, Sepideh and {Akhlaghi}, Mohammad},
+          title = "{Gnuastro: Generating Polar Plots in Astronomical Images}",
+        journal = {Research Notes of the American Astronomical Society},
+       keywords = {Astronomy software, Open source software, Astronomical techniques, Spiral pitch angle, Spiral arms, 1855, 1866, 1684, 1561, 1559, Astrophysics - Instrumentation and Methods for Astrophysics, Astrophysics - Astrophysics of Galaxies},
+           year = 2024,
+          month = jun,
+         volume = {8},
+         number = {6},
+            eid = {168},
+          pages = {168},
+            doi = {10.3847/2515-5172/ad5a6c},
+  archivePrefix = {arXiv},
+         eprint = {2406.14619},
+   primaryClass = {astro-ph.IM},
+         adsurl = {https://ui.adsabs.harvard.edu/abs/2024RNAAS...8..168E},
+        adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+  }
+
 Paper introducing Gnuastro (currently main citation)
 ----------------------------------------------------
   @ARTICLE{gnuastro,
@@ -213,6 +234,8 @@ Paper introducing Gnuastro (currently main citation)
      adsurl = {https://ui.adsabs.harvard.edu/abs/2015ApJS..220....1A},
     adsnote = {Provided by the SAO/NASA Astrophysics Data System}
   }
+
+
 
 Acknowledgement
 ---------------

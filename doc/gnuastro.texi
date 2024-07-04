@@ -33995,6 +33995,8 @@ This is especially useful when the azimuthal range is not the full range: the fi
 
 Currently, the polar plot cannot to be used with @option{--oversample} and @option{--undersample} options (please get in touch with us if you need it).
 Until it is implemented, you can use the @option{--scale} option of @ref{Warp} to do the oversampling of the input image yourself and generate the polar plot from that.
+A comprehensive overview of this option has been published in Eskandarlou et al. @url{https://arxiv.org/abs/2406.14619,2024}.
+If this script yields useful results in your research, please be sure to cite it.
 
 
 @item -m STR

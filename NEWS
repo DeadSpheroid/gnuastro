@@ -5,6 +5,11 @@ See the end of the file for license conditions.
 
 * Noteworthy changes in release X.XX (library XX.X.X) (YYYY-MM-DD)
 ** New publications
+
+  - https://ui.adsabs.harvard.edu/abs/2024RNAAS...8..168E by Eskandarlou
+    and Akhlaghi describing the newly added polar plot capability of
+    'astscript-radial-profile' (see the figure in the paper).
+
 ** New features
 *** Arithmetic
 
