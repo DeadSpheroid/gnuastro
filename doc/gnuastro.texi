@@ -1128,7 +1128,7 @@ Input coordinates can be in pixel coordinates or world coordinates.
 
 @item MakeCatalog
 (@file{astmkcatalog}, see @ref{MakeCatalog}) Make catalog of labeled image (output of NoiseChisel).
-The catalogs are highly customizable and adding new calculations/columns is very straightforward.
+The catalogs are highly customizable and adding new calculations/columns is very straightforward, see Akhlaghi @url{https://arxiv.org/abs/1611.06387,2019}.
 
 @item MakeProfiles
 (@file{astmkprof}, see @ref{MakeProfiles}) Make mock 2D profiles in an image.
@@ -1140,7 +1140,7 @@ It can also build the profiles on an over-sampled image.
 
 @item NoiseChisel
 (@file{astnoisechisel}, see @ref{NoiseChisel}) Detect signal in noise.
-It uses a technique to detect very faint and diffuse, irregularly shaped signal in noise (galaxies in the sky), using thresholds that are below the Sky value, see Akhlaghi and Ichikawa @url{http://arxiv.org/abs/1505.01664,2015}.
+It uses a technique to detect very faint and diffuse, irregularly shaped signal in noise (galaxies in the sky), using thresholds that are below the Sky value, see Akhlaghi and Ichikawa @url{http://arxiv.org/abs/1505.01664,2015} and Akhlaghi @url{https://arxiv.org/abs/1909.11230,2019}.
 
 @item Query
 (@file{astquery}, see @ref{Query}) High-level interface to query pre-defined remote, or external databases, and directly download the required sub-tables on the command-line.
@@ -1180,9 +1180,9 @@ This is very useful in testing the coverage of dither patterns when designing yo
 See Akhlaghi @url{https://arxiv.org/abs/2310.15006,2023}, or the dedicated tutorial in @ref{Pointing pattern design}.
 
 @item astscript-radial-profile
-(See @ref{Generate radial profile}) Calculate the radial profile of an object within an image.
+(See @ref{Generate radial profile}) Calculate the 1D radial profile or 2D polar plot of an object within an image.
 The object can be at any location in the image, using various measures (median, sigma-clipped mean, etc.), and the radial distance can also be measured on any general ellipse.
-See Infante-Sainz et al. @url{https://arxiv.org/abs/2401.05303,2024}.
+See Infante-Sainz et al. @url{https://arxiv.org/abs/2401.05303,2024} and/or Eskandarlou and Akhlaghi @url{https://arxiv.org/abs/2406.14619,2024}.
 
 @item astscript-color-faint-gray
 (see @ref{Color images with gray faint regions}) Given three images for the Red-Green-Blue (RGB) channels, this script will use the bright pixels for color and will show the faint/diffuse regions in grayscale.

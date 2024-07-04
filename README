@@ -129,10 +129,10 @@ very similarly (with minor differences, as explained in the book).
     testing the coverage of dither patterns when planning your observing
     strategy and it is highly customizable.
 
-  - astscript-radial-profile: Calculate the radial profile of an object
-    within an image. The object can be at any location in the image, using
-    various measures (median, sigma-clipped mean and etc), and the radial
-    distance can also be measured on any general ellipse.
+  - astscript-radial-profile: Calculate the 1D radial profile or 2D polar
+    plot of an object within an image. The object can be at any location in
+    the image, using various measures (median, sigma-clipped mean and etc),
+    and the radial distance can also be measured on any general ellipse.
 
   - astscript-sort-by-night: Given a list of FITS files, and a HDU and
     keyword name for a date, this script separates the files in the same
