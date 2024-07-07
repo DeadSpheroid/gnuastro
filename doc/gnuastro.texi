@@ -1485,23 +1485,12 @@ Therefore, there is no limit on the number of minor releases and the difference 
 @node GNU Astronomy Utilities 1.0,  , Version numbering, Version numbering
 @subsection GNU Astronomy Utilities 1.0
 @cindex Gnuastro major version number
-Currently (prior to Gnuastro 1.0), the aim of Gnuastro is to have a complete system for data manipulation and analysis at least similar to IRAF@footnote{@url{http://iraf.noao.edu/}}.
-So an astronomer can take all the standard data analysis steps (starting from raw data to the final reduced product and standard post-reduction tools) with the various programs in Gnuastro.
+Like all software, version 1.0 is a unique milestone: a point where the developers feel it is complete to a minimal level.
+In Gnuastro, the goal to achieve for version 1.0 is to have all the necessary tools for optical imaging data reduction: starting from raw images of individual exposures to the final deep image ready for high-level science.
 
-@cindex Shell script
-The maintainers of each camera or detector on a telescope can provide a completely transparent shell script or Makefile to the observer for data analysis.
-This script can set configuration files for all the required programs to work with that particular camera.
-The script can then run the proper programs in the proper sequence.
-The user/observer can easily follow the standard shell script to understand (and modify) each step and the parameters used easily.
-Bash (or other modern GNU/Linux shell scripts) is powerful and made for this gluing job.
-This will simultaneously improve performance and transparency.
-Shell scripting (or Makefiles) are also basic constructs that are easy to learn and readily available as part of the Unix-like operating systems.
-If there is no program to do a desired step, Gnuastro's libraries can be used to build specific programs.
-
-The main factor is that all observatories or projects can freely contribute to Gnuastro and all simultaneously benefit from it (since it does not belong to any particular one of them), much like how for-profit organizations (for example, RedHat, or Intel and many others) are major contributors to free and open source software for their shared benefit.
-Gnuastro's copyright has been fully awarded to GNU, so it does not belong to any particular astronomer or astronomical facility or project.
-
-
+While various software did already exist and were commonly used when Gnuastro was first released in 2016.
+The existing software are mosly written without following any robust, or even common, coding and usage standards or up-to-date and well-maintained documentation.
+This makes it very hard to reduce astronomical data without learning those software's peculiarities through trial and error.
 
 
 
