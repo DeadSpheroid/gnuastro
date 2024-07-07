@@ -66,6 +66,7 @@
 # utility names (since their configuration files would also be
 # ignored).
 
+TAGS
 .deps
 .sync
 build
