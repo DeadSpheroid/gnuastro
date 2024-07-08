@@ -10,82 +10,73 @@
 /* Initializes the context and command queue with one of the available
    devices, selected using device_id. Then creates the kernel object
    using the created context for a specific funtion (named function_name)  */
-cl_kernel
-gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
-                     cl_device_id device_id, cl_context *context,
-                     cl_command_queue *command_queue, int device)
+
+void
+gal_cl_init(cl_device_type device_type, cl_context* context, cl_platform_id *platform_id, cl_device_id *device_id)
 {
-    /* initializations */
-    int ret = 0;
-    cl_program program;
-    cl_uint ret_num_devices;
+    cl_int ret = 0;
     cl_uint num_platforms = -1;
 
-    // Get total num of platforms
     ret = clGetPlatformIDs(0, NULL, &num_platforms);
 
-    // Allocate space for platform info array
     cl_platform_id *platforms =
         (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
-
-    // printf("No of platforms available on your device%d\n\n", num_platforms);
-
-    // Get all available platforms
+    
     ret = clGetPlatformIDs(num_platforms, platforms, NULL);
-    // just put one availbale device inside device_id
-    cl_uint i;
-    for (i = 0; i < num_platforms; i++)
+
+    if(ret != CL_SUCCESS)
     {
-        if (device == 1)
-        {
-            // Searching for a gpu
-            ret = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 1, &device_id, &ret_num_devices);
-        }
-        else
-        {
-            // Searching for a cpu
-            ret = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_CPU, 1, &device_id, &ret_num_devices);
-        }
-        if (ret == CL_SUCCESS)
-        {
-            break;
-        }
+        printf("Error finding platforms\n");
+        exit(1);
     }
+
+    uint8_t i;
+    for(i = 0; i < num_platforms; i++)
+    {
+        ret = clGetDeviceIDs(platforms[i], device_type, 1, device_id, NULL);
+
+        if(ret == CL_SUCCESS) break;
+    }
+
     if (ret != CL_SUCCESS)
     {
         printf("Error finding devices\n");
         exit(1);
     }
+    *platform_id = platforms[i];
 
-    char buffer[256];
-    ret = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, sizeof(buffer), (void *)buffer, NULL);
-    if (ret != CL_SUCCESS)
-    {
-        printf("Error getting platform name\n");
-    }
-    else
-    {
-        printf("  - Using platform: %s\n", buffer);
-    }
+    cl_context_properties properties[] =
+        {
+            CL_CONTEXT_PLATFORM, (cl_context_properties)*platform_id,
+            0
+        };
 
-    ret = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(buffer), (void *)buffer, NULL);
-    if (ret != CL_SUCCESS)
+    *context = clCreateContextFromType(properties, device_type, NULL, 
+                                        NULL, &ret);
+
+    if(ret != CL_SUCCESS)
     {
-        printf("Error getting device name\n");
-    }
-    else
-    {
-        printf("  - Using device: %s\n\n", buffer);
+        printf("Unable to create OpenCL Context");
+        exit(1);
     }
 
-    *context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
+    free(platforms);
+}
 
-    if (ret != CL_SUCCESS)
-    {
-        printf("Error initialising OpenCL context\nError code: %d\n", ret);
-    }
-    
-    *command_queue = clCreateCommandQueue(*context, device_id, CL_QUEUE_PROFILING_ENABLE , &ret);
+cl_kernel
+gal_cl_kernel_create(char *kernel_name, char *function_name,
+                     cl_device_id device_id, cl_context context,
+                     cl_command_queue *command_queue)
+{
+    cl_int ret = 0;
+    cl_program program;
+    cl_queue_properties properties[] =
+        {
+            CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE,
+            0
+        };
+    *command_queue = clCreateCommandQueueWithProperties(context, 
+                                device_id, properties, &ret);
     if(ret != CL_SUCCESS)
     {
         printf("Error in creating command queue\nError code: %d\n", ret);
@@ -98,7 +89,7 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
     size_t kernel_size = fread(result, 1, MAX_SOURCE_SIZE, kernelFile);
     fclose(kernelFile);
     
-    program = clCreateProgramWithSource(*context, 1,
+    program = clCreateProgramWithSource(context, 1,
                                         (const char **)&result,
                                         (const size_t *)&kernel_size, &ret);
 
@@ -110,22 +101,27 @@ gal_cl_kernel_create(char *kernel_name, char *function_name, char *core_name,
         char buffer[2048];
         cl_build_status bldstatus;
         printf("\nError %d: Failed to build program executable [ ]\n", ret);
-        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(bldstatus), (void *)&bldstatus, &len);
+
+        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS,
+                                sizeof(bldstatus), (void *)&bldstatus, &len);
+
         printf("Build Status %d: \n", ret);
-        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_OPTIONS, sizeof(buffer), buffer, &len);
+
+        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_OPTIONS,
+                                sizeof(buffer), buffer, &len);
+
         printf("Build Options %d: \n", ret);
         printf("INFO: %s\n", buffer);
-        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
+
+        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG,
+                                sizeof(buffer), buffer, &len);
+
         printf("Build Log %d:\n", ret);
         printf("%s\n", buffer);
         exit(1);
     }
 
-    cl_kernel kernel = clCreateKernel(program, function_name, &ret);
-
-    free(platforms);
-
-    return kernel;
+    return clCreateKernel(program, function_name, &ret);;
 }
 
 void

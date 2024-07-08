@@ -1,15 +1,14 @@
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
+#include <stdio.h>
 
-#include <gnuastro/convolve.h>
 #include <gnuastro/cl_utils.h>
+#include <gnuastro/convolve.h>
 
 gal_data_t *
 gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image, 
-            char * cl_kernel_name, char * function_name, char * core_name,
-            size_t global_item_size, size_t local_item_size, int device)
+            char* kernel_name, cl_context context, cl_device_id device_id,
+            size_t global_item_size, size_t local_item_size)
 {
 
     clock_t start_init, end_init;
@@ -17,22 +16,21 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
 
 
     /* initializations */
-    int ret=0;
+    cl_int ret = 0;
     gal_data_t * out;
     cl_mem cl_output;
-    cl_context context = NULL;
-    cl_device_id device_id = NULL;
+    cl_device_type device_type;
     cl_command_queue command_queue = NULL;
     cl_kernel kernel;
     cl_event conv_event;
     cl_mem cl_image_array,cl_image_dsize;
     cl_mem cl_kernel_array,cl_kernel_dsize;
 
-    printf("  - Using OpenCL kernel: %s\n", cl_kernel_name);
     start_init = clock();
 
-    kernel = gal_cl_kernel_create(cl_kernel_name, function_name,core_name, 
-                                                device_id, &context, &command_queue, device);
+    kernel = gal_cl_kernel_create(kernel_name, "convolution", 
+                                    device_id, context, &command_queue);
+
     clFinish(command_queue);
     end_init = clock();
     cpu_time_used_init = ((double)(end_init - start_init)) / CLOCKS_PER_SEC;
@@ -44,7 +42,8 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     double cpu_time_used_copy;
 
     start_copy = clock();
-
+    ret = clGetDeviceInfo(device_id, CL_DEVICE_TYPE, sizeof(cl_device_type), (void *)device_type, NULL);
+    int device = (device_type == CL_DEVICE_TYPE_GPU)? 1: 2;
     /* prepare the input image for device*/
     gal_cl_copy_array_to_device(input_image, &cl_image_array, context, command_queue, device);
     gal_cl_copy_dsize_to_device(input_image, &cl_image_dsize, context, command_queue, device);

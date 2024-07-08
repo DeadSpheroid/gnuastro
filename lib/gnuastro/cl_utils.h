@@ -3,58 +3,36 @@
 
 // #define CL_TARGET_OPENCL_VERSION 300
 #include <gnuastro/data.h>
+
 #include <CL/cl.h>
 #define MAX_SOURCE_SIZE (0x100000)
 
-// typedef struct gal_gpu_data_t
-// {
-//   /* Basic information on array of data. */
-//   uint8_t             type;  /* Type of data (see 'gnuastro/type.h').         */
-//   size_t              ndim;  /* Number of dimensions in the array.            */
-//   size_t              size;  /* Total number of data-elements.                */
-//   int            quietmmap;  /* ==1: print a notice whem mmap'ing.            */
-//   size_t        minmapsize;  /* Minimum number of bytes to mmap the array.    */
+#ifndef IN_GNUASTRO_BUILD
+#include <gnuastro/config.h>
+#endif
 
-//   /* WCS information. */
-//   int                 nwcs;  /* for WCSLIB: no. coord. representations.       */
-
-//   /* Content descriptions. */
-//   uint8_t             flag;  /* Flags: currently 8-bits are enough.           */
-//   int               status;  /* Context specific value for the dataset.       */
-
-//   /* For printing */
-//   int             disp_fmt;  /* See 'gal_table_diplay_formats'.               */
-//   int           disp_width;  /* Width of space to print in ASCII.             */
-//   int       disp_precision;  /* Precision to print in ASCII.                  */
-
-
-
-//   /* Pointers to other data structures. */
-  
-//   /* void     *restrict array;  /* Array keeping data elements.               */
-//   /* size_t            *dsize;  /* Size of array along each dimension.        */
-//   /* char           *mmapname;     File name of the mmap.                     */
-
-//   /* struct wcsprm       *wcs;  /* WCS information for this dataset.          */
-  
-//   /* char            *comment;  /* A more detailed description of the data.   */
-//   /* char               *unit;  /* Units of the data.                         */
-//   /* char               *name;  /* e.g., EXTNAME, or column, or keyword.      */
-  
-//   /* struct gal_data_t  *next;  /* To use it as a linked list if necessary.   */
-//   /* struct gal_data_t *block;  /* 'gal_data_t' of hosting block, see above.  */
-// } gal_gpu_data_t;
-
-
+#undef __BEGIN_C_DECLS
+#undef __END_C_DECLS
+#ifdef __cplusplus
+# define __BEGIN_C_DECLS extern "C" {
+# define __END_C_DECLS }
+#else
+# define __BEGIN_C_DECLS                /* empty */
+# define __END_C_DECLS                  /* empty */
+#endif
 
 
 /*********************************************************************/
 /*************            initialization           *******************/
 /*********************************************************************/
-cl_kernel 
-gal_cl_kernel_create(char *name, char *function_name, char *core_name, 
-                        cl_device_id device_id, cl_context *context, 
-                        cl_command_queue *command_queue, int device);
+void
+gal_cl_init(cl_device_type device_type, cl_context* context, 
+                cl_platform_id *platform_id, cl_device_id *device_id);
+
+cl_kernel
+gal_cl_kernel_create(char *kernel_name, char *function_name, 
+                    cl_device_id device_id, cl_context context, 
+                    cl_command_queue *command_queue);
 
 
 

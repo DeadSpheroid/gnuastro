@@ -54,3 +54,4 @@ ${bindir}astconvolve data/arithmetic.fits --kernel=data/kernel.fits \
             --output=cl_cpu_conv.fits --hdu=1 --hdu=1 \
             --noedgecorrection --cl=2 --domain=spatial
 
+rm -r data/

@@ -793,24 +793,19 @@ convolve_spatial(struct convolveparams *p)
 
 #if GAL_CONFIG_HAVE_OPENCL==1
 #define SRC_CONV SYSINCLUDE_DIR "/astconvolve-conv.cl"
-// #define MAGIC(x) #x
 void convolve_cl(struct convolveparams *p)
 {
   gal_data_t *out;
   struct gal_options_common_params *cp=&p->cp;
-//   char *src_conv =" "
-// #include "astconvolve-conv.cl"
-// " ";
 
-  // printf("test\n\n %s", src_conv);
-  if(p->cl==1)
-  {
-    out = gal_conv_cl(p->input,p->kernel, SRC_CONV, "convolution", "conv_core.h", p->input->size, 128, 1);
-  }
-  else
-  {
-    out = gal_conv_cl(p->input,p->kernel, SRC_CONV, "convolution", "conv_core.h", p->input->size, 128, 2);
-  }
+  cl_context context;
+  cl_platform_id platform_id;
+  cl_device_id device_id;
+  gal_cl_init((p->cl == 1)? CL_DEVICE_TYPE_GPU: CL_DEVICE_TYPE_CPU,
+                  &context, &platform_id, &device_id);
+
+  out = gal_conv_cl(p->input, p->kernel, SRC_CONV, context, device_id,
+              p->input->size, 128);
 
   /* Clean up: free the actual input and replace it's pointer with the
      convolved dataset to save as output. */
