@@ -62,6 +62,7 @@ endif
 AM_CPPFLAGS = -I\$(top_builddir)/bootstrapped/lib \
               -I\$(top_srcdir)/bootstrapped/lib \
               -DSYSCONFIG_DIR=\"$(sysconfdir)/$(PACKAGE)\" \
+              -DCL_TARGET_OPENCL_VERSION=300 \
               $(MAYBE_NUMPY_INCLUDE)
 
 
@@ -277,7 +278,7 @@ gnuastro/config.h: Makefile $(internaldir)/config.h.in
 	       -e 's|@HAVE_GNUMAKE_H[@]|$(HAVE_GNUMAKE_H)|g' \
 	       -e 's|@HAVE_GSL_STEFFEN[@]|$(HAVE_GSL_STEFFEN)|g' \
 	       -e 's|@HAVE_LIBGIT2[@]|$(HAVE_LIBGIT2_FOR_CONF)|g' \
-         -e 's|@HAVE_OPENCL[@]|$(HAVE_OPENCL)|g' \
+	       -e 's|@HAVE_OPENCL[@]|$(HAVE_OPENCL)|g' \
 	       -e 's|@HAVE_WCSLIB_DIS_H[@]|$(HAVE_WCSLIB_DIS_H)|g' \
 	       -e 's|@HAVE_WCSLIB_MJDREF[@]|$(HAVE_WCSLIB_MJDREF)|g' \
 	       -e 's|@HAVE_WCSLIB_OBSFIX[@]|$(HAVE_WCSLIB_OBSFIX)|g' \

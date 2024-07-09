@@ -25,6 +25,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 
 /* Include necessary headers */
 #include <gnuastro/data.h>
+#if GAL_CONFIG_HAVE_OPENCL
+#include <CL/cl.h>
+#endif
 
 #include <gnuastro-internal/options.h>
 
@@ -85,6 +88,11 @@ struct convolveparams
   uint8_t   noedgecorrection;  /* Do not correct spatial edge effects.    */
   uint8_t      conv_on_blank;  /* Do convolution on blank pixels also.    */
   uint8_t                 cl;  /* 0 pthread, 1 gpu, 2 cpu                 */
+#if GAL_CONFIG_HAVE_OPENCL
+  cl_context         context;
+  cl_device_id     device_id;
+  cl_platform_id platform_id;
+#endif
 
   /* Internal */
   int                 isfits;  /* Input is a FITS file.                   */

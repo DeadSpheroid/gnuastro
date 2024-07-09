@@ -25,7 +25,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 
 /* For common options groups. */
 #include <gnuastro-internal/options.h>
-
+#if GAL_CONFIG_HAVE_OPENCL
+#include <gnuastro/cl_utils.h>
+#endif
 
 
 

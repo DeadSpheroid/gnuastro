@@ -19,7 +19,7 @@ gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
     cl_int ret = 0;
     gal_data_t * out;
     cl_mem cl_output;
-    cl_device_type device_type;
+    cl_device_type device_type = NULL;
     cl_command_queue command_queue = NULL;
     cl_kernel kernel;
     cl_event conv_event;

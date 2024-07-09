@@ -704,25 +704,32 @@ static void
 ui_print_intro(struct convolveparams *p)
 {
   printf("%s started on %s", PROGRAM_NAME, ctime(&p->rawtime));
-  // printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
   printf("  - Input: %s\n",
          gal_checkset_dataset_name(p->filename, p->cp.hdu));
   printf("  - Kernel: %s\n",
          gal_checkset_dataset_name(p->kernelname, p->khdu));
-  const char* mode = "pthread CPU";
-#if GAL_CONFIG_HAVE_OPENCL==1
-  if(p->cl != 0){
+
+#if GAL_CONFIG_HAVE_OPENCL
+  if(p->cl != 0)
+  {
+    const char* mode = "pthread CPU";
     mode = (p->cl == 1)? "OpenCL GPU" : "OpenCL CPU";
+    printf("  - Mode of Operation: %s\n", mode);
+
+    char device_name[256], platform_name[256];
+    gal_cl_get_device_name(p->device_id, device_name);
+    gal_cl_get_platform_name(p->platform_id, platform_name);
+
+    printf("  - Platform Selected: %s\n", platform_name);
+    printf("  - Device Selected: %s\n", device_name);
   }
 #endif
-  printf("  - Mode of Operation: %s\n", mode);
-#if GAL_CONFIG_HAVE_OPENCL==1
-  if(p->cl == 0){
-#endif
+
+  if(p->cl == 0)
+  {
     printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
-#if GAL_CONFIG_HAVE_OPENCL==1
   }
-#endif
+
 }
 
 
@@ -779,6 +786,15 @@ ui_read_check_inputs_setup(int argc, char *argv[], struct convolveparams *p)
      be done after (possibly) printing the option values. */
   ui_check_options_and_arguments(p);
 
+#if GAL_CONFIG_HAVE_OPENCL
+  if (p->cl != 0)
+    {
+      gal_cl_init ((p->cl == 1) ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU,
+                   (cl_context *)&(p->context),
+                   (cl_platform_id *)&(p->platform_id),
+                   (cl_device_id *)&p->device_id);
+    }
+#endif
 
   /* Read/allocate all the necessary starting arrays. */
   ui_preparations(p);
