@@ -151,6 +151,7 @@ gal_cl_get_platform_name (cl_platform_id platform_id, char *platform_name)
     }
 }
 
+// read/write buffers
 /*********************************************************************/
 /*************            data transfer            *******************/
 /*********************************************************************/
@@ -244,27 +245,6 @@ gal_cl_copy_dsize_to_device (gal_data_t *in, cl_mem *input_mem_obj,
 }
 
 void
-gal_cl_copy_struct_to_device (gal_data_t *in, cl_mem *input_mem_obj,
-                              cl_context context,
-                              cl_command_queue command_queue, int device)
-{
-  int ret = 0;
-  if (device == 2)
-    {
-      *input_mem_obj
-          = clCreateBuffer (context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-                            sizeof (in), (void *)in, &ret);
-    }
-  else
-    {
-      *input_mem_obj = clCreateBuffer (context, CL_MEM_READ_ONLY, sizeof (in),
-                                       NULL, &ret);
-      ret = clEnqueueWriteBuffer (command_queue, *input_mem_obj, CL_TRUE, 0,
-                                  sizeof (in), in, 0, NULL, NULL);
-    }
-}
-
-void
 gal_cl_copy_from_device (gal_data_t *out, cl_mem *output_mem_obj,
                          cl_command_queue command_queue)
 {
@@ -278,4 +258,57 @@ gal_cl_copy_from_device (gal_data_t *out, cl_mem *output_mem_obj,
           "Error in reading array to OpenCL buffer from GPU, Error code: %d\n",
           ret);
     }
+}
+
+// Map, Unmap buffers
+cl_mem
+gal_cl_create_buffer_from_array (void *array, size_t size, cl_context context,
+                                 cl_device_info device_type)
+{
+  cl_int ret = 0;
+
+  cl_mem buffer
+      = clCreateBuffer (context,
+                        CL_MEM_READ_WRITE | (device_type == CL_DEVICE_TYPE_CPU)
+                            ? CL_MEM_USE_HOST_PTR
+                            : 0,
+                        size, (void *)array, &ret);
+
+  if (ret != CL_SUCCESS)
+    {
+      printf ("Error, %d", ret);
+      exit (1);
+    }
+  return buffer;
+}
+
+void
+gal_cl_write_to_device (cl_mem *buffer, void *mapped_ptr,
+                        cl_command_queue command_queue)
+{
+  cl_int ret = 0;
+  clEnqueueUnmapMemObject (command_queue, *buffer, mapped_ptr, 0, NULL, NULL);
+  if (ret != CL_SUCCESS)
+    {
+      printf ("Problem unmapping buffer, %d\n", ret);
+      exit (1);
+    }
+}
+
+void *
+gal_cl_read_to_host (cl_mem *buffer, size_t size,
+                     cl_command_queue command_queue)
+{
+  cl_int ret = 0;
+
+  void *mapped_ptr = clEnqueueMapBuffer (command_queue, *buffer, CL_TRUE,
+                                         CL_MAP_READ | CL_MAP_WRITE, 0, size,
+                                         0, NULL, NULL, &ret);
+
+  if (ret != CL_SUCCESS)
+    {
+      printf ("Problem mapping buffer, %d\n", ret);
+      exit (1);
+    }
+  return mapped_ptr;
 }

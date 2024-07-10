@@ -65,12 +65,20 @@ gal_cl_copy_dsize_to_device (gal_data_t *in, cl_mem *input_mem_obj,
                                 cl_command_queue command_queue, int device);
 
 void 
-gal_cl_copy_struct_to_device (gal_data_t *in, cl_mem *input_mem_obj,
-                                cl_context context,
-                                cl_command_queue command_queue, int device);
-
-void 
 gal_cl_copy_from_device (gal_data_t *out, cl_mem *output_mem_obj,
                             cl_command_queue command_queue);
 
+
+// Map/UnMap
+cl_mem
+gal_cl_create_buffer_from_array (void *array, size_t size, cl_context context,
+                                 cl_device_info device_type);
+
+void
+gal_cl_write_to_device (cl_mem *buffer, void *mapped_ptr,
+                        cl_command_queue command_queue);
+
+void *
+gal_cl_read_to_host (cl_mem *buffer, size_t size,
+                     cl_command_queue command_queue);
 #endif
