@@ -3,7 +3,14 @@ GNU Astronomy Utilities NEWS                          -*- outline -*-
 Copyright (C) 2015-2024 Free Software Foundation, Inc.
 See the end of the file for license conditions.
 
-* Noteworthy changes in release 0.23 (library 21.0.0) (YYYY-MM-DD)
+* Noteworthy changes in release X.XX (library XX.X.X) (YYYY-MM-DD)
+** New publications
+** New features
+** Removed features
+** Changed features
+** Bugs fixed
+
+* Noteworthy changes in release 0.23 (library 21.0.0) (2024-07-13)
 ** New publications
 
   - https://ui.adsabs.harvard.edu/abs/2024RNAAS...8..168E by Eskandarlou
@@ -17,8 +24,8 @@ See the end of the file for license conditions.
     outputs as extra HDUs (by default, the output file is deleted). If the
     output does not exist, then this option has no affect.
 
-  - New operators (also avaialble in "Column Arithmetic" of the Table
-    progam):
+  - New operators (also available in "Column Arithmetic" of the Table
+    program):
 
     - jy-to-wavelength-flux-density: converts Janskys to wavelength flux
       density (erg/cm^2/s/Å) at the given wavelength.
@@ -34,7 +41,7 @@ See the end of the file for license conditions.
 
     - madclip-maskfilled: mask (set to NaN) all input elements that are
       outliers (defined by MAD-clipping). Combined with the stacking
-      operators this allows removing large contiugous outliers in your
+      operators this allows removing large contiguous outliers in your
       final stacked datasets.
 
     - siglclip-maskfilled: similar to 'madclip-maskfilled', but defining
@@ -69,7 +76,7 @@ See the end of the file for license conditions.
     the 1D radial profile has been calculate over. The polar plot is a
     mapping/projection of pixels into an azimuthal angle vs. radius grid,
     highlighting features that have polar symmetry (for example spiral arms
-    in galaxies or diffractinon spikes in the PSF). This feature was
+    in galaxies or diffraction spikes in the PSF). This feature was
     implemented by Sepideh Eskdandarlou.
 
 *** astscript-psf-scale-factor
@@ -252,7 +259,7 @@ See the end of the file for license conditions.
     columns incorrectly written for the first 9 (single-digit) columns;
     found with the help of Sepideh Eskandarlou.
 
-  - bug #65941: Name of spectral lines with wavelengh were not rounded to
+  - bug #65941: Name of spectral lines with wavelength were not rounded to
     smallest nearest integer (see description of change in
     CosmicCalculator).
 
