@@ -1,21 +1,5 @@
 Alphabetically ordered list to acknowledge in the next release.
 
-Dennis Williamson
-Fernando Buitrago Alonso
-Greg Wooledge
-Hamed Altafi
-Jesús Vega
-Juan Castillo Ramírez
-Mathias Urbano
-Ooldooz Kabood
-Paola Dimauro
-Phil Wyett
-Rahna Payyasseri Thanduparackal
-Raul Infante-Sainz
-Sepideh Eskandarlou
-Takashi Ichikawa
-Zahra Sharbaf
-
 
 
 
