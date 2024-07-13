@@ -27,6 +27,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
    must be included before the C++ preparations below */
 #include <gnuastro/data.h>
 
+#if GAL_CONFIG_HAVE_OPENCL
+#include <CL/cl.h>
+#endif
 
 /* C++ Preparations */
 #undef __BEGIN_C_DECLS
@@ -81,7 +84,13 @@ gal_array_read_one_ch_to_type(char *filename, char *extension,
                               gal_list_str_t *lines, uint8_t type,
                               size_t minmapsize, int quietmmap,
                               char *hdu_option_name);
-
+#if GAL_CONFIG_HAVE_OPENCL
+gal_data_t *
+gal_array_read_one_ch_to_type_cl(char *filename, char *extension,
+                              gal_list_str_t *lines, uint8_t type,
+                              size_t minmapsize, int quietmmap,
+                              char *hdu_option_name, cl_context context);
+#endif
 
 __END_C_DECLS    /* From C++ preparations */
 

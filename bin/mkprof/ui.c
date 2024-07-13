@@ -725,6 +725,7 @@ ui_read_cols_general(struct mkprofparams *p, gal_list_str_t *colstrs)
 static void
 ui_read_cols_2d(struct mkprofparams *p)
 {
+  printf("2d\n");
   int checkblank;
   size_t i, counter=0;
   size_t numcustomimg=0;
@@ -759,7 +760,7 @@ ui_read_cols_2d(struct mkprofparams *p)
     {
       /* Pop out the top column. */
       tmp=gal_list_data_pop(&cols);
-
+      tmp->context = NULL;
       /* By default check if the column has blank values, but it can be
          turned off for some columns. */
       checkblank=1;
@@ -1225,6 +1226,7 @@ ui_prepare_columns(struct mkprofparams *p)
      single element columns to create an internal catalog. */
   if(p->kernel)
     {
+      printf("Inside if\n");
       /* Number of profiles to be built. */
       p->num=1;
 
@@ -1247,6 +1249,8 @@ ui_prepare_columns(struct mkprofparams *p)
                                    "p->m");
       p->t  = gal_pointer_allocate(GAL_TYPE_FLOAT32, 1, 1, __func__,
                                    "p->t");
+
+      printf("There\n");
       if(p->ndim==3)
         {
           p->z =gal_pointer_allocate(GAL_TYPE_FLOAT64, 1, 1, __func__,
@@ -1309,6 +1313,7 @@ ui_prepare_columns(struct mkprofparams *p)
     }
   else
     {
+      printf("Inside else\n");
       /* Make sure the number of coordinate columns and number of
          dimensions in outputs are the same. There is no problem if it is
          more than 'ndim'. In that case, the last values (possibly in
@@ -1318,6 +1323,7 @@ ui_prepare_columns(struct mkprofparams *p)
               "'--coordcol') given but output has %zu dimensions",
               gal_list_str_number(p->ccol), p->ndim);
 
+      printf("Begin switch\n");
       /* Call the respective function. */
       switch(p->ndim)
         {
@@ -1328,6 +1334,7 @@ ui_prepare_columns(struct mkprofparams *p)
                 "resolve the issue. %zu not recognized for 'p->ndim'",
                 __func__, PACKAGE_BUGREPORT, p->ndim);
         }
+        printf("End else\n");
     }
 
   /* If a custom profile or image is requested, make sure that a custom
@@ -1994,11 +2001,10 @@ ui_preparations(struct mkprofparams *p)
   /* Set the output dimensionality (necessary to know which columns to
      use). */
   ui_read_ndim(p);
-
+  printf("Here\n");
   /* Read in all the columns (necessary for '--prepforconf' when we want to
      build the profiles). */
   ui_prepare_columns(p);
-
   /* Read the radial table. */
   if(p->customtablename) ui_read_custom_table(p);
 
@@ -2006,6 +2012,7 @@ ui_preparations(struct mkprofparams *p)
      over-written: */
   if(p->kernel)
     {
+      p->kernel->context = NULL;
       /* Set the necessary constants. */
       p->nomerged=1;
       p->psfinimg=0;

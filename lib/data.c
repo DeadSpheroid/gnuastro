@@ -88,7 +88,132 @@ gal_data_alloc(void *array, uint8_t type, size_t ndim, size_t *dsize,
   return out;
 }
 
+#if GAL_CONFIG_HAVE_OPENCL
+gal_data_t *
+gal_data_alloc_cl(void *array, uint8_t type, size_t ndim, size_t *dsize,
+               struct wcsprm *wcs, int clear, size_t minmapsize,
+               int quietmmap, char *name, char *unit, char *comment, cl_context context)
+{
+  gal_data_t *out;
 
+  /* Allocate the space for the actual structure. */
+  errno=0;
+  // out=malloc(sizeof *out);
+  out = (gal_data_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, sizeof *out, 0);
+  if(out==NULL)
+    error(EXIT_FAILURE, errno, "%s: %zu bytes for gal_data_t",
+          __func__, sizeof *out);
+
+  /* Initialize the allocated array. */
+  gal_data_initialize_cl(out, array, type, ndim, dsize, wcs, clear, minmapsize,
+                      quietmmap, name, unit, comment, context);
+
+  /* Return the final structure. */
+  return out;
+}
+
+void
+gal_data_initialize_cl(gal_data_t *data, void *array, uint8_t type,
+                    size_t ndim, size_t *dsize, struct wcsprm *wcs,
+                    int clear, size_t minmapsize, int quietmmap,
+                    char *name, char *unit, char *comment, cl_context context)
+{
+  size_t i;
+  size_t data_size_limit = (size_t)(-1);
+
+  /* Do the simple copying cases. For the display elements, set them all to
+     impossible (negative) values so if not explicitly set by later steps,
+     the default values are used if/when printing. */
+  data->flag       = 0;
+  data->status     = 0;
+  data->disp_width = -1;
+  data->next       = NULL;
+  data->ndim       = ndim;
+  data->type       = type;
+  data->block      = NULL;
+  data->mmapname   = NULL;
+  data->quietmmap  = quietmmap;
+  data->minmapsize = minmapsize;
+  data->disp_precision=GAL_BLANK_INT;
+  data->disp_fmt=GAL_TABLE_DISPLAY_FMT_INVALID;
+  data->context    = context;
+  gal_checkset_allocate_copy(name, &data->name);
+  gal_checkset_allocate_copy(unit, &data->unit);
+  gal_checkset_allocate_copy(comment, &data->comment);
+
+
+  /* Copy the WCS structure. */
+  data->wcs=gal_wcs_copy(wcs);
+
+
+  /* Allocate space for the dsize array, only if the data are to have any
+     dimensions or size along the dimensions. Note that in our convention,
+     a number has a 'ndim=1' and 'dsize[0]=1', A 1D array also has
+     'ndim=1', but 'dsize[0]>1'. */
+  if(ndim && dsize)
+    {
+      /* Allocate dsize. */
+      errno=0;
+      // data->dsize=malloc(ndim*sizeof *data->dsize);
+      data->dsize = (size_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, ndim * sizeof *data->dsize, 0);
+      if(data->dsize==NULL)
+        error(EXIT_FAILURE, errno, "%s: %zu bytes for data->dsize",
+              __func__, ndim*sizeof *data->dsize);
+
+
+      /* Fill in the 'dsize' array and in the meantime set 'size': */
+      data->size=1;
+      for(i=0;i<ndim;++i)
+        {
+          /* Size along a dimension cannot be 0 if we are in a
+             multi-dimensional dataset. In a single-dimensional dataset, we
+             can have an empty dataset. */
+          if(ndim>1 && dsize[i] == 0)
+            error(EXIT_FAILURE, 0, "%s: dsize[%zu]==0. The size of a "
+                  "dimension cannot be zero", __func__, i);
+
+          /* Check for possible overflow while multiplying. */
+          if (dsize[i] >= data_size_limit / data->size)
+            error(EXIT_FAILURE, 0, "%s: dimension %zu size is too "
+                    "large %zu. Total is out of bounds",
+                    __func__, i, dsize[i]);
+
+          /* Print a warning if the size in this dimension is too
+             large. May happen when the user (mistakenly) writes a negative
+             value in this dimension. */
+          if (dsize[i] >= data_size_limit / 2)
+            fprintf(stderr, "%s: WARNING: dsize[%zu] value %zu is probably "
+                    "a mistake: it exceeds the limit %zu", __func__, i,
+                    dsize[i], data_size_limit / 2);
+
+          /* Write this dimension's size, also correct the total number of
+             elements. */
+          data->size *= ( data->dsize[i] = dsize[i] );
+        }
+
+
+      /* Set the array pointer. If an non-NULL array pointer was given,
+         then use it. */
+      if(array)
+        data->array=array;
+      else
+        {
+          /* If a size wasn't given, just set a NULL pointer. */
+          if(data->size)
+            data->array=gal_pointer_allocate_ram_or_mmap_cl(data->type,
+                                 data->size, clear, minmapsize,
+                                 &data->mmapname, quietmmap, __func__, "", context);
+          else data->array=NULL; /* The given size was zero! */
+        }
+    }
+  else
+    {
+      data->size=0;
+      data->array=NULL;
+      data->dsize=NULL;
+    }
+}
+#endif
 
 
 
@@ -794,10 +919,22 @@ gal_data_copy_to_new_type(gal_data_t *in, uint8_t newtype)
 {
   gal_data_t *out;
 
+  if(in->context == NULL)
+  {
+    // printf("Before gal data alloc\n");
+    out=gal_data_alloc(NULL, newtype, in->ndim, in->dsize, in->wcs,
+                      0, in->minmapsize, in->quietmmap, in->name,
+                      in->unit, in->comment);
+    // printf("After gal data alloc\n");
+  }
+  else
+  {
+    // printf("Before cl gal data alloc\n");
+    out=gal_data_alloc_cl(NULL, newtype, in->ndim, in->dsize, in->wcs,
+                      0, in->minmapsize, in->quietmmap, in->name,
+                      in->unit, in->comment, in->context);
+  }
   /* Allocate the output datastructure. */
-  out=gal_data_alloc(NULL, newtype, in->ndim, in->dsize, in->wcs,
-                     0, in->minmapsize, in->quietmmap, in->name,
-                     in->unit, in->comment);
 
   /* Fill in the output array: */
   gal_data_copy_to_allocated(in, out);
@@ -805,6 +942,7 @@ gal_data_copy_to_new_type(gal_data_t *in, uint8_t newtype)
   /* Return the created array */
   return out;
 }
+
 
 
 
@@ -827,6 +965,7 @@ gal_data_copy_to_new_type_free(gal_data_t *in, uint8_t newtype)
   else
     {
       out=gal_data_copy_to_new_type(in, newtype);
+      // printf("After regular copy to new type\n");
       if(iblock==in)
         gal_data_free(in);
       else

@@ -210,9 +210,28 @@ gal_array_read_one_ch_to_type(char *filename, char *extension,
                               size_t minmapsize, int quietmmap,
                               char *hdu_option_name)
 {
+  // printf("Without cl, array read one ch to type\n");
+  gal_data_t *out=gal_array_read_one_ch(filename, extension, lines,
+                                        minmapsize, quietmmap,
+                                        hdu_option_name);
+  // printf("After regular read one ch\n");
+  out->context = NULL;
+  return gal_data_copy_to_new_type_free(out, type);
+}
+
+#if GAL_CONFIG_HAVE_OPENCL
+gal_data_t *
+gal_array_read_one_ch_to_type_cl(char *filename, char *extension,
+                              gal_list_str_t *lines, uint8_t type,
+                              size_t minmapsize, int quietmmap,
+                              char *hdu_option_name, cl_context context)
+{
   gal_data_t *out=gal_array_read_one_ch(filename, extension, lines,
                                         minmapsize, quietmmap,
                                         hdu_option_name);
 
+  out->context = context;
+
   return gal_data_copy_to_new_type_free(out, type);
 }
+#endif

@@ -40,6 +40,11 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <gnuastro/config.h>
 #endif
 
+#if GAL_CONFIG_HAVE_OPENCL
+#include <CL/cl.h>
+#endif
+
+
 #include <gnuastro/type.h>
 
 
@@ -221,6 +226,12 @@ typedef struct gal_data_t
   int           disp_width;  /* Width of space to print in ASCII.          */
   int       disp_precision;  /* Precision to print in ASCII.               */
 
+#if GAL_CONFIG_HAVE_OPENCL
+  cl_context       context;
+  int                  svm;
+#endif
+
+
   /* Pointers to other data structures. */
   struct gal_data_t  *next;  /* To use it as a linked list if necessary.   */
   struct gal_data_t *block;  /* 'gal_data_t' of hosting block, see above.  */
@@ -237,6 +248,19 @@ gal_data_t *
 gal_data_alloc(void *array, uint8_t type, size_t ndim, size_t *dsize,
                struct wcsprm *wcs, int clear, size_t minmapsize,
                int quietmmap, char *name, char *unit, char *comment);
+
+#if GAL_CONFIG_HAVE_OPENCL
+gal_data_t *
+gal_data_alloc_cl(void *array, uint8_t type, size_t ndim, size_t *dsize,
+               struct wcsprm *wcs, int clear, size_t minmapsize,
+               int quietmmap, char *name, char *unit, char *comment, cl_context context);
+
+void
+gal_data_initialize_cl(gal_data_t *data, void *array, uint8_t type,
+                    size_t ndim, size_t *dsize, struct wcsprm *wcs,
+                    int clear, size_t minmapsize, int quietmmap,
+                    char *name, char *unit, char *comment, cl_context context);
+#endif
 
 void
 gal_data_initialize(gal_data_t *data, void *array, uint8_t type,

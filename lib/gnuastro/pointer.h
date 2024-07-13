@@ -27,7 +27,13 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
    must be included before the C++ preparations below */
 #include <stdint.h>
 
+#ifndef IN_GNUASTRO_BUILD
+#include <gnuastro/config.h>
+#endif
 
+#if GAL_CONFIG_HAVE_OPENCL
+#include <CL/cl.h>
+#endif
 /* C++ Preparations */
 #undef __BEGIN_C_DECLS
 #undef __END_C_DECLS
@@ -72,7 +78,14 @@ gal_pointer_allocate_ram_or_mmap(uint8_t type, size_t size, int clear,
                                  int quietmmap, const char *funcname,
                                  const char *varname);
 
+#if GAL_CONFIG_HAVE_OPENCL
+void *
+gal_pointer_allocate_ram_or_mmap_cl(uint8_t type, size_t size, int clear,
+                                 size_t minmapsize, char **mmapname,
+                                 int quietmmap, const char *funcname,
+                                 const char *varname, cl_context context);
 
+#endif
 
 __END_C_DECLS    /* From C++ preparations */
 #endif

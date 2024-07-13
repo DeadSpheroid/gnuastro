@@ -446,16 +446,30 @@ ui_read_input(struct convolveparams *p)
   if( p->filename && gal_array_name_recognized(p->filename) )
     if (p->isfits && p->hdu_type==IMAGE_HDU)
       {
-        p->input=gal_array_read_one_ch_to_type(p->filename, p->cp.hdu,
-                                               NULL, INPUT_USE_TYPE,
-                                               p->cp.minmapsize,
-                                               p->cp.quietmmap, "--hdu");
+        if(p->cl == 0)
+        {
+          // printf("Before regular array to type read\n");
+          p->input=gal_array_read_one_ch_to_type(p->filename, p->cp.hdu,
+                                                NULL, INPUT_USE_TYPE,
+                                                p->cp.minmapsize,
+                                                p->cp.quietmmap, "--hdu");
+        }
+        else
+        {
+          // printf("Before CL array to type read\n");
+          p->input=gal_array_read_one_ch_to_type_cl(p->filename, p->cp.hdu,
+                                                NULL, INPUT_USE_TYPE,
+                                                p->cp.minmapsize,
+                                                p->cp.quietmmap, "--hdu", p->context);
+        }
         p->input->wcs=gal_wcs_read(p->filename, p->cp.hdu,
                                    p->cp.wcslinearmatrix, 0, 0,
                                    &p->input->nwcs, "--hdu");
         p->input->ndim=gal_dimension_remove_extra(p->input->ndim,
                                                   p->input->dsize,
                                                   p->input->wcs);
+
+        // printf("After wcs read\n");
       }
 
   /* The input isn't an image (wasn't read yet), so we'll read it as a
@@ -478,11 +492,18 @@ ui_read_kernel(struct convolveparams *p)
       && p->input->ndim>1
       && gal_array_name_recognized(p->kernelname)  )
     {
-      p->kernel = gal_array_read_one_ch_to_type(p->kernelname, p->khdu,
-                                                NULL, INPUT_USE_TYPE,
-                                                p->cp.minmapsize,
-                                                p->cp.quietmmap,
-                                                "--khdu");
+      if(p->cl == 0)
+        p->kernel = gal_array_read_one_ch_to_type(p->kernelname, p->khdu,
+                                                        NULL, INPUT_USE_TYPE,
+                                                        p->cp.minmapsize,
+                                                        p->cp.quietmmap,
+                                                        "--khdu");
+      else
+        p->kernel = gal_array_read_one_ch_to_type_cl(p->kernelname, p->khdu,
+                                                  NULL, INPUT_USE_TYPE,
+                                                  p->cp.minmapsize,
+                                                  p->cp.quietmmap,
+                                                  "--khdu", p->context);
       p->kernel->ndim=gal_dimension_remove_extra(p->kernel->ndim,
                                                  p->kernel->dsize,
                                                  p->kernel->wcs);
@@ -515,7 +536,7 @@ ui_preparations(struct convolveparams *p)
 
   /* Read the input dataset. */
   ui_read_input(p);
-
+  // printf("After input reading");
 
   /* Currently Convolve only works on 1D, 2D and 3D datasets. */
   if(p->input->ndim>3)
@@ -795,10 +816,10 @@ ui_read_check_inputs_setup(int argc, char *argv[], struct convolveparams *p)
                    (cl_device_id *)&p->device_id);
     }
 #endif
+  if(p->cl == 0) p->context = NULL;
 
   /* Read/allocate all the necessary starting arrays. */
   ui_preparations(p);
-
 
   /* Everything is ready, print the intro if not in quiet mode. */
   if(!p->cp.quiet)

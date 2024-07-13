@@ -797,7 +797,8 @@ void convolve_cl(struct convolveparams *p)
 {
   gal_data_t *out;
   struct gal_options_common_params *cp=&p->cp;
-
+  p->input->svm = 1;
+  p->kernel->svm = 1;
   out = gal_conv_cl(p->input, p->kernel, SRC_CONV, p->context, p->device_id,
               p->input->size, 128);
 

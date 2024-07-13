@@ -246,6 +246,57 @@ gal_pointer_mmap_free(char **mmapname, int quietmmap)
   *mmapname=NULL;
 }
 
+#if GAL_CONFIG_HAVE_OPENCL
+void *
+gal_pointer_allocate_ram_or_mmap_cl(uint8_t type, size_t size, int clear,
+                                 size_t minmapsize, char **mmapname,
+                                 int quietmmap, const char *funcname,
+                                 const char *varname, cl_context context)
+{
+  void *out;
+  size_t bytesize=gal_type_sizeof(type)*size;
+
+  /* See if the requested size is larger than 1MB (otherwise,
+     its not worth checking RAM, which involves reading a text
+     file, we won't try memory-mapping anyway). */
+
+  /* If it is decided to do memory-mapping, then do it. */
+  printf("Allocating\n");
+  if( gal_checkset_need_mmap(bytesize, minmapsize, quietmmap) )
+    out=gal_pointer_mmap_allocate(type, size, clear, mmapname,
+                                  quietmmap, 0);
+  else
+    {
+      /* Allocate the necessary space in the RAM. */
+      errno=0;
+      // if(context == NUL)
+      // // out = ( clear
+      // //         ? calloc( size,  gal_type_sizeof(type) )
+      // //         : malloc( size * gal_type_sizeof(type) ) );
+      out = clSVMAlloc(context, CL_MEM_READ_WRITE, size * gal_type_sizeof(type), 0);
+      if(out == NULL)
+      {
+        printf("Abort");
+        exit(1);
+      }
+      /* If the array is NULL (there was no RAM left: on
+         systems other than Linux, 'malloc' will actually
+         return NULL, Linux doesn't do this unfortunately so we
+         need to read the available RAM). */
+      if(out==NULL)
+        out=gal_pointer_mmap_allocate(type, size, clear,
+                                      mmapname, quietmmap, 1);
+
+      /* The 'errno' is re-set to zero just in case 'malloc'
+         changed it, which may cause problems later. */
+      errno=0;
+    }
+
+  /* Return the allocated dataset. */
+  return out;
+}
+
+#endif
 
 
 
