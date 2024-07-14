@@ -178,7 +178,7 @@ See the end of the file for license conditions.
 
 *** Library
 
-  - speclines.h: marcos specifying spectral lines have been corrected to
+  - speclines.h: macros specifying spectral lines have been corrected to
     round wavelengths to nearest integer (see description of changes in
     CosmicCalculator). For example the old 'GAL_SPECLINES_O_III_5006' is
     now called 'GAL_SPECLINES_O_III_5007'.

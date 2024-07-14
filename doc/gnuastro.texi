@@ -1336,7 +1336,7 @@ For more on this, please see Akhlaghi et al. @url{https://arxiv.org/abs/2006.030
 @cindex Ken Thomson
 @cindex Stroustrup, Bjarne
 Bjarne Stroustrup (creator of the C++ language) says: ``@emph{Without understanding software, you are reduced to believing in magic}''.
-Ken Thomson (the designer or the Unix operating system) says ``@emph{I abhor a system designed for the `user' if that word is a coded pejorative meaning `stupid and unsophisticated'}.'' Certainly no scientist (user of a scientific software) would want to be considered a believer in magic, or stupid and unsophisticated.
+Ken Thomson (the designer of the Unix operating system) says ``@emph{I abhor a system designed for the `user' if that word is a coded pejorative meaning `stupid and unsophisticated'}.'' Certainly no scientist (user of a scientific software) would want to be considered a believer in magic, or stupid and unsophisticated.
 
 This can happen when scientists get too distant from the raw data and methods, and are mainly discussing results.
 In other words, when they feel they have tamed Nature into their own high-level (abstract) models (creations), and are mainly concerned with scaling up, or industrializing those results.
