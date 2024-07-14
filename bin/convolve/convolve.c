@@ -792,7 +792,8 @@ convolve_spatial(struct convolveparams *p)
 }
 
 #if GAL_CONFIG_HAVE_OPENCL
-#define SRC_CONV SYSINCLUDE_DIR "/astconvolve-conv.cl"
+// #define SRC_CONV SYSINCLUDE_DIR "/astconvolve-conv.cl"
+#define SRC_CONV "/home/warrenjacinto/Projects/gnuastro/bin/convolve/astconvolve-conv.cl"
 void convolve_cl(struct convolveparams *p)
 {
   gal_data_t *out;
@@ -805,7 +806,7 @@ void convolve_cl(struct convolveparams *p)
   /* Clean up: free the actual input and replace it's pointer with the
      convolved dataset to save as output. */
   gal_tile_full_free_contents(&cp->tl);
-  gal_data_free(p->input);
+  // gal_data_free(p->input);
   p->input=out;
 }
 #endif

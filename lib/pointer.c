@@ -100,6 +100,42 @@ gal_pointer_allocate(uint8_t type, size_t size, int clear,
   return array;
 }
 
+#if GAL_CONFIG_HAVE_OPENCL
+void *
+gal_pointer_allocate_cl(uint8_t type, size_t size, int clear,
+                     const char *funcname, const char *varname, cl_context context)
+{
+  void *array;
+
+  errno=0;
+  if(context == NULL)
+    array = ( clear
+              ? calloc( size,  gal_type_sizeof(type) )
+              : malloc( size * gal_type_sizeof(type) ) );
+
+  else
+  {
+    array = clSVMAlloc(context, CL_MEM_READ_WRITE, size * gal_type_sizeof(type), 0);
+    printf("array svm allocated\n");
+    gal_cl_map_svm(context, array, size * gal_type_sizeof(type));
+    printf("array svm mapped\n");
+  }
+  if(array==NULL)
+    {
+      if(varname)
+        error(EXIT_FAILURE, errno, "%s: %zu bytes couldn't be allocated "
+              "for variable '%s'", funcname ? funcname : __func__,
+              size * gal_type_sizeof(type), varname);
+      else
+        error(EXIT_FAILURE, errno, "%s: %zu bytes couldn't be allocated",
+              funcname ? funcname : __func__, size * gal_type_sizeof(type));
+    }
+
+  return array;
+}
+
+#endif
+
 
 
 
@@ -274,6 +310,8 @@ gal_pointer_allocate_ram_or_mmap_cl(uint8_t type, size_t size, int clear,
       // //         ? calloc( size,  gal_type_sizeof(type) )
       // //         : malloc( size * gal_type_sizeof(type) ) );
       out = clSVMAlloc(context, CL_MEM_READ_WRITE, size * gal_type_sizeof(type), 0);
+      gal_cl_map_svm(context, out, size * gal_type_sizeof(type));
+      printf("array svm allocated and mapped\n");
       if(out == NULL)
       {
         printf("Abort");

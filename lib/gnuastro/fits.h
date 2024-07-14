@@ -47,6 +47,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 
 #include <gnuastro/list.h>
 #include <gnuastro/data.h>
+#if GAL_CONFIG_HAVE_OPENCL
+#include <gnuastro/cl_utils.h>
+#endif
 /* gnuastro/table.h is included below. */
 
 /* C++ Preparations */
@@ -304,6 +307,16 @@ gal_fits_img_info_dim(char *filename, char *hdu, size_t *ndim,
 gal_data_t *
 gal_fits_img_read(char *filename, char *hdu, size_t minmapsize,
                   int quietmmap, char *hdu_option_name);
+
+#if GAL_CONFIG_HAVE_OPENCL
+gal_data_t *
+gal_fits_img_read_cl(char *filename, char *hdu, size_t minmapsize,
+                  int quietmmap, char *hdu_option_name, cl_context context);
+
+void
+gal_fits_img_info_cl(fitsfile *fptr, int *type, size_t *ndim, size_t **dsize,
+                  char **name, char **unit, cl_context context);
+#endif
 
 gal_data_t *
 gal_fits_img_read_to_type(char *inputname, char *hdu, uint8_t type,

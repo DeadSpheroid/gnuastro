@@ -81,4 +81,7 @@ gal_cl_write_to_device (cl_mem *buffer, void *mapped_ptr,
 void *
 gal_cl_read_to_host (cl_mem *buffer, size_t size,
                      cl_command_queue command_queue);
+
+void
+gal_cl_map_svm(cl_context context, void *svm_ptr, size_t size);
 #endif

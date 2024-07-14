@@ -46,192 +46,255 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 /*****************        High-level functions        ****************/
 /*********************************************************************/
 int
-gal_array_name_recognized(char *name)
+gal_array_name_recognized (char *name)
 {
-  if( gal_array_name_recognized_multiext(name) ) return 1;
-  else if ( gal_jpeg_name_is_jpeg(name)        ) return 1;
-  else                                           return 0;
+  if (gal_array_name_recognized_multiext (name))
+    return 1;
+  else if (gal_jpeg_name_is_jpeg (name))
+    return 1;
+  else
+    return 0;
 
   /* Control should not get to here, but just to avoid compiler warnings,
      we'll return a NULL. */
-  error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s to solve the "
-        "problem. Control must not reach the end of this function", __func__,
-        PACKAGE_BUGREPORT);
+  error (EXIT_FAILURE, 0,
+         "%s: a bug! Please contact us at %s to solve the "
+         "problem. Control must not reach the end of this function",
+         __func__, PACKAGE_BUGREPORT);
   return 0;
 }
 
-
-
-
-
 int
-gal_array_name_recognized_multiext(char *name)
+gal_array_name_recognized_multiext (char *name)
 {
-  if(       gal_fits_name_is_fits(name) ) return 1;
-  else if ( gal_tiff_name_is_tiff(name) ) return 1;
-  else                                    return 0;
+  if (gal_fits_name_is_fits (name))
+    return 1;
+  else if (gal_tiff_name_is_tiff (name))
+    return 1;
+  else
+    return 0;
 
   /* Control should not get to here, but just to avoid compiler warnings,
      we'll return a NULL. */
-  error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s to solve the "
-        "problem. Control must not reach the end of this function", __func__,
-        PACKAGE_BUGREPORT);
+  error (EXIT_FAILURE, 0,
+         "%s: a bug! Please contact us at %s to solve the "
+         "problem. Control must not reach the end of this function",
+         __func__, PACKAGE_BUGREPORT);
   return 0;
 }
 
-
-
-
-
 int
-gal_array_file_recognized(char *name)
+gal_array_file_recognized (char *name)
 {
-  if(       gal_fits_file_recognized(name) ) return 1;
-  else if ( gal_jpeg_name_is_jpeg(name)    ) return 1;
-  else if ( gal_tiff_name_is_tiff(name)    ) return 1;
-  else                                       return 0;
+  if (gal_fits_file_recognized (name))
+    return 1;
+  else if (gal_jpeg_name_is_jpeg (name))
+    return 1;
+  else if (gal_tiff_name_is_tiff (name))
+    return 1;
+  else
+    return 0;
 }
-
-
-
-
 
 /* Read (all the possibly existing) color channels within each
    extension/dir of the given file. */
 gal_data_t *
-gal_array_read(char *filename, char *extension, gal_list_str_t *lines,
-               size_t minmapsize, int quietmmap, char *hdu_option_name)
+gal_array_read (char *filename, char *extension, gal_list_str_t *lines,
+                size_t minmapsize, int quietmmap, char *hdu_option_name)
 {
   size_t ext;
 
   /* FITS  */
-  if( gal_fits_file_recognized(filename) )
-    return gal_fits_img_read(filename, extension, minmapsize, quietmmap,
-                             hdu_option_name);
+  if (gal_fits_file_recognized (filename))
+    return gal_fits_img_read (filename, extension, minmapsize, quietmmap,
+                              hdu_option_name);
 
   /* TIFF */
-  else if ( gal_tiff_name_is_tiff(filename) )
+  else if (gal_tiff_name_is_tiff (filename))
     {
-      ext=gal_tiff_dir_string_read(extension);
-      return gal_tiff_read(filename, ext, minmapsize, quietmmap);
+      ext = gal_tiff_dir_string_read (extension);
+      return gal_tiff_read (filename, ext, minmapsize, quietmmap);
     }
 
   /* JPEG */
-  else if ( gal_jpeg_name_is_jpeg(filename) )
-    return gal_jpeg_read(filename, minmapsize, quietmmap);
+  else if (gal_jpeg_name_is_jpeg (filename))
+    return gal_jpeg_read (filename, minmapsize, quietmmap);
 
   /* Default: plain text. */
   else
-    return gal_txt_image_read(filename, lines, minmapsize, quietmmap);
+    return gal_txt_image_read (filename, lines, minmapsize, quietmmap);
 
   /* Control should not get to here, but just to avoid compiler warnings,
      we'll return a NULL. */
-  error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s to solve the "
-        "problem. Control must not reach the end of this function", __func__,
-        PACKAGE_BUGREPORT);
+  error (EXIT_FAILURE, 0,
+         "%s: a bug! Please contact us at %s to solve the "
+         "problem. Control must not reach the end of this function",
+         __func__, PACKAGE_BUGREPORT);
   return NULL;
 }
 
-
-
-
-
 /* Read the contents of the given file/extension to a specific type. */
 gal_data_t *
-gal_array_read_to_type(char *filename, char *extension,
-                       gal_list_str_t *lines, uint8_t type,
-                       size_t minmapsize, int quietmmap,
-                       char *hdu_option_name)
+gal_array_read_to_type (char *filename, char *extension, gal_list_str_t *lines,
+                        uint8_t type, size_t minmapsize, int quietmmap,
+                        char *hdu_option_name)
 {
-  gal_data_t *out=NULL;
-  gal_data_t *next, *in=gal_array_read(filename, extension, lines,
-                                       minmapsize, quietmmap,
-                                       hdu_option_name);
+  gal_data_t *out = NULL;
+  gal_data_t *next,
+      *in = gal_array_read (filename, extension, lines, minmapsize, quietmmap,
+                            hdu_option_name);
 
   /* Go over all the channels. */
-  while(in)
+  while (in)
     {
-      next=in->next;
-      in->next=NULL;
-      gal_list_data_add(&out, gal_data_copy_to_new_type_free(in, type));
-      in=next;
+      next = in->next;
+      in->next = NULL;
+      gal_list_data_add (&out, gal_data_copy_to_new_type_free (in, type));
+      in = next;
     }
 
   /* Invert the reverse list and return. */
-  gal_list_data_reverse(&out);
+  gal_list_data_reverse (&out);
   return out;
 }
 
-
-
-
-
 /* Read the input array and make sure it is only one channel. */
 gal_data_t *
-gal_array_read_one_ch(char *filename, char *extension,
-                      gal_list_str_t *lines, size_t minmapsize,
-                      int quietmmap, char *hdu_option_name)
+gal_array_read_one_ch (char *filename, char *extension, gal_list_str_t *lines,
+                       size_t minmapsize, int quietmmap, char *hdu_option_name)
 {
   char *fname;
   gal_data_t *out;
-  out=gal_array_read(filename, extension, lines, minmapsize, quietmmap,
-                     hdu_option_name);
+  // printf("Should print exactly once\n");
+  out = gal_array_read (filename, extension, lines, minmapsize, quietmmap,
+                        hdu_option_name);
 
-  if(out->next)
+  if (out->next)
     {
-      if(extension)
+      if (extension)
         {
-          if( asprintf(&fname, "%s (hdu %s)", filename, extension)<0 )
-            error(EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
+          if (asprintf (&fname, "%s (hdu %s)", filename, extension) < 0)
+            error (EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
         }
       else
-        fname=filename;
+        fname = filename;
 
-      error(EXIT_FAILURE, 0, "%s: contains %zu channels (it isn't "
-            "monochrome).\n\n"
-            "You can use Gnuastro's ConvertType program to separate the "
-            "(color) channels into separate extensions of a FITS file, with "
-            "a command like this:\n\n"
-            "    $ astconvertt %s -h%s --output=sep-ch.fits",
-            fname, gal_list_data_number(out), filename, extension);
+      error (EXIT_FAILURE, 0,
+             "%s: contains %zu channels (it isn't "
+             "monochrome).\n\n"
+             "You can use Gnuastro's ConvertType program to separate the "
+             "(color) channels into separate extensions of a FITS file, with "
+             "a command like this:\n\n"
+             "    $ astconvertt %s -h%s --output=sep-ch.fits",
+             fname, gal_list_data_number (out), filename, extension);
     }
 
   return out;
 }
 
-
-
-
-
 /* Read a single-channel dataset into a specific type. */
 gal_data_t *
-gal_array_read_one_ch_to_type(char *filename, char *extension,
-                              gal_list_str_t *lines, uint8_t type,
-                              size_t minmapsize, int quietmmap,
-                              char *hdu_option_name)
+gal_array_read_one_ch_to_type (char *filename, char *extension,
+                               gal_list_str_t *lines, uint8_t type,
+                               size_t minmapsize, int quietmmap,
+                               char *hdu_option_name)
 {
   // printf("Without cl, array read one ch to type\n");
-  gal_data_t *out=gal_array_read_one_ch(filename, extension, lines,
-                                        minmapsize, quietmmap,
-                                        hdu_option_name);
+  gal_data_t *out = gal_array_read_one_ch (
+      filename, extension, lines, minmapsize, quietmmap, hdu_option_name);
   // printf("After regular read one ch\n");
   out->context = NULL;
-  return gal_data_copy_to_new_type_free(out, type);
+  return gal_data_copy_to_new_type_free (out, type);
 }
 
 #if GAL_CONFIG_HAVE_OPENCL
 gal_data_t *
-gal_array_read_one_ch_to_type_cl(char *filename, char *extension,
-                              gal_list_str_t *lines, uint8_t type,
-                              size_t minmapsize, int quietmmap,
-                              char *hdu_option_name, cl_context context)
+gal_array_read_one_ch_to_type_cl (char *filename, char *extension,
+                                  gal_list_str_t *lines, uint8_t type,
+                                  size_t minmapsize, int quietmmap,
+                                  char *hdu_option_name, cl_context context)
 {
-  gal_data_t *out=gal_array_read_one_ch(filename, extension, lines,
-                                        minmapsize, quietmmap,
-                                        hdu_option_name);
+  printf("Entering read one ch to type\n");
+  gal_data_t *out
+      = gal_array_read_one_ch_cl (filename, extension, lines, minmapsize,
+                                  quietmmap, hdu_option_name, context);
 
   out->context = context;
+  printf("After read one ch to type\n");
 
-  return gal_data_copy_to_new_type_free(out, type);
+  return gal_data_copy_to_new_type_free (out, type);
 }
+
+gal_data_t *
+gal_array_read_one_ch_cl (char *filename, char *extension,
+                          gal_list_str_t *lines, size_t minmapsize,
+                          int quietmmap, char *hdu_option_name,
+                          cl_context context)
+{
+  printf("Entering array read one ch cl\n");
+  char *fname;
+  gal_data_t *out;
+  // printf("Should print exactly once\n");
+  out = gal_array_read_cl (filename, extension, lines, minmapsize, quietmmap,
+                           hdu_option_name, context);
+
+  if (out->next)
+    {
+      if (extension)
+        {
+          if (asprintf (&fname, "%s (hdu %s)", filename, extension) < 0)
+            error (EXIT_FAILURE, 0, "%s: asprintf allocation error", __func__);
+        }
+      else
+        fname = filename;
+
+      error (EXIT_FAILURE, 0,
+             "%s: contains %zu channels (it isn't "
+             "monochrome).\n\n"
+             "You can use Gnuastro's ConvertType program to separate the "
+             "(color) channels into separate extensions of a FITS file, with "
+             "a command like this:\n\n"
+             "    $ astconvertt %s -h%s --output=sep-ch.fits",
+             fname, gal_list_data_number (out), filename, extension);
+    }
+  printf("Exiting array read one ch cl\n");
+  return out;
+}
+
+gal_data_t *
+gal_array_read_cl (char *filename, char *extension, gal_list_str_t *lines,
+                   size_t minmapsize, int quietmmap, char *hdu_option_name,
+                   cl_context context)
+{
+  size_t ext;
+
+  /* FITS  */
+  if (gal_fits_file_recognized (filename))
+    return gal_fits_img_read_cl(filename, extension, minmapsize, quietmmap,
+                              hdu_option_name, context);
+
+  /* TIFF */
+  else if (gal_tiff_name_is_tiff (filename))
+    {
+      ext = gal_tiff_dir_string_read (extension);
+      return gal_tiff_read (filename, ext, minmapsize, quietmmap);
+    }
+
+  /* JPEG */
+  else if (gal_jpeg_name_is_jpeg (filename))
+    return gal_jpeg_read (filename, minmapsize, quietmmap);
+
+  /* Default: plain text. */
+  else
+    return gal_txt_image_read (filename, lines, minmapsize, quietmmap);
+
+  /* Control should not get to here, but just to avoid compiler warnings,
+     we'll return a NULL. */
+  error (EXIT_FAILURE, 0,
+         "%s: a bug! Please contact us at %s to solve the "
+         "problem. Control must not reach the end of this function",
+         __func__, PACKAGE_BUGREPORT);
+  return NULL;
+}
+
 #endif

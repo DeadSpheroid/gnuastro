@@ -17,7 +17,7 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   cl_int ret = 0;
   gal_data_t *out;
   //   cl_mem cl_output;
-  cl_device_type device_type = (cl_device_type)NULL;
+  // cl_device_type device_type = (cl_device_type)NULL;
   cl_command_queue command_queue = NULL;
   cl_kernel kernel;
   cl_event conv_event;
@@ -37,8 +37,10 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   double cpu_time_used_copy;
 
   start_copy = clock ();
-  ret = clGetDeviceInfo (device_id, CL_DEVICE_TYPE, sizeof (cl_device_type),
-                         (void *)device_type, NULL);
+  // ret = clGetDeviceInfo (device_id, CL_DEVICE_TYPE, sizeof (cl_device_type),
+  //                        (void *)device_type, NULL);
+  // if(ret != CL_SUCCESS) printf("Error dev inf %d\n", ret);
+
   //   int device = (device_type == CL_DEVICE_TYPE_GPU) ? 1 : 2;
 
   // cl_mem input_array = gal_cl_create_buffer_from_array (
@@ -76,9 +78,25 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
                         input_image->minmapsize, input_image->quietmmap, NULL,
                         input_image->unit, NULL, context);
   out->svm = 1;
-  clEnqueueSVMUnmap(command_queue, input_image, 0, NULL, NULL);
-  clEnqueueSVMUnmap(command_queue, kernel_image, 0, NULL, NULL);
-  clEnqueueSVMUnmap(command_queue, out, 0, NULL, NULL);
+  ret = clEnqueueSVMUnmap(command_queue, input_image, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap1 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, kernel_image, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap2 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, input_image->array, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, kernel_image->array, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, input_image->dsize, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, kernel_image->dsize, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
+
+  ret = clEnqueueSVMUnmap(command_queue, out, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, out->array, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
+  ret = clEnqueueSVMUnmap(command_queue, out->dsize, 0, NULL, NULL);
+  if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
 
 
   // cl_mem output_array = gal_cl_create_buffer_from_array (
@@ -87,8 +105,11 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
 
   //   gal_cl_copy_array_to_device (out, &cl_output, context, command_queue,
   //                                device);
+  ret = clFlush(command_queue);
+  if(ret != CL_SUCCESS) printf("Error flush %d\n", ret);
+  ret = clFinish (command_queue);
+  if(ret != CL_SUCCESS) printf("Error finish1 %d\n", ret);
 
-  clFinish (command_queue);
   end_copy = clock ();
   cpu_time_used_copy = ((double)(end_copy - start_copy)) / CLOCKS_PER_SEC;
   printf ("  - Time taken in copying input to device: %f\n",
@@ -108,23 +129,39 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   // ret = clSetKernelArg (kernel, 3, sizeof (cl_mem), (void *)&kernel_dsize);
   // ret = clSetKernelArg (kernel, 4, sizeof (cl_mem), (void *)&output_array);
   ret = clSetKernelArgSVMPointer(kernel, 0, (void *)input_image);
-  ret = clSetKernelArgSVMPointer(kernel, 0, (void *)kernel_image);
-  ret = clSetKernelArgSVMPointer(kernel, 0, (void *)out);
+  if(ret != CL_SUCCESS) printf("Error arg1 %d\n", ret);
+  ret = clSetKernelArgSVMPointer(kernel, 1, (void *)kernel_image);
+  if(ret != CL_SUCCESS) printf("Error arg2 %d\n", ret);
+  ret = clSetKernelArgSVMPointer(kernel, 2, (void *)out);
+  if(ret != CL_SUCCESS) printf("Error arg3 %d\n", ret);
 
+  void* svm_ptrs[] = {
+    input_image->array, kernel_image->array, out->array, input_image->dsize, kernel_image->dsize
+  };
 
-
+  // size_t size = (input_image->dsize[0] * input_image->dsize[1] * gal_type_sizeof(input_image->type)) +
+  //               (kernel_image->dsize[0] * kernel_image->dsize[1] * gal_type_sizeof(kernel_image->type)) +
+  //               (out->dsize[0] * out->dsize[1] * gal_type_sizeof(out->type)) +
+  //               (input_image->ndim * sizeof (size_t)) +
+  //               (kernel_image->ndim * sizeof (size_t));
+  ret = clSetKernelExecInfo(kernel, CL_KERNEL_EXEC_INFO_SVM_PTRS, 5 * sizeof(void *), svm_ptrs);
+  if(ret != CL_SUCCESS) printf("Error exec inf %d\n", ret);
   // start_conv = clock();
   /* launch the kernel */
+  printf("Before Enqueue kernel\n");
   ret = clEnqueueNDRangeKernel (command_queue, kernel, 1, NULL,
                                 &global_item_size, NULL, 0, NULL, &conv_event);
   // clWaitForEvents(1, &conv_event);
+  printf("After enqueue kernel\n");
+  if(ret != CL_SUCCESS) printf("Error enqueue kernel %d\n", ret);
 
-  clFinish (command_queue);
+  ret = clFlush(command_queue);
+  if(ret != CL_SUCCESS) printf("Error flush2 %d\n", ret);
+
+  ret = clFinish (command_queue);
+  if(ret != CL_SUCCESS) printf("Error finish2 %d\n", ret);
+
   // end_conv = clock();
-  if (ret != CL_SUCCESS)
-    {
-      printf ("Error launching kernel, Error code: %d", ret);
-    }
   // cpu_time_used_conv = ((double)(end_conv - start_conv)) / CLOCKS_PER_SEC;
 
   cl_ulong time_start;
@@ -147,7 +184,22 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   // out->array = gal_cl_read_to_host (
   //     &output_array, out->size * gal_type_sizeof (out->type), command_queue);
   //   gal_cl_copy_from_device (out, &cl_output, command_queue);
-  ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MEM_READ_WRITE, out, sizeof *out, 0, NULL, NULL);
+  ret = clEnqueueSVMMap (command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE,
+                         out, sizeof *out, 0, NULL, NULL);
+  if (ret != CL_SUCCESS)
+    printf ("Error mapping svm %d\n", ret);
+  ret = clEnqueueSVMMap (command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE,
+                         out->array, out->size * gal_type_sizeof (out->type),
+                         0, NULL, NULL);
+  if (ret != CL_SUCCESS)
+    printf ("Error mapping svm %d\n", ret);
+
+  ret = clEnqueueSVMMap (command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE,
+                         out->dsize, out->ndim * sizeof (size_t),
+                         0, NULL, NULL);
+  if (ret != CL_SUCCESS)
+    printf ("Error mapping svm %d\n", ret);
+
   clFinish (command_queue);
   end_copy_to = clock ();
   cpu_time_used_copy_to

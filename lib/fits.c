@@ -2580,7 +2580,163 @@ gal_fits_img_info_dim(char *filename, char *hdu, size_t *ndim,
   return dsize;
 }
 
+#if GAL_CONFIG_HAVE_OPENCL
+void
+gal_fits_img_info_cl(fitsfile *fptr, int *type, size_t *ndim, size_t **dsize,
+                  char **name, char **unit, cl_context context)
+{
+  printf("Entering fits img info cl\n");
+  double bscale=NAN;
+  size_t i, dsize_key=1;
+  char **str, *bzero_str=NULL;
+  int bitpix, status=0, naxis;
+  gal_data_t *key, *keysll=NULL;
+  long naxes[GAL_FITS_MAX_NDIM];
 
+  /* Get the BITPIX, number of dimensions and size of each dimension. */
+  if( fits_get_img_param(fptr, GAL_FITS_MAX_NDIM, &bitpix, &naxis,
+                         naxes, &status) )
+    gal_fits_io_error(status, NULL);
+  *ndim=naxis;
+
+
+  /* Convert bitpix to Gnuastro's known types. */
+  *type=gal_fits_bitpix_to_type(bitpix);
+
+
+  /* Define the names of the possibly existing important keywords about the
+     dataset. We are defining these in the opposite order to be read by
+     CFITSIO. The way Gnuastro writes the FITS keywords, the output will
+     first have 'BZERO', then 'BSCALE', then 'EXTNAME', then, 'BUNIT'.*/
+  gal_list_data_add_alloc(&keysll, NULL, GAL_TYPE_STRING, 1, &dsize_key,
+                          NULL, 0, -1, 1, "BUNIT", NULL, NULL);
+  gal_list_data_add_alloc(&keysll, NULL, GAL_TYPE_STRING, 1, &dsize_key,
+                          NULL, 0, -1, 1, "EXTNAME", NULL, NULL);
+  gal_list_data_add_alloc(&keysll, NULL, GAL_TYPE_FLOAT64, 1, &dsize_key,
+                          NULL, 0, -1, 1, "BSCALE", NULL, NULL);
+  gal_list_data_add_alloc(&keysll, NULL, GAL_TYPE_STRING, 1, &dsize_key,
+                          NULL, 0, -1, 1, "BZERO", NULL, NULL);
+  gal_fits_key_read_from_ptr(fptr, keysll, 0, 0);
+
+
+  /* Read the special keywords. */
+  i=1;
+  for(key=keysll;key!=NULL;key=key->next)
+    {
+      /* Recall that the order is the opposite (this is a last-in-first-out
+         list. */
+      if(key->status==0)
+        {
+        switch(i)
+          {
+          case 4: if(unit) {str=key->array; *unit=*str; *str=NULL;} break;
+          case 3: if(name) {str=key->array; *name=*str; *str=NULL;} break;
+          case 2: bscale = *(double *)(key->array);                 break;
+          case 1: str = key->array; bzero_str = *str;               break;
+          default:
+            error(EXIT_FAILURE, 0, "%s: a bug! Please contact us at %s "
+                  "to fix the problem. For some reason, there are more "
+                  "keywords requested ", __func__, PACKAGE_BUGREPORT);
+          }
+        }
+      ++i;
+    }
+
+
+  /* If a type correction is necessary, then do it. */
+  if( !isnan(bscale) || bzero_str )
+    fits_type_correct(type, bscale, bzero_str);
+
+
+  /* Allocate the array to keep the dimension size and fill it in, note
+     that its order is the opposite of naxes. */
+  *dsize=gal_pointer_allocate_cl(GAL_TYPE_INT64, *ndim, 0, __func__, "dsize", context);
+  for(i=0; i<*ndim; ++i)
+    (*dsize)[i]=naxes[*ndim-1-i];
+
+
+  /* Clean up. Note that bzero_str, gets freed by 'gal_data_free' (which is
+     called by 'gal_list_data_free'. */
+  gal_list_data_free(keysll);
+  printf("Exiting fits img info cl\n");
+}
+
+
+
+
+gal_data_t *
+gal_fits_img_read_cl(char *filename, char *hdu, size_t minmapsize,
+                  int quietmmap, char *hdu_option_name, cl_context context)
+{
+  printf("Entering fits img read cl\n");
+  void *blank;
+  long *fpixel;
+  fitsfile *fptr;
+  gal_data_t *img;
+  size_t i, ndim, *dsize;
+  char *name=NULL, *unit=NULL;
+  int status=0, type, anyblank;
+  char *hduon = hdu_option_name ? hdu_option_name : "--hdu";
+
+
+  /* Check HDU for realistic conditions: */
+  fptr=gal_fits_hdu_open_format(filename, hdu, 0, NULL);
+
+
+  /* Get the info and allocate the data structure. */
+  gal_fits_img_info_cl(fptr, &type, &ndim, &dsize, &name, &unit, context);
+
+
+  /* Check if there is any dimensions (the first header can sometimes have
+     no images). */
+  if(ndim==0)
+    error(EXIT_FAILURE, 0, "%s (hdu: %s) has 0 dimensions! The most "
+          "common cause for this is a wrongly specified HDU. In some "
+          "FITS images, the first HDU doesn't have any data, the data "
+          "is in subsequent extensions. So probably reading the second "
+          "HDU (with '%s=1') will solve the problem (following CFITSIO's "
+          "convention, currently HDU counting starts from 0)", filename,
+          hdu, hduon);
+
+
+  /* Set the fpixel array (first pixel in all dimensions). Note that the
+     'long' type will not be larger than 64-bits, so, we'll just assume it
+     is 64-bits for space allocation. On 32-bit systems, this won't be a
+     problem, the space will be written/read as 32-bit 'long' any way,
+     we'll just have a few empty bytes that will be freed anyway at the end
+     of this function. */
+  fpixel=gal_pointer_allocate(GAL_TYPE_INT64, ndim, 0, __func__, "fpixel");
+  for(i=0;i<ndim;++i) fpixel[i]=1;
+
+
+  /* Allocate the space for the array and for the blank values. */
+  img=gal_data_alloc_cl(NULL, type, ndim, dsize, NULL, 0, minmapsize,
+                     quietmmap, name, unit, NULL, context);
+
+  printf("In fits img read cl, before blank alloc write\n");
+  blank=gal_blank_alloc_write(type);
+  if(name) free(name);
+  if(unit) free(unit);
+
+
+  /* Read the image into the allocated array: */
+  printf("In fits img read cl, before fits read pix\n");
+  fits_read_pix(fptr, gal_fits_type_to_datatype(type), fpixel,
+                img->size, blank, img->array, &anyblank, &status);
+  if(status) gal_fits_io_error(status, NULL);
+  free(fpixel);
+  free(blank);
+
+
+  /* Close the input FITS file. */
+  fits_close_file(fptr, &status);
+  gal_fits_io_error(status, NULL);
+
+  printf("Exiting fits img read cl\n");
+  /* Return the filled data structure. */
+  return img;
+}
+#endif
 
 
 

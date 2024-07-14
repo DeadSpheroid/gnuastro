@@ -85,10 +85,15 @@ gal_cl_kernel_create (char *kernel_name, char *function_name,
   size_t kernel_size = fread (result, 1, MAX_SOURCE_SIZE, kernelFile);
   fclose (kernelFile);
 
+  // printf ("Kernel is\n %s \n", result);
+
   program = clCreateProgramWithSource (context, 1, (const char **)&result,
                                        (const size_t *)&kernel_size, &ret);
 
-  ret = clBuildProgram (program, 1, &device_id, "-I .", NULL, NULL);
+  if (ret != CL_SUCCESS)
+    printf ("Error creating program %d\n", ret);
+
+  ret = clBuildProgram (program, 1, &device_id, "", NULL, NULL);
 
   if (ret != CL_SUCCESS)
     {
@@ -117,9 +122,10 @@ gal_cl_kernel_create (char *kernel_name, char *function_name,
       printf ("%s\n", buffer);
       exit (1);
     }
-
-  return clCreateKernel (program, function_name, &ret);
-  ;
+  cl_kernel kernel = clCreateKernel (program, function_name, &ret);
+  if (ret != CL_SUCCESS)
+    printf ("Error creating kernel %d\n", ret);
+  return kernel;
 }
 
 /*********************************************************************/
@@ -311,4 +317,25 @@ gal_cl_read_to_host (cl_mem *buffer, size_t size,
       exit (1);
     }
   return mapped_ptr;
+}
+
+void
+gal_cl_map_svm (cl_context context, void *svm_ptr, size_t size)
+{
+  cl_int ret = 0;
+  cl_device_id *devices = malloc (1 * sizeof (cl_device_id));
+  ret = clGetContextInfo (context, CL_CONTEXT_DEVICES, sizeof (cl_device_id),
+                          (void *)devices, NULL);
+  if (ret != CL_SUCCESS)
+    printf ("Error getting context inf %d\n", ret);
+  cl_command_queue command_queue
+      = clCreateCommandQueueWithProperties (context, devices[0], NULL, &ret);
+  if(ret != CL_SUCCESS)
+    printf("Error creating command queue %d\n", ret);
+
+  ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, svm_ptr, size, 0, NULL, NULL);
+  if(ret != CL_SUCCESS)
+    printf("Error Mapping svm buffer %d\n", ret);
+  free(devices);
+  clReleaseCommandQueue(command_queue);
 }

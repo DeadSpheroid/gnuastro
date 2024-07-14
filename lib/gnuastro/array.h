@@ -35,63 +35,63 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #undef __BEGIN_C_DECLS
 #undef __END_C_DECLS
 #ifdef __cplusplus
-# define __BEGIN_C_DECLS extern "C" {
-# define __END_C_DECLS }
+#define __BEGIN_C_DECLS                                                       \
+  extern "C"                                                                  \
+  {
+#define __END_C_DECLS }
 #else
-# define __BEGIN_C_DECLS                /* empty */
-# define __END_C_DECLS                  /* empty */
+#define __BEGIN_C_DECLS /* empty */
+#define __END_C_DECLS   /* empty */
 #endif
 /* End of C++ preparations */
 
-
-
-
-
 /* Actual header contants (the above were for the Pre-processor). */
-__BEGIN_C_DECLS  /* From C++ preparations */
+__BEGIN_C_DECLS /* From C++ preparations */
 
+    /* Functions */
+    int
+    gal_array_name_recognized (char *name);
 
+int gal_array_name_recognized_multiext (char *name);
 
+int gal_array_file_recognized (char *name);
 
+gal_data_t *gal_array_read (char *filename, char *extension,
+                            gal_list_str_t *lines, size_t minmapsize,
+                            int quietmmap, char *hdu_option_name);
 
-/* Functions */
-int
-gal_array_name_recognized(char *name);
+gal_data_t *gal_array_read_to_type (char *filename, char *extension,
+                                    gal_list_str_t *lines, uint8_t type,
+                                    size_t minmapsize, int quietmmap,
+                                    char *hdu_option_name);
 
-int
-gal_array_name_recognized_multiext(char *name);
+gal_data_t *gal_array_read_one_ch (char *filename, char *extension,
+                                   gal_list_str_t *lines, size_t minmapsize,
+                                   int quietmmap, char *hdu_option_name);
 
-int
-gal_array_file_recognized(char *name);
-
-gal_data_t *
-gal_array_read(char *filename, char *extension, gal_list_str_t *lines,
-               size_t minmapsize, int quietmmap, char *hdu_option_name);
-
-gal_data_t *
-gal_array_read_to_type(char *filename, char *extension,
-                       gal_list_str_t *lines, uint8_t type,
-                       size_t minmapsize, int quietmmap,
-                       char *hdu_option_name);
-
-gal_data_t *
-gal_array_read_one_ch(char *filename, char *extension,
-                      gal_list_str_t *lines, size_t minmapsize,
-                      int quietmmap, char *hdu_option_name);
-
-gal_data_t *
-gal_array_read_one_ch_to_type(char *filename, char *extension,
-                              gal_list_str_t *lines, uint8_t type,
-                              size_t minmapsize, int quietmmap,
-                              char *hdu_option_name);
+gal_data_t *gal_array_read_one_ch_to_type (char *filename, char *extension,
+                                           gal_list_str_t *lines, uint8_t type,
+                                           size_t minmapsize, int quietmmap,
+                                           char *hdu_option_name);
 #if GAL_CONFIG_HAVE_OPENCL
-gal_data_t *
-gal_array_read_one_ch_to_type_cl(char *filename, char *extension,
-                              gal_list_str_t *lines, uint8_t type,
-                              size_t minmapsize, int quietmmap,
-                              char *hdu_option_name, cl_context context);
+gal_data_t *gal_array_read_one_ch_to_type_cl (char *filename, char *extension,
+                                              gal_list_str_t *lines,
+                                              uint8_t type, size_t minmapsize,
+                                              int quietmmap,
+                                              char *hdu_option_name,
+                                              cl_context context);
+
+gal_data_t *gal_array_read_one_ch_cl (char *filename, char *extension,
+                                      gal_list_str_t *lines, size_t minmapsize,
+                                      int quietmmap, char *hdu_option_name,
+                                      cl_context context);
+
+gal_data_t *gal_array_read_cl (char *filename, char *extension,
+                               gal_list_str_t *lines, size_t minmapsize,
+                               int quietmmap, char *hdu_option_name,
+                               cl_context context);
 #endif
 
-__END_C_DECLS    /* From C++ preparations */
+__END_C_DECLS /* From C++ preparations */
 
-#endif           /* __GAL_TIFF_H__ */
+#endif /* __GAL_TIFF_H__ */

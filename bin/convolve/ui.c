@@ -513,6 +513,7 @@ ui_read_kernel(struct convolveparams *p)
 
   /* Make sure that the kernel and input have the same number of
      dimensions. */
+  printf("Done reading kernel\n");
   if(p->kernel->ndim!=p->input->ndim)
     error(EXIT_FAILURE, 0, "input datasets must have the same number of "
           "dimensions");
@@ -587,6 +588,7 @@ ui_preparations(struct convolveparams *p)
      argument) is the blurry image. */
   if(p->makekernel)
     {
+      printf("if of kernel\n");
       /* Read the kernel. */
       ui_read_kernel(p);
 
@@ -631,6 +633,7 @@ ui_preparations(struct convolveparams *p)
      into one loop. */
   else
     {
+      printf("Else of kernel\n");
       /* Read in the kernel array: */
       ui_read_kernel(p);
 
@@ -855,8 +858,8 @@ ui_free_report(struct convolveparams *p, struct timeval *t1)
   free(p->khdu);
   free(p->cp.hdu);
   free(p->cp.output);
-  gal_data_free(p->input);
-  gal_data_free(p->kernel);
+  // gal_data_free(p->input);
+  // gal_data_free(p->kernel);
 
   /* Print the final message. */
   if(!p->cp.quiet)

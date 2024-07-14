@@ -32,7 +32,7 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #if GAL_CONFIG_HAVE_OPENCL
-#include <CL/cl.h>
+#include <gnuastro/cl_utils.h>
 #endif
 /* C++ Preparations */
 #undef __BEGIN_C_DECLS
@@ -84,6 +84,10 @@ gal_pointer_allocate_ram_or_mmap_cl(uint8_t type, size_t size, int clear,
                                  size_t minmapsize, char **mmapname,
                                  int quietmmap, const char *funcname,
                                  const char *varname, cl_context context);
+
+void *
+gal_pointer_allocate_cl(uint8_t type, size_t size, int clear,
+                     const char *funcname, const char *varname, cl_context context);
 
 #endif
 

@@ -38,6 +38,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <gnuastro/blank.h>
 #include <gnuastro/table.h>
 #include <gnuastro/pointer.h>
+#if GAL_CONFIG_HAVE_OPENCL
+#include <gnuastro/cl_utils.h>
+#endif
 
 #include <gnuastro-internal/checkset.h>
 
@@ -94,12 +97,14 @@ gal_data_alloc_cl(void *array, uint8_t type, size_t ndim, size_t *dsize,
                struct wcsprm *wcs, int clear, size_t minmapsize,
                int quietmmap, char *name, char *unit, char *comment, cl_context context)
 {
+  printf("Entering gal data alloc cl\n");
   gal_data_t *out;
 
   /* Allocate the space for the actual structure. */
   errno=0;
   // out=malloc(sizeof *out);
   out = (gal_data_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, sizeof *out, 0);
+  gal_cl_map_svm(context, (void *)out, sizeof(gal_data_t));
   if(out==NULL)
     error(EXIT_FAILURE, errno, "%s: %zu bytes for gal_data_t",
           __func__, sizeof *out);
@@ -109,6 +114,7 @@ gal_data_alloc_cl(void *array, uint8_t type, size_t ndim, size_t *dsize,
                       quietmmap, name, unit, comment, context);
 
   /* Return the final structure. */
+  printf("Exiting gal data alloc cl\n");
   return out;
 }
 
@@ -156,6 +162,8 @@ gal_data_initialize_cl(gal_data_t *data, void *array, uint8_t type,
       errno=0;
       // data->dsize=malloc(ndim*sizeof *data->dsize);
       data->dsize = (size_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, ndim * sizeof *data->dsize, 0);
+      gal_cl_map_svm(context, (void *)data->dsize, ndim * sizeof(size_t));
+      printf("dsize svm allocated\n");
       if(data->dsize==NULL)
         error(EXIT_FAILURE, errno, "%s: %zu bytes for data->dsize",
               __func__, ndim*sizeof *data->dsize);
@@ -917,6 +925,7 @@ gal_data_copy(gal_data_t *in)
 gal_data_t *
 gal_data_copy_to_new_type(gal_data_t *in, uint8_t newtype)
 {
+  printf("Entering data copy to new type\n");
   gal_data_t *out;
 
   if(in->context == NULL)
@@ -940,6 +949,7 @@ gal_data_copy_to_new_type(gal_data_t *in, uint8_t newtype)
   gal_data_copy_to_allocated(in, out);
 
   /* Return the created array */
+  printf("Exiting data copy to new type\n");
   return out;
 }
 
@@ -961,13 +971,17 @@ gal_data_copy_to_new_type_free(gal_data_t *in, uint8_t newtype)
      one dataset after this function finishes, we can safely just return
      the input. */
   if(newtype==iblock->type && in==iblock)
+  {
+    printf("In if of copy to new and free\n");
     return in;
+  }
   else
     {
+      printf("In else of copy to new and free\n");
       out=gal_data_copy_to_new_type(in, newtype);
       // printf("After regular copy to new type\n");
-      if(iblock==in)
-        gal_data_free(in);
+      if(iblock==in);
+        // gal_data_free(in);
       else
         fprintf(stderr, "#####\nWarning from "
                 "'gal_data_copy_to_new_type_free'\n#####\n The input "
@@ -976,6 +990,7 @@ gal_data_copy_to_new_type_free(gal_data_t *in, uint8_t newtype)
                 "'gal_data_copy_to_new_type' to avoid this warning.\n"
                 "#####");
       return out;
+      printf("Exiting else of copy to new and free\n");
     }
 }
 
