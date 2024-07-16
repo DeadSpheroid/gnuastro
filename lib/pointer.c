@@ -116,9 +116,8 @@ gal_pointer_allocate_cl(uint8_t type, size_t size, int clear,
   else
   {
     array = clSVMAlloc(context, CL_MEM_READ_WRITE, size * gal_type_sizeof(type), 0);
-    printf("array svm allocated\n");
-    gal_cl_map_svm(context, array, size * gal_type_sizeof(type));
-    printf("array svm mapped\n");
+    gal_cl_map_svm(context, (void **)&array, size * gal_type_sizeof(type));
+    // printf("array svm allocated and mapped\n");
   }
   if(array==NULL)
     {
@@ -297,7 +296,7 @@ gal_pointer_allocate_ram_or_mmap_cl(uint8_t type, size_t size, int clear,
      file, we won't try memory-mapping anyway). */
 
   /* If it is decided to do memory-mapping, then do it. */
-  printf("Allocating\n");
+  // printf("Allocating\n");
   if( gal_checkset_need_mmap(bytesize, minmapsize, quietmmap) )
     out=gal_pointer_mmap_allocate(type, size, clear, mmapname,
                                   quietmmap, 0);
@@ -310,13 +309,13 @@ gal_pointer_allocate_ram_or_mmap_cl(uint8_t type, size_t size, int clear,
       // //         ? calloc( size,  gal_type_sizeof(type) )
       // //         : malloc( size * gal_type_sizeof(type) ) );
       out = clSVMAlloc(context, CL_MEM_READ_WRITE, size * gal_type_sizeof(type), 0);
-      gal_cl_map_svm(context, out, size * gal_type_sizeof(type));
-      printf("array svm allocated and mapped\n");
       if(out == NULL)
       {
-        printf("Abort");
+        // printf("Abort");
         exit(1);
       }
+      gal_cl_map_svm(context, &out, size * gal_type_sizeof(type));
+      // printf("array svm allocated and mapped %ld\n", size * gal_type_sizeof(type));
       /* If the array is NULL (there was no RAM left: on
          systems other than Linux, 'malloc' will actually
          return NULL, Linux doesn't do this unfortunately so we

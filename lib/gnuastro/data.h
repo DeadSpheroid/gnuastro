@@ -198,7 +198,7 @@ __BEGIN_C_DECLS  /* From C++ preparations */
      inspired from the way the GNU Scientific Library does it in the
      "Vectors and Matrices" chapter.
 */
-typedef struct gal_data_t
+typedef struct  __attribute__((packed)) gal_data_t
 {
   /* Basic information on array of data. */
   void     *restrict array;  /* Array keeping data elements.               */

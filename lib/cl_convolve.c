@@ -78,6 +78,11 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
                         input_image->minmapsize, input_image->quietmmap, NULL,
                         input_image->unit, NULL, context);
   out->svm = 1;
+  // printf("img sizes: %ld %ld\n", input_image->dsize[0], input_image->dsize[1]);
+  // printf("img sizes: %ld %ld\n", kernel_image->dsize[0], kernel_image->dsize[1]);
+  // printf("img sizes: %ld %ld\n", out->dsize[0], out->dsize[1]);
+  // printf("%f\n", ((float *)out->array)[15]);
+
   ret = clEnqueueSVMUnmap(command_queue, input_image, 0, NULL, NULL);
   if(ret != CL_SUCCESS) printf("Error unmap1 %d\n", ret);
   ret = clEnqueueSVMUnmap(command_queue, kernel_image, 0, NULL, NULL);
@@ -98,6 +103,7 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   ret = clEnqueueSVMUnmap(command_queue, out->dsize, 0, NULL, NULL);
   if(ret != CL_SUCCESS) printf("Error unmap3 %d\n", ret);
 
+  
 
   // cl_mem output_array = gal_cl_create_buffer_from_array (
   //     out->array, out->size * gal_type_sizeof (out->type), context,
@@ -136,7 +142,7 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   if(ret != CL_SUCCESS) printf("Error arg3 %d\n", ret);
 
   void* svm_ptrs[] = {
-    input_image->array, kernel_image->array, out->array, input_image->dsize, kernel_image->dsize
+    input_image->array, kernel_image->array, out->array, (void *)input_image->dsize, (void*)kernel_image->dsize, (void*)out->dsize
   };
 
   // size_t size = (input_image->dsize[0] * input_image->dsize[1] * gal_type_sizeof(input_image->type)) +
@@ -144,15 +150,15 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   //               (out->dsize[0] * out->dsize[1] * gal_type_sizeof(out->type)) +
   //               (input_image->ndim * sizeof (size_t)) +
   //               (kernel_image->ndim * sizeof (size_t));
-  ret = clSetKernelExecInfo(kernel, CL_KERNEL_EXEC_INFO_SVM_PTRS, 5 * sizeof(void *), svm_ptrs);
+  ret = clSetKernelExecInfo(kernel, CL_KERNEL_EXEC_INFO_SVM_PTRS, 6 * sizeof(void *), svm_ptrs);
   if(ret != CL_SUCCESS) printf("Error exec inf %d\n", ret);
   // start_conv = clock();
   /* launch the kernel */
-  printf("Before Enqueue kernel\n");
+  // printf("Before Enqueue kernel\n");
   ret = clEnqueueNDRangeKernel (command_queue, kernel, 1, NULL,
                                 &global_item_size, NULL, 0, NULL, &conv_event);
   // clWaitForEvents(1, &conv_event);
-  printf("After enqueue kernel\n");
+  // printf("After enqueue kernel\n");
   if(ret != CL_SUCCESS) printf("Error enqueue kernel %d\n", ret);
 
   ret = clFlush(command_queue);
@@ -185,7 +191,7 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   //     &output_array, out->size * gal_type_sizeof (out->type), command_queue);
   //   gal_cl_copy_from_device (out, &cl_output, command_queue);
   ret = clEnqueueSVMMap (command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE,
-                         out, sizeof *out, 0, NULL, NULL);
+                         out, sizeof(gal_data_t), 0, NULL, NULL);
   if (ret != CL_SUCCESS)
     printf ("Error mapping svm %d\n", ret);
   ret = clEnqueueSVMMap (command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE,
@@ -210,13 +216,13 @@ gal_conv_cl_svm (gal_data_t *input_image, gal_data_t *kernel_image,
   // Clean up
   ret = clFlush (command_queue);
   ret = clFinish (command_queue);
-  ret = clReleaseKernel (kernel);
+  // ret = clReleaseKernel (kernel);
   // ret = clReleaseMemObject (input_array);
   // ret = clReleaseMemObject (input_dsize);
   // ret = clReleaseMemObject (kernel_array);
   // ret = clReleaseMemObject (kernel_dsize);
   // ret = clReleaseMemObject (output_array);
-  ret = clReleaseCommandQueue (command_queue);
+  // ret = clReleaseCommandQueue (command_queue);
   // clFinish(command_queue);
   return out;
 }
@@ -229,7 +235,7 @@ gal_conv_cl (gal_data_t *input_image, gal_data_t *kernel_image,
 {
   if (input_image->svm && kernel_image->svm)
     {
-      printf ("Using svm\n");
+      // printf ("Using svm\n");
       return gal_conv_cl_svm (input_image, kernel_image, kernel_name, context,
                        device_id, global_item_size, local_item_size);
     }

@@ -438,6 +438,7 @@ ui_read_column(struct convolveparams *p, int i0k1)
 static void
 ui_read_input(struct convolveparams *p)
 {
+  // printf("Start reading input\n");
   /* To see if we should read it as a table. */
   p->input=NULL;
 
@@ -474,6 +475,7 @@ ui_read_input(struct convolveparams *p)
 
   /* The input isn't an image (wasn't read yet), so we'll read it as a
      column. */
+  // printf("Done reading input\n");
   if(p->input==NULL)
     p->input=ui_read_column(p, 0);
 }
@@ -487,6 +489,7 @@ ui_read_input(struct convolveparams *p)
 static void
 ui_read_kernel(struct convolveparams *p)
 {
+  // printf("Start reading kernel\n");
   /* Read the image into file. */
   if( p->kernelname
       && p->input->ndim>1
@@ -513,7 +516,7 @@ ui_read_kernel(struct convolveparams *p)
 
   /* Make sure that the kernel and input have the same number of
      dimensions. */
-  printf("Done reading kernel\n");
+  // printf("Done reading kernel\n");
   if(p->kernel->ndim!=p->input->ndim)
     error(EXIT_FAILURE, 0, "input datasets must have the same number of "
           "dimensions");
@@ -588,7 +591,7 @@ ui_preparations(struct convolveparams *p)
      argument) is the blurry image. */
   if(p->makekernel)
     {
-      printf("if of kernel\n");
+      // printf("if of kernel\n");
       /* Read the kernel. */
       ui_read_kernel(p);
 
@@ -633,7 +636,7 @@ ui_preparations(struct convolveparams *p)
      into one loop. */
   else
     {
-      printf("Else of kernel\n");
+      // printf("Else of kernel\n");
       /* Read in the kernel array: */
       ui_read_kernel(p);
 

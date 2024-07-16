@@ -1,9 +1,8 @@
-typedef uint8 uint8_t;
-typedef struct gal_data_t
+typedef struct  __attribute__((packed)) gal_data_t
 {
   /* Basic information on array of data. */
   void *restrict array; /* Array keeping data elements.               */
-  uint8_t type;         /* Type of data (see 'gnuastro/type.h').      */
+  uchar type;         /* Type of data (see 'gnuastro/type.h').      */
   size_t ndim;          /* Number of dimensions in the array.         */
   size_t *dsize;        /* Size of array along each dimension.        */
   size_t size;          /* Total number of data-elements.             */
@@ -16,7 +15,7 @@ typedef struct gal_data_t
   struct wcsprm *wcs; /* WCS information for this dataset.          */
 
   /* Content descriptions. */
-  uint8_t flag;  /* Flags: currently 8-bits are enough.        */
+  uchar flag;  /* Flags: currently 8-bits are enough.        */
   int status;    /* Context specific value for the dataset.    */
   char *name;    /* e.g., EXTNAME, or column, or keyword.      */
   char *unit;    /* Units of the data.                         */
@@ -46,35 +45,46 @@ convolution_svm (__global gal_data_t *input_image,
   // kernell->dsize = kernell_dsize;
   // kernell->array = kernell_array;
   /* get the image and kernel size */
+  // return;
   int image_height = input_image->dsize[0];
   int image_width = input_image->dsize[1];
   int kernell_height = kernel_image->dsize[0];
   int kernell_width = kernel_image->dsize[1];
+
   // return;
   float *image_array = (float *)input_image->array;
   float *kernell_array = (float *)kernel_image->array;
   float *output = (float *)output_image->array;
+
   /* get the local group id */
+  // return;
+
   int id = get_global_id (0);
   int row = id / image_width;
   int col = id % image_width;
+
+  // printf("id %ld\n", id);
   if (row < image_height && col < image_width)
   {
-      float sum = 0;
-      for (int y = -kernell_height / 2; y <= kernell_height / 2; y++)
-        {
-          for (int x = -kernell_width / 2; x <= kernell_width / 2; x++)
-            {
-              if (row + y >= 0 && row + y < image_height && col + x >= 0
-                  && col + x < image_width)
-                {
-                  sum += (image_array[(row + y) * image_width + col + x]
-                          * kernell_array[(y + kernell_height / 2)
-                                              * kernell_width
-                                          + x + kernell_width / 2]);
-                }
-            }
-        }
+    float sum = 0;
+    for (int y = -kernell_height / 2; y <= kernell_height / 2; y++)
+      {
+        for (int x = -kernell_width / 2; x <= kernell_width / 2; x++)
+          {
+            if (row + y >= 0 && row + y < image_height && col + x >= 0
+                && col + x < image_width)
+              {
+                sum += (image_array[(row + y) * image_width + col + x]
+                        * kernell_array[(y + kernell_height / 2)
+                                            * kernell_width
+                                        + x + kernell_width / 2]);
+              }
+          }
+      }
+    if((row * image_width + col) >= 0 && (row * image_width + col) < output_image->size)
       output[row * image_width + col] = sum;
-    }
+    // return;
+    // return;
+  }
+  // return;
 }

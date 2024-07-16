@@ -2,7 +2,7 @@ mkdir -p data/
 cd data/
 
 bindir="./bin/convolve/"
-size=10000
+size=2000
 
 if [ "x$1" = "x" ]; then
     echo "Path to dir(arg 1) containing astconvolve not specified, \
@@ -13,7 +13,7 @@ else
 fi
 
 if [ "x$2" = "x" ]; then
-    echo "Using 10000 x 10000 image size"
+    echo "Using default 2000 x 2000 image size"
 else
     size=$2
     echo "Using $2 x $2 image size"

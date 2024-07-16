@@ -320,7 +320,7 @@ gal_cl_read_to_host (cl_mem *buffer, size_t size,
 }
 
 void
-gal_cl_map_svm (cl_context context, void *svm_ptr, size_t size)
+gal_cl_map_svm (cl_context context, void **svm_ptr, size_t size)
 {
   cl_int ret = 0;
   cl_device_id *devices = malloc (1 * sizeof (cl_device_id));
@@ -333,7 +333,7 @@ gal_cl_map_svm (cl_context context, void *svm_ptr, size_t size)
   if(ret != CL_SUCCESS)
     printf("Error creating command queue %d\n", ret);
 
-  ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, svm_ptr, size, 0, NULL, NULL);
+  ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, *svm_ptr, size, 0, NULL, NULL);
   if(ret != CL_SUCCESS)
     printf("Error Mapping svm buffer %d\n", ret);
   free(devices);

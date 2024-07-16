@@ -2585,7 +2585,7 @@ void
 gal_fits_img_info_cl(fitsfile *fptr, int *type, size_t *ndim, size_t **dsize,
                   char **name, char **unit, cl_context context)
 {
-  printf("Entering fits img info cl\n");
+  // printf("Entering fits img info cl\n");
   double bscale=NAN;
   size_t i, dsize_key=1;
   char **str, *bzero_str=NULL;
@@ -2658,7 +2658,7 @@ gal_fits_img_info_cl(fitsfile *fptr, int *type, size_t *ndim, size_t **dsize,
   /* Clean up. Note that bzero_str, gets freed by 'gal_data_free' (which is
      called by 'gal_list_data_free'. */
   gal_list_data_free(keysll);
-  printf("Exiting fits img info cl\n");
+  // printf("Exiting fits img info cl\n");
 }
 
 
@@ -2668,7 +2668,7 @@ gal_data_t *
 gal_fits_img_read_cl(char *filename, char *hdu, size_t minmapsize,
                   int quietmmap, char *hdu_option_name, cl_context context)
 {
-  printf("Entering fits img read cl\n");
+  // printf("Entering fits img read cl\n");
   void *blank;
   long *fpixel;
   fitsfile *fptr;
@@ -2713,14 +2713,14 @@ gal_fits_img_read_cl(char *filename, char *hdu, size_t minmapsize,
   img=gal_data_alloc_cl(NULL, type, ndim, dsize, NULL, 0, minmapsize,
                      quietmmap, name, unit, NULL, context);
 
-  printf("In fits img read cl, before blank alloc write\n");
+  // printf("In fits img read cl, before blank alloc write\n");
   blank=gal_blank_alloc_write(type);
   if(name) free(name);
   if(unit) free(unit);
 
 
   /* Read the image into the allocated array: */
-  printf("In fits img read cl, before fits read pix\n");
+  // printf("In fits img read cl, before fits read pix\n");
   fits_read_pix(fptr, gal_fits_type_to_datatype(type), fpixel,
                 img->size, blank, img->array, &anyblank, &status);
   if(status) gal_fits_io_error(status, NULL);
@@ -2732,7 +2732,7 @@ gal_fits_img_read_cl(char *filename, char *hdu, size_t minmapsize,
   fits_close_file(fptr, &status);
   gal_fits_io_error(status, NULL);
 
-  printf("Exiting fits img read cl\n");
+  // printf("Exiting fits img read cl\n");
   /* Return the filled data structure. */
   return img;
 }

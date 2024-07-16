@@ -214,13 +214,13 @@ gal_array_read_one_ch_to_type_cl (char *filename, char *extension,
                                   size_t minmapsize, int quietmmap,
                                   char *hdu_option_name, cl_context context)
 {
-  printf("Entering read one ch to type\n");
+  // printf("Entering read one ch to type\n");
   gal_data_t *out
       = gal_array_read_one_ch_cl (filename, extension, lines, minmapsize,
                                   quietmmap, hdu_option_name, context);
 
   out->context = context;
-  printf("After read one ch to type\n");
+  // printf("After read one ch to type\n");
 
   return gal_data_copy_to_new_type_free (out, type);
 }
@@ -231,7 +231,7 @@ gal_array_read_one_ch_cl (char *filename, char *extension,
                           int quietmmap, char *hdu_option_name,
                           cl_context context)
 {
-  printf("Entering array read one ch cl\n");
+  // printf("Entering array read one ch cl\n");
   char *fname;
   gal_data_t *out;
   // printf("Should print exactly once\n");
@@ -257,7 +257,7 @@ gal_array_read_one_ch_cl (char *filename, char *extension,
              "    $ astconvertt %s -h%s --output=sep-ch.fits",
              fname, gal_list_data_number (out), filename, extension);
     }
-  printf("Exiting array read one ch cl\n");
+  // printf("Exiting array read one ch cl\n");
   return out;
 }
 
