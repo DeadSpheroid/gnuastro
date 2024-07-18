@@ -6771,13 +6771,17 @@ Just recall that we need to specify the number of inputs into the stacking opera
 @example
 $ numimgs=$(echo outer/stamps/*.fits | wc -w)
 $ astarithmetic outer/stamps/*.fits $numimgs 3 0.2 sigclip-mean \
-                -g1 --output=outer/stack.fits --wcsfile=none
+                -g1 --output=outer/stack.fits --wcsfile=none \
+                --writeall
 @end example
 
 @noindent
 Did you notice the @option{--wcsfile=none} option above?
 With it, the stacked image no longer has any WCS information.
 This is natural, because the stacked image does not correspond to any specific region of the sky any more.
+Also note the @code{--writeall} option: it is necessary because @code{sigclip-mean} will return two datasets: the actual stacked image and an image showing how many images were ultimately used for each pixel.
+Because of this, the output has two HDUs, containing both these images respectiely.
+This is a good check to help improve/debug your results.
 
 Let's compare this stacked PSF with the images of the individual stars that were used to create it.
 You can clearly see that the number of masked pixels is significantly decreased and the PSF is much more ``cleaner''.
@@ -6848,7 +6852,8 @@ $ asttable inner/67510-12-13.fits \
 
 $ numimgs=$(echo inner/stamps/*.fits | wc -w)
 $ astarithmetic inner/stamps/*.fits $numimgs 3 0.2 sigclip-mean \
-                -g1 --output=inner/stack.fits --wcsfile=none
+                -g1 --output=inner/stack.fits --wcsfile=none \
+                --writeall
 $ astscript-fits-view inner/stack.fits inner/stamps/*.fits
 @end example
 
@@ -10398,7 +10403,7 @@ $ center_ra=192.721250
 $ center_dec=41.120556
 $ astscript-pointing-simulate build/pointing.txt --img=input/ref.fits \
            --center=$center_ra,$center_dec \
-           --width=2 --stack-operator="3 0.2 sigclip-mean" \
+           --width=2 --stack-operator="3 0.2 sigclip-mean swap free" \
            --output=build/stack-noised.fits \
            --hook-warp-after='astarithmetic $WARPED set-i \
                                           i i 0 uint8 eq nan where \
@@ -10843,7 +10848,7 @@ $ for i in $(seq 3); do \
    astnoisechisel jplus-e$i.fits -ojplus-nc$i.fits; \
   done
 
-$ astarithmetic jplus-nc*.fits 3 5 0.2 sigclip-mean \
+$ astarithmetic jplus-nc*.fits 3 5 0.2 sigclip-mean swap free \
                 -gINPUT-NO-SKY -ojplus-stack.fits
 
 $ astscript-fits-view jplus-nc*.fits jplus-stack.fits
@@ -19387,8 +19392,7 @@ This is very useful for selecting the final rows from multiple criteria/columns.
 The chosen column does not have to be in the output columns.
 This is good when you just want to select using one column's values, but do not need that column anymore afterwards.
 
-For one example of using this option, see the example under
-@option{--sigclip-median} in @ref{Invoking aststatistics}.
+For one example of using this option, see the example under @option{--sigclip-median} in @ref{Invoking aststatistics}.
 
 @item --inpolygon=STR1,STR2
 Only return rows where the given coordinates are inside the polygon specified by the @option{--polygon} option.
@@ -25748,7 +25752,7 @@ $ astwarp b.fits $grid --output=B.fits
 $ astwarp c.fits $grid --output=C.fits
 $ astwarp d.fits $grid --output=D.fits
 $ astarithmetic A.fits B.fits C.fits D.fits 4 5 0.2 sigclip-mean \
-                -g1 --output=stack.fits
+                -g1 --writeall --output=stack.fits
 
 ## Warp a previously created mock image to the same pixel grid as the
 ## real image (including any distortions).

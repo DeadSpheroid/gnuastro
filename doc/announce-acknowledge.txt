@@ -1,6 +1,8 @@
 Alphabetically ordered list to acknowledge in the next release.
 
 Antonio Diaz Diaz
+Hok Kan (Ronald) Tsang
+
 
 
 
