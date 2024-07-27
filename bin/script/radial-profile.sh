@@ -1081,7 +1081,7 @@ if [ x$polar = x1 ]; then
 
     # If the output is a FITS file, then add a new HDU. Otherwise (for
     # example output is plain-text), we need to make a new file.
-    if astfits $outputraw &> /dev/null; then
+    if astfits $outputraw > /dev/null 2>&1; then
         exthdu=2
         polarfile=$outputraw
     else
