@@ -834,8 +834,8 @@ ui_free_report(struct convolveparams *p, struct timeval *t1)
   free(p->khdu);
   free(p->cp.hdu);
   free(p->cp.output);
-  gal_data_free(p->input);
-  gal_data_free(p->kernel);
+  // gal_data_free(p->input);
+  // gal_data_free(p->kernel);
 
   /* Print the final message. */
   if(!p->cp.quiet)

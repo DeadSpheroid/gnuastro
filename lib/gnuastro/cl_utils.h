@@ -81,4 +81,18 @@ gal_cl_write_to_device (cl_mem *buffer, void *mapped_ptr,
 void *
 gal_cl_read_to_host (cl_mem *buffer, size_t size,
                      cl_command_queue command_queue);
+
+/*********************************************************************/
+/*************                 SVM                 *******************/
+/*********************************************************************/
+gal_data_t *
+gal_cl_alloc_svm(size_t size_of_array, size_t size_of_dsize, cl_context context);
+
+void
+gal_cl_map_svm(cl_context context, void *svm_ptr, size_t size);
+
+void
+gal_cl_copy_to_svm(gal_data_t *input, gal_data_t *svm);
+
+
 #endif
