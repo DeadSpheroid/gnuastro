@@ -1,4 +1,4 @@
-typedef struct  __attribute__((packed)) gal_data_t
+typedef struct  __attribute__((aligned(4))) gal_data_t
 {
   /* Basic information on array of data. */
   void *restrict array; /* Array keeping data elements.               */

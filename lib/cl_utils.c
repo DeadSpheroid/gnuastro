@@ -329,7 +329,6 @@ gal_cl_alloc_svm(size_t size_of_array, size_t size_of_dsize, cl_context context)
     printf("Error allocating %ld bytes\n", sizeof(gal_data_t));
     exit(1);
   }
-  printf("gal_data_t %p\n", out);
   out->array = (void *)clSVMAlloc(context, CL_MEM_READ_WRITE, size_of_array, 0);
   if(out->array==NULL)
   {
@@ -337,7 +336,7 @@ gal_cl_alloc_svm(size_t size_of_array, size_t size_of_dsize, cl_context context)
     exit(1);
   }
   gal_cl_map_svm(context, (void *)(out->array), size_of_array);
-  printf("array %p\n", out->array);
+  // printf("array %p\n", out->array);
   if(out->array==NULL)
   {
     printf("Error allocating %ld bytes\n", size_of_array);
@@ -369,8 +368,7 @@ gal_cl_map_svm (cl_context context, void *svm_ptr, size_t size)
     printf("Error creating command queue %d\n", ret);
 
   ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, svm_ptr, size, 0, NULL, NULL);
-  if(svm_ptr == NULL)
-    printf("Oops\n");
+
   if(ret != CL_SUCCESS)
     printf("Error Mapping svm buffer %d\n", ret);
   free(devices);
@@ -381,16 +379,12 @@ gal_cl_map_svm (cl_context context, void *svm_ptr, size_t size)
 void
 gal_cl_copy_to_svm(gal_data_t *input, gal_data_t *svm)
 {
-  printf("Starting copy %p\n", svm);
   float *svm_array = (float *)svm->array;
-  printf("Deref'd svm array\n");
   float *inp_array = (float *)input->array;
-  printf("Starting array copy to svm\n");
   for(int i = 0; i < input->size; i++)
   {
     svm_array[i] = inp_array[i];
   }
-  printf("Ending array svm copy\n");
   svm->type = input->type;
   svm->ndim = input->ndim;
   svm->size = input->size;
@@ -412,10 +406,8 @@ gal_cl_copy_to_svm(gal_data_t *input, gal_data_t *svm)
   svm->svm = input->svm;
   svm->next = input->next;
   svm->block = input->block;
-  printf("Starting dsize copy to svm\n");
   for(int i = 0; i < svm->ndim; i++)
   {
     svm->dsize[i] = input->dsize[i];
   }
-  printf("Ending dsize copy to svm\n");
 }

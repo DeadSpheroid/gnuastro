@@ -438,6 +438,8 @@ ui_read_column(struct convolveparams *p, int i0k1)
 static void
 ui_read_input(struct convolveparams *p)
 {
+  clock_t start, end;
+  start = clock();
   /* To see if we should read it as a table. */
   p->input=NULL;
 
@@ -462,6 +464,10 @@ ui_read_input(struct convolveparams *p)
      column. */
   if(p->input==NULL)
     p->input=ui_read_column(p, 0);
+  end = clock();
+  double time = ((double)(end - start) / CLOCKS_PER_SEC);
+  printf ("  - Time taken in reading input from file: %lf\n",
+          time);
 }
 
 
@@ -473,6 +479,8 @@ ui_read_input(struct convolveparams *p)
 static void
 ui_read_kernel(struct convolveparams *p)
 {
+  clock_t start, end;
+  start = clock();
   /* Read the image into file. */
   if( p->kernelname
       && p->input->ndim>1
@@ -495,11 +503,11 @@ ui_read_kernel(struct convolveparams *p)
   if(p->kernel->ndim!=p->input->ndim)
     error(EXIT_FAILURE, 0, "input datasets must have the same number of "
           "dimensions");
+  end = clock();
+  double time = ((double)(end - start) / CLOCKS_PER_SEC);
+  printf ("  - Time taken in reading kernel from file: %lf\n",
+          time);
 }
-
-
-
-
 
 static void
 ui_preparations(struct convolveparams *p)
