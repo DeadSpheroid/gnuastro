@@ -30404,10 +30404,13 @@ So the sum of all the clump-sums in the clump catalog of one object will be smal
 If no usable pixels are present over the clump or object (for example, they are all blank), the returned value will be NaN (note that zero is meaningful).
 
 @item --sum-error
-The (@mymath{1\sigma}) error in measuring the sum of values of a label (objects or clumps).
+The error in measuring the sum of values of a label (objects or clumps).
+The value is calculated by using the values image (for signal above the sky level) and the sky standard deviation image (extension @option{--stdhdu} of file given to @option{--instd}); which you can derive for any image using @ref{NoiseChisel}.
 
 The returned value will be NaN when the label covers only NaN pixels in the values image, or a pixel is NaN in the @option{--instd} image, but non-NaN in the values image.
-The latter situation usually happens when there is a bug in the previous steps of your analysis, and is important because those pixels with a NaN in the @option{--instd} image may contribute significantly to the final error.
+The latter situation usually happens when there is a bug in the previous steps of your analysis.
+This is because the sky standard deviation should have a value in all pixels.
+In such cases, it is important to find the cause and fix it because those pixels with a NaN in the @option{--instd} image may contribute significantly to the final error.
 If you want to ignore those pixels in the error measurement, set them to zero (which is a meaningful number in such scenarios).
 
 @item --clumps-sum

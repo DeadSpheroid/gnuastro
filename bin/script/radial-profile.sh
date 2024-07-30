@@ -118,6 +118,9 @@ $scriptname options:
   -s, --sigmaclip=FLT,FLT  Sigma-clip multiple and tolerance.
   -z, --zeropoint=FLT      Zeropoint magnitude of input dataset.
   -Z, --zeroisnotblank     0.0 in float or double images are not blank.
+  -i, --instd=FLT/STR      Sky standard deviation per pixel, as a single
+                           number or as the filename (given to MakeCatalog).
+  -d, --stdhdu=STR         HDU/extension of the sky standard deviation image.
 
  Output:
   -o, --output             Output table with the radial profile.
@@ -127,9 +130,6 @@ $scriptname options:
   -P, --precision=INT      Number of digits after decimal point for radius.
   -v, --oversample=INT     Oversample for higher resolution radial profile.
   -u, --undersample=INT    Undersample for lower resolution radial profile.
-  -i, --instd=FLT/STR      Sky standard deviation per pixel, as a single
-                           number or as the filename.
-  -d, --stdhdu=STR         HDU/extension of the sky standard deviation image.
 
  Operating mode:
   -?, --help               Print this help list.
@@ -407,7 +407,7 @@ do
         if [ x$naz != x2 ]; then
             printf "$scriptname: '--azimuth' (or '-a') only takes "
             printf "two numbers, but $naz number(s) were given "
-            printf "in '$aztmp'"; exit 1
+            printf "in '$aztmp'\n"; exit 1
         fi
 
         # Add the give values to any potentially pre-existing values.
