@@ -27,8 +27,9 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 #include <gnuastro-internal/options.h>
 
 
-
-
+#define RED(str)    ((isatty(1))? ("\x1b[31m" str "\x1b[0m") : (str))
+#define GREEN(str)  ((isatty(1))? ("\x1b[32m" str "\x1b[0m") : (str))
+#define YELLOW(str) ((isatty(1))? ("\x1b[33m" str "\x1b[0m") : (str))
 
 /* Option groups particular to this program. */
 enum program_args_groups

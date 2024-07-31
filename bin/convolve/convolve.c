@@ -840,5 +840,5 @@ convolve(struct convolveparams *p)
 
   /* Inform the user that the job is done. */
   if(!p->cp.quiet)
-    printf("  - Output: %s\n", p->cp.output);
+    printf(YELLOW("  - Output: %s\n"), p->cp.output);
 }

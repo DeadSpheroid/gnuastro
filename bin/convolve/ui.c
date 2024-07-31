@@ -704,11 +704,11 @@ ui_preparations(struct convolveparams *p)
 static void
 ui_print_intro(struct convolveparams *p)
 {
-  printf("%s started on %s", PROGRAM_NAME, ctime(&p->rawtime));
-  printf("  - Using %zu CPU threads.\n", p->cp.numthreads);
-  printf("  - Input: %s\n",
+  printf(GREEN("%s started on %s"), PROGRAM_NAME, ctime(&p->rawtime));
+  printf(YELLOW("  - Using %zu CPU threads.\n"), p->cp.numthreads);
+  printf(YELLOW("  - Input: %s\n"),
          gal_checkset_dataset_name(p->filename, p->cp.hdu));
-  printf("  - Kernel: %s\n",
+  printf(YELLOW("  - Kernel: %s\n"),
          gal_checkset_dataset_name(p->kernelname, p->khdu));
 }
 
@@ -810,5 +810,5 @@ ui_free_report(struct convolveparams *p, struct timeval *t1)
 
   /* Print the final message. */
   if(!p->cp.quiet)
-    gal_timing_report(t1, PROGRAM_NAME" finished in: ", 0);
+    gal_timing_report(t1, GREEN(PROGRAM_NAME" finished in: "), 0);
 }
