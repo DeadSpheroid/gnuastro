@@ -1,7 +1,8 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <error.h>
+#include <errno.h>
 #include <gnuastro/cl_utils.h>
 
 /*********************************************************************/
@@ -10,7 +11,6 @@
 /* Initializes the context and command queue with one of the available
    devices, selected using device_id. Then creates the kernel object
    using the created context for a specific funtion (named function_name)  */
-
 void
 gal_cl_init (cl_device_type device_type, cl_context *context,
              cl_platform_id *platform_id, cl_device_id *device_id)
@@ -26,10 +26,9 @@ gal_cl_init (cl_device_type device_type, cl_context *context,
   ret = clGetPlatformIDs (num_platforms, platforms, NULL);
 
   if (ret != CL_SUCCESS)
-    {
-      printf ("Error finding platforms\n");
-      exit (1);
-    }
+    error (EXIT_FAILURE, ENODEV,
+           "%s: CL Error %d: Unable to retrieve available OpenCL platforms",
+           __func__, ret);
 
   uint8_t i;
   for (i = 0; i < num_platforms; i++)
@@ -41,10 +40,10 @@ gal_cl_init (cl_device_type device_type, cl_context *context,
     }
 
   if (ret != CL_SUCCESS)
-    {
-      printf ("Error finding devices\n");
-      exit (1);
-    }
+    error (EXIT_FAILURE, ENODEV,
+           "%s: CL Error %d: Unable to retrieve requested OpenCL devices", __func__,
+           ret);
+
   *platform_id = platforms[i];
 
   cl_context_properties properties[]
@@ -54,10 +53,8 @@ gal_cl_init (cl_device_type device_type, cl_context *context,
       = clCreateContextFromType (properties, device_type, NULL, NULL, &ret);
 
   if (ret != CL_SUCCESS)
-    {
-      printf ("Unable to create OpenCL Context");
-      exit (1);
-    }
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Unable to create OpenCL context", __func__, ret);
 
   free (platforms);
 }
@@ -65,18 +62,10 @@ gal_cl_init (cl_device_type device_type, cl_context *context,
 cl_kernel
 gal_cl_kernel_create (char *kernel_name, char *function_name,
                       cl_device_id device_id, cl_context context,
-                      cl_command_queue *command_queue)
+                      cl_command_queue command_queue)
 {
   cl_int ret = 0;
   cl_program program;
-  cl_queue_properties properties[]
-      = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
-  *command_queue = clCreateCommandQueueWithProperties (context, device_id,
-                                                       properties, &ret);
-  if (ret != CL_SUCCESS)
-    {
-      printf ("Error in creating command queue\nError code: %d\n", ret);
-    }
 
   FILE *kernelFile = fopen (kernel_name, "r");
 
@@ -92,66 +81,113 @@ gal_cl_kernel_create (char *kernel_name, char *function_name,
 
   if (ret != CL_SUCCESS)
     {
+      cl_int ret_clone = ret;
       size_t len;
-      char buffer[2048];
+      char build_opts[1024], build_log[2048];
       cl_build_status bldstatus;
-      printf ("\nError %d: Failed to build program executable [ ]\n", ret);
 
       ret = clGetProgramBuildInfo (program, device_id, CL_PROGRAM_BUILD_STATUS,
                                    sizeof (bldstatus), (void *)&bldstatus,
                                    &len);
-
-      printf ("Build Status %d: \n", ret);
-
+      if(ret != CL_SUCCESS)
+        fprintf (stderr,
+                 "#####\nWarning from '%s'\n#####\n OpenCL failed to "
+                 "build the program and querying the build for errors "
+                 "is leading to more errors\nThe build status printed "
+                 "hereafter may therefore not be accurate\n"
+                 "CL Error %d: Failed to query build status of failed program "
+                 "build\n",
+                 __func__, ret);
       ret = clGetProgramBuildInfo (program, device_id,
-                                   CL_PROGRAM_BUILD_OPTIONS, sizeof (buffer),
-                                   buffer, &len);
-
-      printf ("Build Options %d: \n", ret);
-      printf ("INFO: %s\n", buffer);
+                                   CL_PROGRAM_BUILD_OPTIONS,
+                                   sizeof (build_opts), build_opts, &len);
+      if(ret != CL_SUCCESS)
+        fprintf (stderr,
+                 "#####\nWarning from '%s'\n#####\n OpenCL failed to "
+                 "build the program and querying the build for errors "
+                 "has yielded more errors\nThe build options printed "
+                 "hereafter may therefore not be accurate\n"
+                 "CL Error %d: Failed to query build status of failed program "
+                 "build\n",
+                 __func__, ret);
 
       ret = clGetProgramBuildInfo (program, device_id, CL_PROGRAM_BUILD_LOG,
-                                   sizeof (buffer), buffer, &len);
+                                   sizeof (build_log), build_log, &len);
+      if(ret != CL_SUCCESS)
+        fprintf (stderr,
+                  "#####\nWarning from '%s'\n#####\n OpenCL failed to "
+                  "build the program and querying the build for errors "
+                  "is leading to more errors\nThe build log printed "
+                  "hereafter may therefore not be accurate\n"
+                  "CL Error %d: Failed to query build status of failed program "
+                  "build\n",
+                  __func__, ret);
 
-      printf ("Build Log %d:\n", ret);
-      printf ("%s\n", buffer);
-      exit (1);
+      error (EXIT_FAILURE, ENOTRECOVERABLE,
+             "%s: CL Error %d: Failed to build OpenCL program kernel\n"
+             "Build Status: %d\n"
+             "Build Options: %s\n"
+             "#####Build Log#####\n%s",
+             __func__, ret_clone, bldstatus, build_opts, build_log);
     }
 
   return clCreateKernel (program, function_name, &ret);
   ;
 }
 
+cl_command_queue gal_cl_create_command_queue (cl_context context,
+                                              cl_device_id device_id)
+{
+  cl_int ret = 0;
+  cl_queue_properties properties[]
+      = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
+  cl_command_queue command_queue = clCreateCommandQueueWithProperties (
+      context, device_id, properties, &ret);
+  if (ret != CL_SUCCESS)
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Failed to create command queue with requested "
+           "properties",
+           __func__, ret);
+  return command_queue;
+}
+
+
+
+
+
 /*********************************************************************/
 /*************            retrieve info            *******************/
 /*********************************************************************/
-void
-gal_cl_get_device_name (cl_device_id device_id, char *device_name)
+char *
+gal_cl_get_device_name (cl_device_id device_id)
 {
-  cl_int return_code = 0;
-  return_code = clGetDeviceInfo (device_id, CL_DEVICE_NAME, 256,
+  cl_int ret = 0;
+  char *device_name = (char *)malloc(256);
+  ret = clGetDeviceInfo (device_id, CL_DEVICE_NAME, 256,
                                  (void *)device_name, NULL);
 
-  if (return_code != CL_SUCCESS)
-    {
-      exit (1);
-    }
+  if (ret != CL_SUCCESS)
+    error (EXIT_FAILURE, EINVAL,
+           "%s: CL Error %d: Failed to query device name", __func__, ret);
+
+  return device_name;
 }
 
-void
-gal_cl_get_platform_name (cl_platform_id platform_id, char *platform_name)
+char *
+gal_cl_get_platform_name (cl_platform_id platform_id)
 {
-  cl_int return_code = 0;
-  return_code = clGetPlatformInfo (platform_id, CL_PLATFORM_NAME, 256,
+  cl_int ret = 0;
+  char *platform_name = (char *)malloc(256);
+  ret = clGetPlatformInfo (platform_id, CL_PLATFORM_NAME, 256,
                                    (void *)platform_name, NULL);
 
-  if (return_code != CL_SUCCESS)
-    {
-      exit (1);
-    }
+  if (ret != CL_SUCCESS)
+    error (EXIT_FAILURE, EINVAL,
+           "%s: CL Error %d: Failed to query platform name", __func__, ret);
+
+  return platform_name;
 }
 
-// read/write buffers
 /*********************************************************************/
 /*************            data transfer            *******************/
 /*********************************************************************/
@@ -289,10 +325,9 @@ gal_cl_write_to_device (cl_mem *buffer, void *mapped_ptr,
   cl_int ret = 0;
   clEnqueueUnmapMemObject (command_queue, *buffer, mapped_ptr, 0, NULL, NULL);
   if (ret != CL_SUCCESS)
-    {
-      printf ("Problem unmapping buffer, %d\n", ret);
-      exit (1);
-    }
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Failed to unmap OpenCL buffer to device",
+           __func__, ret);
 }
 
 void *
@@ -305,75 +340,65 @@ gal_cl_read_to_host (cl_mem *buffer, size_t size,
                                          CL_MAP_READ | CL_MAP_WRITE, 0, size,
                                          0, NULL, NULL, &ret);
 
-  if (ret != CL_SUCCESS)
-    {
-      printf ("Problem mapping buffer, %d\n", ret);
-      exit (1);
-    }
+  if (mapped_ptr == NULL || ret != CL_SUCCESS)
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Failed to map %zu bytes of OpenCL Buffer to host",
+           __func__, ret, size);
   return mapped_ptr;
 }
 
 gal_data_t *
-gal_cl_alloc_svm(size_t size_of_array, size_t size_of_dsize, cl_context context)
+gal_cl_alloc_svm(size_t size_of_array, size_t size_of_dsize, cl_context context, cl_device_id device_id)
 {
   gal_data_t *out;
+
   out = (gal_data_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, sizeof *out, 0);
   if(out==NULL)
-  {
-    printf("Error allocating %ld bytes\n", sizeof(gal_data_t));
-    exit(1);
-  }
-  gal_cl_map_svm(context, (void *)out, sizeof *out);
-  if(out==NULL)
-  {
-    printf("Error allocating %ld bytes\n", sizeof(gal_data_t));
-    exit(1);
-  }
+    error (EXIT_FAILURE, ENOMEM,
+           "%s: CL SVM Alloc Error: %zu bytes for gal_data_t", __func__,
+           sizeof *out);
+
+  gal_cl_map_svm(context, device_id, (void *)out, sizeof *out);
+
   out->array = (void *)clSVMAlloc(context, CL_MEM_READ_WRITE, size_of_array, 0);
   if(out->array==NULL)
-  {
-    printf("Error allocating %ld bytes\n", size_of_array);
-    exit(1);
-  }
-  gal_cl_map_svm(context, (void *)(out->array), size_of_array);
-  // printf("array %p\n", out->array);
-  if(out->array==NULL)
-  {
-    printf("Error allocating %ld bytes\n", size_of_array);
-    exit(1);
-  }
+    error (EXIT_FAILURE, ENOMEM,
+           "%s: CL SVM Alloc Error: %zu bytes for gal_data_t->array", __func__,
+           size_of_array);
+
+  gal_cl_map_svm(context, device_id, (void *)(out->array), size_of_array);
+
 
   out->dsize = (size_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, size_of_dsize, 0);
-  gal_cl_map_svm(context, (void *)(out->dsize), size_of_dsize);
   if(out->dsize==NULL)
-  {
-    printf("Error allocating %ld bytes\n", size_of_dsize);
-    exit(1);
-  }
+    error (EXIT_FAILURE, ENOMEM,
+           "%s: CL SVM Alloc Error: %zu bytes for gal_data_t->dsize", __func__,
+           size_of_dsize);
+
+  gal_cl_map_svm(context, device_id, (void *)(out->dsize), size_of_dsize);
+
   return out;
 }
 
 void
-gal_cl_map_svm (cl_context context, void *svm_ptr, size_t size)
+gal_cl_map_svm (cl_context context, cl_device_id device_id, void *svm_ptr, size_t size)
 {
   cl_int ret = 0;
-  cl_device_id *devices = malloc (1 * sizeof (cl_device_id));
-  ret = clGetContextInfo (context, CL_CONTEXT_DEVICES, sizeof (cl_device_id),
-                          (void *)devices, NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Error getting context info %d\n", ret);
+
   cl_command_queue command_queue
-      = clCreateCommandQueueWithProperties (context, devices[0], NULL, &ret);
-  if(ret != CL_SUCCESS)
-    printf("Error creating command queue %d\n", ret);
+      = gal_cl_create_command_queue(context, device_id);
 
   ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, svm_ptr, size, 0, NULL, NULL);
 
   if(ret != CL_SUCCESS)
-    printf("Error Mapping svm buffer %d\n", ret);
-  free(devices);
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Unable to map SVM allocation to host", __func__,
+           ret);
+
   ret = clReleaseCommandQueue(command_queue);
-  if(ret != CL_SUCCESS) printf("Error releasing CQ\n");
+  if(ret != CL_SUCCESS)
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Invalid release of command queue", __func__, ret);
 }
 
 void
@@ -410,4 +435,72 @@ gal_cl_copy_to_svm(gal_data_t *input, gal_data_t *svm)
   {
     svm->dsize[i] = input->dsize[i];
   }
+}
+
+
+
+
+
+/*********************************************************************/
+/*************         Exec On OpenCL Device       *******************/
+/*********************************************************************/
+void gal_cl_threads_spinoff (char *kernel_path, char *kernel_name,
+                             cl_device_id device_id, cl_context context,
+                             int num_kernel_args, void *kernel_args[],
+                             int num_extra_svm_args, void *extra_svm_args[],
+                             int work_dim, size_t *global_work_size,
+                             size_t *local_work_size)
+{
+  cl_int ret = 0;
+  cl_event spinoff_event;
+  cl_command_queue command_queue
+      = gal_cl_create_command_queue (context, device_id);
+  cl_kernel kernel = gal_cl_kernel_create (kernel_path, kernel_name, device_id,
+                                           context, command_queue);
+  clFinish(command_queue);
+  for(int i = 0; i < num_kernel_args; i++)
+  {
+    clSetKernelArgSVMPointer(kernel, i, kernel_args[i]);
+  }
+
+  ret = clSetKernelExecInfo (kernel, CL_KERNEL_EXEC_INFO_SVM_PTRS,
+                             num_extra_svm_args * sizeof (void *),
+                             extra_svm_args);
+  if(ret != CL_SUCCESS)
+    error (EXIT_FAILURE, EINVAL,
+           "%s: CL Error: %d Setting implicit SVM pointers for kernel",
+           __func__, ret);
+
+  ret = clEnqueueNDRangeKernel (command_queue, kernel, work_dim, NULL,
+                                global_work_size, local_work_size, 0, NULL,
+                                &spinoff_event);
+
+  clFinish(command_queue);
+  if (ret != CL_SUCCESS)
+    error (EXIT_FAILURE, EINVAL,
+           "%s: CL Error %d: Unable to launch kernel at %s named %s with "
+           "work_dim=%d",
+           __func__, ret, kernel_path, kernel_name, work_dim);
+
+  /*
+    Using the clock() function to measure the time taken for convolution
+    gives the wrong time, since clock() measures CPU cycles used by the
+    program including any threads launched by it, so it measures the sum of
+    clock cycles used by each thread for convolution, instead of wall time
+  */
+  cl_ulong time_start;
+  cl_ulong time_end;
+  clGetEventProfilingInfo (spinoff_event, CL_PROFILING_COMMAND_START,
+                           sizeof (time_start), &time_start, NULL);
+  clGetEventProfilingInfo (spinoff_event, CL_PROFILING_COMMAND_END,
+                           sizeof (time_end), &time_end, NULL);
+  double nanoSeconds = time_end - time_start;
+  printf ("  - Time taken in executing kernel is: %f\n",
+          nanoSeconds / 1000000000.0);
+  ret = clReleaseCommandQueue(command_queue);
+  if(ret != CL_SUCCESS)
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Invalid release of command queue", __func__, ret);
+
+  return;
 }

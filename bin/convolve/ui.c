@@ -724,12 +724,13 @@ ui_print_intro(struct convolveparams *p)
     mode = (p->cl == 1)? "OpenCL GPU" : "OpenCL CPU";
     printf("  - Mode of Operation: %s\n", mode);
 
-    char device_name[256], platform_name[256];
-    gal_cl_get_device_name(p->device_id, device_name);
-    gal_cl_get_platform_name(p->platform_id, platform_name);
+    char *device_name = gal_cl_get_device_name(p->device_id);
+    char *platform_name = gal_cl_get_platform_name(p->platform_id);
 
     printf("  - Platform Selected: %s\n", platform_name);
     printf("  - Device Selected: %s\n", device_name);
+    free(device_name);
+    free(platform_name);
   }
 #endif
 

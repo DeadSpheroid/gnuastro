@@ -68,8 +68,7 @@ gal_convolve_spatial_correct_ch_edge(gal_data_t *tiles, gal_data_t *kernel,
 
 gal_data_t *
 gal_conv_cl(gal_data_t *input_image, gal_data_t *kernel_image,
-            char *kernel_name, cl_context context, cl_device_id device, 
-            size_t global_item_size, size_t local_item_size);
+            char *kernel_name, cl_context context, cl_device_id device);
 
 
 __END_C_DECLS    /* From C++ preparations */

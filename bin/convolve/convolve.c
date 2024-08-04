@@ -798,8 +798,7 @@ void convolve_cl(struct convolveparams *p)
   gal_data_t *out;
   struct gal_options_common_params *cp=&p->cp;
 
-  out = gal_conv_cl(p->input, p->kernel, SRC_CONV, p->context, p->device_id,
-              p->input->size, 128);
+  out = gal_conv_cl(p->input, p->kernel, SRC_CONV, p->context, p->device_id);
 
   /* Clean up: free the actual input and replace it's pointer with the
      convolved dataset to save as output. */
