@@ -9,9 +9,7 @@ gal_data_t *
 gal_conv_cl (gal_data_t *input_image, gal_data_t *kernel_image,
              char *kernel_name, cl_context context, cl_device_id device_id)
 {
-
   /* Initializations */
-  cl_int ret = 0;
   size_t global_item_size = input_image->size;
   gal_data_t *out;
   cl_command_queue command_queue
@@ -25,11 +23,13 @@ gal_conv_cl (gal_data_t *input_image, gal_data_t *kernel_image,
   // Allocate SVM Memory for the input image and kernel image
   gal_data_t *input_image_svm = gal_cl_alloc_svm (
       gal_type_sizeof (input_image->type) * input_image->size,
-      input_image->ndim * sizeof (*input_image->dsize), context, device_id);
+      input_image->ndim * sizeof (*input_image->dsize), context,
+      command_queue);
 
   gal_data_t *kernel_image_svm = gal_cl_alloc_svm (
       gal_type_sizeof (kernel_image->type) * kernel_image->size,
-      kernel_image->ndim * sizeof (*kernel_image->dsize), context, device_id);
+      kernel_image->ndim * sizeof (*kernel_image->dsize), context,
+      command_queue);
 
   // Copy input image and kernel image data to new SVM allocation
   gal_cl_copy_to_svm (input_image, input_image_svm);
@@ -45,45 +45,25 @@ gal_conv_cl (gal_data_t *input_image, gal_data_t *kernel_image,
 
   gal_data_t *out_svm = gal_cl_alloc_svm (
       input_image_svm->size * gal_type_sizeof (input_image_svm->type),
-      input_image_svm->ndim * sizeof (size_t), context, device_id);
+      input_image_svm->ndim * sizeof (size_t), context, command_queue);
 
   gal_cl_copy_to_svm (out, out_svm);
 
+  // Write all changes to device
+  gal_cl_unmap_svm(context, command_queue, input_image_svm->array);
+  gal_cl_unmap_svm(context, command_queue, input_image_svm->dsize);
+  gal_cl_unmap_svm(context, command_queue, input_image_svm);
 
+  gal_cl_unmap_svm(context, command_queue, kernel_image_svm->array);
+  gal_cl_unmap_svm(context, command_queue, kernel_image_svm->dsize);
+  gal_cl_unmap_svm(context, command_queue, kernel_image_svm);
 
-  ret = clEnqueueSVMUnmap (command_queue, input_image_svm->array, 0, NULL,
-                           NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, input_image_svm->dsize, 0, NULL,
-                           NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, input_image_svm, 0, NULL, NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, kernel_image_svm->array, 0, NULL,
-                           NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, kernel_image_svm->dsize, 0, NULL,
-                           NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, kernel_image_svm, 0, NULL, NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, out_svm->array, 0, NULL, NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, out_svm->dsize, 0, NULL, NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
-  ret = clEnqueueSVMUnmap (command_queue, out_svm, 0, NULL, NULL);
-  if (ret != CL_SUCCESS)
-    printf ("Failed to unmap svm\n");
+  gal_cl_unmap_svm(context, command_queue, out_svm->array);
+  gal_cl_unmap_svm(context, command_queue, out_svm->dsize);
+  gal_cl_unmap_svm(context, command_queue, out_svm);
 
-  clFinish (command_queue);
+  gal_cl_finish_queue (command_queue);
+
   end_copy = clock ();
   cpu_time_used_copy = ((double)(end_copy - start_copy)) / CLOCKS_PER_SEC;
   printf ("  - Time taken in copying input to device: %f\n",
@@ -112,16 +92,17 @@ gal_conv_cl (gal_data_t *input_image, gal_data_t *kernel_image,
   start_copy_to = clock ();
 
   /* Map output SVM allocation back to host */
-  gal_cl_map_svm (context, device_id, out_svm, sizeof (gal_data_t));
+  gal_cl_map_svm (context, command_queue, out_svm, sizeof (gal_data_t));
 
-  gal_cl_map_svm (context, device_id, out_svm->array,
+  gal_cl_map_svm (context, command_queue, out_svm->array,
                   gal_type_sizeof (input_image_svm->type)
                       * input_image_svm->size);
 
-  gal_cl_map_svm (context, device_id, out_svm->dsize,
+  gal_cl_map_svm (context, command_queue, out_svm->dsize,
                   sizeof (size_t) * input_image_svm->ndim);
 
-  clFinish (command_queue);
+  gal_cl_finish_queue (command_queue);
+
   end_copy_to = clock ();
   cpu_time_used_copy_to
       = ((double)(end_copy_to - start_copy_to)) / CLOCKS_PER_SEC;
@@ -129,6 +110,6 @@ gal_conv_cl (gal_data_t *input_image, gal_data_t *kernel_image,
           cpu_time_used_copy_to);
 
   // Clean up
-  ret = clReleaseCommandQueue (command_queue);
+  gal_cl_free_queue(command_queue);
   return out_svm;
 }

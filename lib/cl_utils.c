@@ -19,12 +19,18 @@ gal_cl_init (cl_device_type device_type, cl_context *context,
   cl_uint num_platforms = -1;
 
   ret = clGetPlatformIDs (0, NULL, &num_platforms);
+  if(ret != CL_SUCCESS)
+    error (EXIT_FAILURE, ENOTRECOVERABLE,
+           "%s: CL Error %d: Unable to fetch number of available platforms",
+           __func__, ret);
 
   cl_platform_id *platforms
       = (cl_platform_id *)malloc (num_platforms * sizeof (cl_platform_id));
+  if(platforms==NULL)
+    error (EXIT_FAILURE, ENOMEM, "%s: %zu bytes for cl_platform_id[]",
+           __func__, num_platforms * sizeof (cl_platform_id));
 
   ret = clGetPlatformIDs (num_platforms, platforms, NULL);
-
   if (ret != CL_SUCCESS)
     error (EXIT_FAILURE, ENODEV,
            "%s: CL Error %d: Unable to retrieve available OpenCL platforms",
@@ -41,8 +47,8 @@ gal_cl_init (cl_device_type device_type, cl_context *context,
 
   if (ret != CL_SUCCESS)
     error (EXIT_FAILURE, ENODEV,
-           "%s: CL Error %d: Unable to retrieve requested OpenCL devices", __func__,
-           ret);
+           "%s: CL Error %d: Unable to retrieve requested OpenCL devices",
+           __func__, ret);
 
   *platform_id = platforms[i];
 
@@ -135,12 +141,13 @@ gal_cl_kernel_create (char *kernel_name, char *function_name,
   ;
 }
 
-cl_command_queue gal_cl_create_command_queue (cl_context context,
-                                              cl_device_id device_id)
+cl_command_queue
+gal_cl_create_command_queue (cl_context context, cl_device_id device_id)
 {
   cl_int ret = 0;
   cl_queue_properties properties[]
       = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
+
   cl_command_queue command_queue = clCreateCommandQueueWithProperties (
       context, device_id, properties, &ret);
   if (ret != CL_SUCCESS)
@@ -151,12 +158,41 @@ cl_command_queue gal_cl_create_command_queue (cl_context context,
   return command_queue;
 }
 
+void
+gal_cl_finish_queue(cl_command_queue command_queue)
+{
+  cl_int ret = 0;
+
+  ret = clFlush(command_queue);
+  if(ret != CL_SUCCESS)
+    error(EXIT_FAILURE, ENOTRECOVERABLE,
+          "%s: CL Error %d: Failed to flush commands to device",
+          __func__, ret);
+
+  ret = clFinish(command_queue);
+  if(ret != CL_SUCCESS)
+    error(EXIT_FAILURE, ENOTRECOVERABLE,
+          "%s: CL Error %d: Failed to finish commands enqueued",
+          __func__, ret);
+}
+
+void
+gal_cl_free_queue(cl_command_queue command_queue)
+{
+  cl_int ret = 0;
+
+  ret = clReleaseCommandQueue(command_queue);
+  if(ret != CL_SUCCESS)
+    error(EXIT_FAILURE, ENOTRECOVERABLE,
+          "%s: CL Error %d: Failed to release command queue",
+          __func__, ret);
+}
 
 
 
 
 /*********************************************************************/
-/*************            retrieve info            *******************/
+/*************            Query Devices            *******************/
 /*********************************************************************/
 char *
 gal_cl_get_device_name (cl_device_id device_id)
@@ -188,8 +224,12 @@ gal_cl_get_platform_name (cl_platform_id platform_id)
   return platform_name;
 }
 
+
+
+
+
 /*********************************************************************/
-/*************            data transfer            *******************/
+/*************          Buffer Operations          *******************/
 /*********************************************************************/
 void
 gal_cl_copy_array_to_device (gal_data_t *in, cl_mem *input_mem_obj,
@@ -204,11 +244,9 @@ gal_cl_copy_array_to_device (gal_data_t *in, cl_mem *input_mem_obj,
           in->size * gal_type_sizeof (in->type), (void *)in->array, &ret);
 
       if (ret != CL_SUCCESS)
-        {
-          printf (
-              "Error in creating OpenCL buffer for array, Error code: %d\n",
-              ret);
-        }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to create OpenCL Buffer", __func__,
+               ret);
     }
   else
     {
@@ -217,22 +255,18 @@ gal_cl_copy_array_to_device (gal_data_t *in, cl_mem *input_mem_obj,
                             in->size * gal_type_sizeof (in->type), NULL, &ret);
 
       if (ret != CL_SUCCESS)
-        {
-          printf (
-              "Error in creating OpenCL buffer for array, Error code: %d\n",
-              ret);
-        }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to create OpenCL Buffer", __func__,
+               ret);
 
       ret = clEnqueueWriteBuffer (command_queue, *input_mem_obj, CL_TRUE, 0,
                                   in->size * gal_type_sizeof (in->type),
                                   (float *)in->array, 0, NULL, NULL);
 
       if (ret != CL_SUCCESS)
-        {
-          printf ("Error in writing array to OpenCL buffer on GPU, Error "
-                  "code: %d\n",
-                  ret);
-        }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to write OpenCL Buffer to device",
+               __func__, ret);
     }
 }
 
@@ -249,11 +283,9 @@ gal_cl_copy_dsize_to_device (gal_data_t *in, cl_mem *input_mem_obj,
                             3 * sizeof (size_t), (void *)in->dsize, &ret);
 
       if (ret != CL_SUCCESS)
-        {
-          printf (
-              "Error in creating OpenCL buffer for dsize, Error code: %d\n",
-              ret);
-        }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to create OpenCL Buffer", __func__,
+               ret);
     }
   else
     {
@@ -261,22 +293,18 @@ gal_cl_copy_dsize_to_device (gal_data_t *in, cl_mem *input_mem_obj,
                                        3 * sizeof (size_t), NULL, &ret);
 
       if (ret != CL_SUCCESS)
-        {
-          printf (
-              "Error in creating OpenCL buffer for dsize, Error code: %d\n",
-              ret);
-        }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to create OpenCL Buffer", __func__,
+               ret);
 
       ret = clEnqueueWriteBuffer (command_queue, *input_mem_obj, CL_TRUE, 0,
                                   3 * sizeof (size_t), in->dsize, 0, NULL,
                                   NULL);
 
       if (ret != CL_SUCCESS)
-        {
-          printf ("Error in writing dsize to OpenCL buffer on GPU, Error "
-                  "code: %d\n",
-                  ret);
-        }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to write OpenCL Buffer to device",
+               __func__, ret);
     }
 }
 
@@ -289,14 +317,18 @@ gal_cl_copy_from_device (gal_data_t *out, cl_mem *output_mem_obj,
                                  (float *)out->array, 0, NULL, NULL);
 
   if (ret != CL_SUCCESS)
-    {
-      printf (
-          "Error in reading array to OpenCL buffer from GPU, Error code: %d\n",
-          ret);
-    }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to read OpenCL Buffer from device",
+               __func__, ret);
 }
 
-// Map, Unmap buffers
+
+
+
+
+/*********************************************************************/
+/*************            Map Operations           *******************/
+/*********************************************************************/
 cl_mem
 gal_cl_create_buffer_from_array (void *array, size_t size, cl_context context,
                                  cl_device_info device_type)
@@ -311,10 +343,9 @@ gal_cl_create_buffer_from_array (void *array, size_t size, cl_context context,
                         size, (void *)array, &ret);
 
   if (ret != CL_SUCCESS)
-    {
-      printf ("Error, %d", ret);
-      exit (1);
-    }
+        error (EXIT_FAILURE, ENOTRECOVERABLE,
+               "%s: CL Error %d: Failed to create OpenCL Buffer",
+               __func__, ret);
   return buffer;
 }
 
@@ -331,12 +362,12 @@ gal_cl_write_to_device (cl_mem *buffer, void *mapped_ptr,
 }
 
 void *
-gal_cl_read_to_host (cl_mem *buffer, size_t size,
+gal_cl_read_to_host (cl_mem buffer, size_t size,
                      cl_command_queue command_queue)
 {
   cl_int ret = 0;
 
-  void *mapped_ptr = clEnqueueMapBuffer (command_queue, *buffer, CL_TRUE,
+  void *mapped_ptr = clEnqueueMapBuffer (command_queue, buffer, CL_TRUE,
                                          CL_MAP_READ | CL_MAP_WRITE, 0, size,
                                          0, NULL, NULL, &ret);
 
@@ -347,58 +378,74 @@ gal_cl_read_to_host (cl_mem *buffer, size_t size,
   return mapped_ptr;
 }
 
+
+
+
+
+/*********************************************************************/
+/*************                 SVM                 *******************/
+/*********************************************************************/
 gal_data_t *
-gal_cl_alloc_svm(size_t size_of_array, size_t size_of_dsize, cl_context context, cl_device_id device_id)
+gal_cl_alloc_svm (size_t size_of_array, size_t size_of_dsize,
+                  cl_context context, cl_command_queue command_queue)
 {
   gal_data_t *out;
 
-  out = (gal_data_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, sizeof *out, 0);
-  if(out==NULL)
+  out = (gal_data_t *)clSVMAlloc (context, CL_MEM_READ_WRITE, sizeof *out, 0);
+  if (out == NULL)
     error (EXIT_FAILURE, ENOMEM,
            "%s: CL SVM Alloc Error: %zu bytes for gal_data_t", __func__,
            sizeof *out);
 
-  gal_cl_map_svm(context, device_id, (void *)out, sizeof *out);
+  gal_cl_map_svm (context, command_queue, (void *)out, sizeof *out);
 
-  out->array = (void *)clSVMAlloc(context, CL_MEM_READ_WRITE, size_of_array, 0);
-  if(out->array==NULL)
+  out->array
+      = (void *)clSVMAlloc (context, CL_MEM_READ_WRITE, size_of_array, 0);
+  if (out->array == NULL)
     error (EXIT_FAILURE, ENOMEM,
            "%s: CL SVM Alloc Error: %zu bytes for gal_data_t->array", __func__,
            size_of_array);
 
-  gal_cl_map_svm(context, device_id, (void *)(out->array), size_of_array);
+  gal_cl_map_svm (context, command_queue, (void *)(out->array), size_of_array);
 
-
-  out->dsize = (size_t *)clSVMAlloc(context, CL_MEM_READ_WRITE, size_of_dsize, 0);
-  if(out->dsize==NULL)
+  out->dsize
+      = (size_t *)clSVMAlloc (context, CL_MEM_READ_WRITE, size_of_dsize, 0);
+  if (out->dsize == NULL)
     error (EXIT_FAILURE, ENOMEM,
            "%s: CL SVM Alloc Error: %zu bytes for gal_data_t->dsize", __func__,
            size_of_dsize);
 
-  gal_cl_map_svm(context, device_id, (void *)(out->dsize), size_of_dsize);
+  gal_cl_map_svm (context, command_queue, (void *)(out->dsize), size_of_dsize);
 
   return out;
 }
 
 void
-gal_cl_map_svm (cl_context context, cl_device_id device_id, void *svm_ptr, size_t size)
+gal_cl_map_svm (cl_context context, cl_command_queue command_queue,
+                void *svm_ptr, size_t size)
 {
   cl_int ret = 0;
 
-  cl_command_queue command_queue
-      = gal_cl_create_command_queue(context, device_id);
-
-  ret = clEnqueueSVMMap(command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, svm_ptr, size, 0, NULL, NULL);
+  ret = clEnqueueSVMMap (command_queue, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE,
+                         svm_ptr, size, 0, NULL, NULL);
 
   if(ret != CL_SUCCESS)
     error (EXIT_FAILURE, ENOTRECOVERABLE,
            "%s: CL Error %d: Unable to map SVM allocation to host", __func__,
            ret);
 
-  ret = clReleaseCommandQueue(command_queue);
+}
+
+void
+gal_cl_unmap_svm (cl_context context, cl_command_queue command_queue,
+                  void *svm_ptr)
+{
+  cl_int ret = 0;
+  ret = clEnqueueSVMUnmap(command_queue, svm_ptr, 0, NULL, NULL);
   if(ret != CL_SUCCESS)
     error (EXIT_FAILURE, ENOTRECOVERABLE,
-           "%s: CL Error %d: Invalid release of command queue", __func__, ret);
+           "%s: CL Error %d: Failed to unmap SVM allocation to device",
+           __func__, ret);
 }
 
 void
