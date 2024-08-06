@@ -22250,8 +22250,9 @@ $ astarithmetic a.fits b.fits c.fits -g1 \
 In case you just want the numbers image, you can use @option{sigclip-median} (which is always calculated as part of the clipping process: no extra overhead), and @code{free} the top operand (without the @code{swap}: the median-stack image), leaving only the numbers image:
 
 @example
-$ astarithmetic a.fits b.fits c.fits 3 5 0.01 \
-                madclip-fill-median -g1 free \
+$ astarithmetic a.fits b.fits c.fits -g1 \
+                3 5 0.01 madclip-maskfilled \
+                3 4 0.1  sigclip-median free \
                 --output=single-hdu-only-numbers.fits
 @end example
 
