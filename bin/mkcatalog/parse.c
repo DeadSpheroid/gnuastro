@@ -169,11 +169,12 @@ parse_vector_dim3(struct mkcatalog_passparams *pp, gal_data_t *xybin)
   double var;
   int needsvar;
   gal_data_t *vector=pp->vector;
+  uint8_t vine=!p->novalinerror;
   float *std=p->std?p->std->array:NULL;
   size_t c[3], *dsize=p->objects->dsize;
   size_t sind=0, pind=0, num_increment=1;
+  float sval, *st_v, *st_std, *V=NULL, *ST=NULL;
   uint8_t *xybinarr = xybin ? xybin->array : NULL;
-  float st, sval, *st_v, *st_std, *V=NULL, *ST=NULL;
   int32_t *st_o, *O, *OO, *objarr=p->objects->array;
   size_t tid, *tsize, increment=0, start_end_inc[2], ndim=p->objects->ndim;
 
@@ -193,7 +194,8 @@ parse_vector_dim3(struct mkcatalog_passparams *pp, gal_data_t *xybin)
 
   /* Prepare the parsing information. Also, if tile-id isn't necessary, set
      'tid' to a blank value to cause a crash with a mistake. */
-  tsize=parse_vector_dim3_prepare(pp, start_end_inc, &st_o, &st_v, &st_std);
+  tsize=parse_vector_dim3_prepare(pp, start_end_inc, &st_o, &st_v,
+                                  &st_std);
   tid = (p->std && p->std->size>1 && st_std == NULL)?0:GAL_BLANK_SIZE_T;
 
   /* Check if we need the variance. */
@@ -242,8 +244,7 @@ parse_vector_dim3(struct mkcatalog_passparams *pp, gal_data_t *xybin)
                      we are given a variance dataset already, there is no
                      need to use 'st*st', we can directly use 'sval'. */
                   sval = st_std ? *ST : (p->std->size>1?std[tid]:std[0]);
-                  st = p->variance ? sqrt(sval) : sval;
-                  var = (p->variance ? sval : st*st) + fabs(*V);
+                  var = (p->variance ? sval : sval*sval) + (vine?*V:0);
                 }
               else var = NAN;
 
@@ -325,11 +326,11 @@ parse_objects(struct mkcatalog_passparams *pp)
   double *oi=pp->oi;
   gal_data_t *xybin=NULL;
   size_t *tsize=pp->tile->dsize;
-  uint8_t *u, *uf, goodvalue, *xybinarr=NULL;
   double minima_v=FLT_MAX, maxima_v=-FLT_MAX;
   size_t d, pind=0, increment=0, num_increment=1;
   int32_t *O, *OO, *C=NULL, *objarr=p->objects->array;
-  float var, sval, varval, skyval, *V=NULL, *SK=NULL, *ST=NULL;
+  float var, sval, skyval, *V=NULL, *SK=NULL, *ST=NULL;
+  uint8_t *u, *uf, goodvalue, vine=!p->novalinerror, *xybinarr=NULL;
   float *std=p->std?p->std->array:NULL, *sky=p->sky?p->sky->array:NULL;
 
   /* If tile processing isn't necessary, set 'tid' to a blank value. */
@@ -589,17 +590,13 @@ parse_objects(struct mkcatalog_passparams *pp)
                      standard deviation of the signal (independent of the
                      sky) is 'sqrt(*V)'. Therefore the total variance of
                      this pixel is the variance of the sky added with the
-                     absolute value of its sky-subtracted flux. We use the
-                     absolute value, because especially as the signal gets
-                     noisy there will be negative values, and we don't want
-                     them to decrease the variance. */
+                     absolute value of its sky-subtracted flux. */
                   if(oif[ OCOL_SUM_VAR ] && goodvalue)
                     {
-                      varval=p->variance ? var : sval;
-                      if(!isnan(varval))
+                      if(!isnan(var))
                         {
                           oi[ OCOL_SUM_VAR_NUM  ]++;
-                          oi[ OCOL_SUM_VAR      ] += varval + fabs(*V);
+                          oi[ OCOL_SUM_VAR      ] += var + (vine?*V:0);
                         }
                     }
                 }
@@ -725,13 +722,14 @@ parse_clumps(struct mkcatalog_passparams *pp)
 
   double *ci, *cir;
   gal_data_t *xybin=NULL;
+  uint8_t vine=!p->novalinerror;
   int32_t *O, *OO, *C=NULL, nlab;
   size_t cind, *tsize=pp->tile->dsize;
   double *minima_v=NULL, *maxima_v=NULL;
   uint8_t *u, *uf, goodvalue, *cif=p->ciflag;
   size_t nngb=gal_dimension_num_neighbors(ndim);
   size_t i, ii, d, pind=0, increment=0, num_increment=1;
-  float var, sval, varval, skyval, *V=NULL, *SK=NULL, *ST=NULL;
+  float var, sval, skyval, *V=NULL, *SK=NULL, *ST=NULL;
   int32_t *objects=p->objects->array, *clumps=p->clumps->array;
   float *std=p->std?p->std->array:NULL, *sky=p->sky?p->sky->array:NULL;
 
@@ -995,11 +993,10 @@ parse_clumps(struct mkcatalog_passparams *pp)
                         }
                       if(cif[ CCOL_SUM_VAR ] && goodvalue)
                         {
-                          varval=p->variance ? var : sval;
-                          if(!isnan(varval))
+                          if(!isnan(var))
                             {
                               ci[ CCOL_SUM_VAR_NUM ]++;
-                              ci[ CCOL_SUM_VAR     ] += varval + fabs(*V);
+                              ci[ CCOL_SUM_VAR     ] += var+(vine?*V:0);
                             }
                         }
                     }
@@ -1077,8 +1074,9 @@ parse_clumps(struct mkcatalog_passparams *pp)
                                             : ( p->std->size>1
                                                 ? std[tid]
                                                 : std[0] )     );
-                                   cir[ CCOL_RIV_SUM_VAR ] += fabs(*V)
-                                     + (p->variance ? sval : sval*sval);
+                                   cir[ CCOL_RIV_SUM_VAR ] +=
+                                     (p->variance ? sval : sval*sval)
+                                     + (vine?*V:0);
                                  }
                              }
                          }

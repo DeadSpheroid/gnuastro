@@ -382,7 +382,7 @@ ui_check_only_options(struct mkcatalogparams *p)
           "If you want the upperlimit check table for an object, only "
           "give one value (the object's label) to '--checkuplim'.");
 
-  /* See if '--skyin' is a filename or a value. When the string is ONLY a
+  /* See if '--insky' is a filename or a value. When the string is ONLY a
      number (and nothing else), 'tailptr' will point to the end of the
      string ('\0'). */
   if(p->skyfile)
@@ -1981,6 +1981,9 @@ ui_read_check_inputs_setup(int argc, char *argv[],
           if(p->subtractsky)
             printf("    - Sky has been subtracted from values "
                    "internally.\n");
+          else
+            printf("    - Sky NOT SUBTRACTED from values, only used "
+                   "in needed columns.\n");
         }
 
       if(p->std)

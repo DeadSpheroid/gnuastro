@@ -6,6 +6,17 @@ See the end of the file for license conditions.
 * Noteworthy changes in release X.XX (library XX.X.X) (YYYY-MM-DD)
 ** New publications
 ** New features
+*** MakeCatalog
+
+  --novalinerror: ignore pixel in the values image when calculating the
+    variance of each label's pixel: only use the pixel's value in the
+    '--instd' image (which can also be the variance with the '--variance'
+    option). This is useful in scenarios where the STD/variance image is
+    not just the sky STD/Variance, but also has the signal's contribution.
+
+  --mean-error: Measure the error of the mean for each label (object or
+    clump).
+
 *** astscript-radial-profile
 
   --azimuth option can be called multiple times so the profile is generated

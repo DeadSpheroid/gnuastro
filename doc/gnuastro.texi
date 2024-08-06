@@ -696,7 +696,7 @@ MakeCatalog
 
 Quantifying measurement limits
 
-* Standard deviation vs error::  The std is not a measure of the error.
+* Standard deviation vs Standard error::  Differnece between these important measures.
 * Magnitude measurement error of each detection::  Error in measuring magnitude.
 * Surface brightness error of each detection::  Error in measuring the Surface brightness.
 * Completeness limit of each detection::  Possibility of detecting similar objects?
@@ -29371,8 +29371,10 @@ It might even be so intertwined with its processing, that adding new columns mig
 @node Brightness flux magnitude, Quantifying measurement limits, Detection and catalog production, MakeCatalog
 @subsection Brightness, Flux, Magnitude and Surface brightness
 
-After taking an image with your smartphone camera (or a large telescope), the value in each pixel of the output file is a proxy for the amount of @emph{energy} that accumulated in it (while it was exposed to light).
-In astrophysics, the centimetre–gram–second (cgi) units are commonly used so energy is commonly reported in units of @mymath{erg}.
+@cindex cgs units (centimeter–gram–second)
+@cindex centimeter–gram–second (cgs) units
+After taking an image with your camera (or a large telescope), the value in each pixel of the output file is a proxy for the amount of @emph{energy} that accumulated in it (while it was exposed to light).
+In astrophysics, the centimeter–gram–second (cgs) units are commonly used so energy is commonly reported in units of @mymath{erg}.
 In an image, the energy of a galaxy for example will be distributed over many pixels.
 Therefore, the collected energy of an object in the image is the total sum of the values in the pixels associated to the object.
 
@@ -29386,8 +29388,8 @@ To be able to compare with data taken with different exposure times, we define t
 
 @item Flux (@mymath{erg/s/cm^2})
 @cindex Flux
-To be able to compare with data from different telescope collecting areas, we define the @emph{flux} which is defined in units of brightness per collecting-area.
-This area is historically reported in units of @mymath{cm^2}.
+To be able to compare with data from different telescopes (with differnet collecting areas), we define the @emph{flux} which is defined in units of brightness per collecting-area.
+Because we are using the cgs units, the collecting area is reported in @mymath{cm^2}.
 
 @cindex Luminosity
 Knowing the flux (@mymath{f}) and distance to the object (@mymath{r}), we can define its @emph{luminosity}: @mymath{L=4{\pi}r^2f}.
@@ -29405,11 +29407,11 @@ To take into account the spectral coverage of our data, we define the @emph{spec
 Like other objects in nature, astronomical objects do not emit or reflect the same flux at all wavelengths.
 On the other hand, our detector techologies are different for different wavelength ranges.
 Therefore, even if we wanted to, there is no way to measure the ``total'' (at all wavelengths) brightness of an object with a single tool.
-To be able to analyze objects with different spectral features, it is therefore important to account for the wavelength (or frequency) range of the photons that we measured through the spectral flux density.
+To be able to analyze objects with different spectral features (compare measurements of the same object taken in different spectral regimes), it is therefore important to account for the wavelength (or frequency) range of the photons that we measured through the spectral flux density.
 
 @item Jansky (@mymath{10^{-23}erg/s/cm^2/Hz})
 @cindex Jansky (Jy)
-A ``Jansky'' is a certain value of frequency flux density (commonly used in radio astronomy).
+A ``Jansky'' is a certain level of frequency flux density (commonly used in radio astronomy).
 Janskys can be converted to wavelength flux density using the @code{jy-to-wavelength-flux-density} operator of Gnuastro's Arithmetic program, see the derivation under this operator's description in @ref{Unit conversion operators}.
 @end table
 
@@ -29568,7 +29570,7 @@ In astronomy, it is common to use the magnitude (a unit-less scale) and physical
 Therefore the measurements discussed here are commonly used in units of magnitudes.
 
 @menu
-* Standard deviation vs error::  The std is not a measure of the error.
+* Standard deviation vs Standard error::  Differnece between these important measures.
 * Magnitude measurement error of each detection::  Error in measuring magnitude.
 * Surface brightness error of each detection::  Error in measuring the Surface brightness.
 * Completeness limit of each detection::  Possibility of detecting similar objects?
@@ -29578,14 +29580,19 @@ Therefore the measurements discussed here are commonly used in units of magnitud
 * Upper limit surface brightness of image::  Measure the noise-level for a certain aperture.
 @end menu
 
-@node Standard deviation vs error, Magnitude measurement error of each detection, Quantifying measurement limits, Quantifying measurement limits
-@subsubsection Standard deviation vs error
-The error and the standard deviation are sometimes confused with each other.
-Therefore, before continuing with the various measurement limits below, let's review these two fundamental concepts.
-Instead of going into the theoretical definitions of the two (which you can see in their respective Wikipedia pages), we'll discuss the concepts in a hands-on and practical way here.
+@node Standard deviation vs Standard error, Magnitude measurement error of each detection, Quantifying measurement limits, Quantifying measurement limits
+@subsubsection Standard deviation vs Standard error
+The standard deviation and standard error are different concepts to convey different aspects of a measurement, but they can be easily confused with each other: for example, the standard deviation is also called as the ``error''.
+A nice description of this difference is given in the following quote from Wikipedia.
+In this section, we'll show the concept described in this quote with a hands-on and practical set of commands to clarify this important distinction.
 
-Let's simulate an observation of the sky, but without any astronomical sources!
-In other words, we only have a background flux level (from the sky emission).
+@quotation
+The standard deviation of the sample data is a description of the variation in measurements, while the standard error of the mean is a probabilistic statement about how the sample size will provide a better bound on estimates of the population mean, in light of the central limit theorem. Put simply, the @emph{standard error} of the sample mean is an estimate of how far the sample mean is likely to be from the population mean, whereas the @emph{standard deviation} of the sample is the degree to which individuals within the sample differ from the sample mean.
+@author Wikipedia page on ``Standard error'' (retrieved on 2024-08-09)
+@end quotation
+
+Let's simulate an observation of the sky, but without any astronomical sources to simplify the logic.
+In other words, we only have a background flux level (assume you want to measure the brightness of the twilight sky that is not yet faint enough to let stars be visible).
 With the first command below, let's make an image called @file{1.fits} that contains @mymath{200\times200} pixels that are filled with random noise from a Poisson distribution with a mean of 100 counts (the flux from the background sky).
 With the second command, we'll have a look at the image.
 Recall that the Poisson distribution is equal to a normal distribution for large mean values (as in this case).
@@ -29598,11 +29605,11 @@ $ astscript-fits-view 1.fits
 @end example
 
 The standard deviation (@mymath{\sigma}) of the Poisson distribution is the square root of the mean, see @ref{Photon counting noise}.
-Note that due to the random nature of the noise, the values reported in the next steps on your computer will be very slightly different.
+Note that due to the random nature of the noise, the values reported in the next steps on your computer will be slightly different (which is one of the points of this section!).
 To reproducible exactly the same values in different runs, see @ref{Generating random numbers}, and for more on the first command, see @ref{Arithmetic}.
 
 Each pixel shows the result of one sampling from the Poisson distribution.
-In other words, assuming the sky emission in our simulation is constant over our field of view, each pixel's value shows one measurement of the sky emission.
+In other words, assuming the sky emission in our simulation is constant over our field of view, each pixel's value shows one measurement of the same sky emission.
 Statistically speaking, a ``measurement'' is a sampling from an underlying distribution of values.
 Through our measurements, we aim to identify that underlying distribution (the ``truth'')!
 With the command below, let's look at the pixel statistics of @file{1.fits} (output is shown immediately under it).
@@ -29638,12 +29645,15 @@ Histogram:
 @end example
 
 As expected, you see that the ASCII histogram nicely resembles a normal distribution.
-The measured mean and standard deviation (@mymath{\sigma_x}) are also very similar to the input (mean of 100, standard deviation of @mymath{\sigma=10}).
+The measured mean and standard deviation are also very similar to the input (mean of 100, standard deviation of 10).
 But the measured mean (and standard deviation) aren't exactly equal to the input!
 
 Every time we make a different simulated image from the same distribution, the measured mean and standard deviation will slightly differ.
-With the second command below, let's build 500 images like above and measure their mean and standard deviation.
-The outputs will be written into a file (@file{mean-stds.txt}; in the first command we are deleting it to make sure we write into an empty file within the loop).
+Run the commands above one more time (this time calling the output @file{2.fits}) and check for your self (actually open the two FITS images and check visually, don't just rely on the statistics).
+
+Now that you have a good feeling of the change, let's automate this and scale it up for some nice statistics.
+With the commands below, you will build 500 images like above and measure their mean and standard deviation and save each measurment into a file (@file{mean-stds.txt}.
+In the first command we are deleting it to make sure we write into an empty file within the first run of the loop.
 With the third command, let's view the top 10 rows:
 
 @example
@@ -29668,7 +29678,8 @@ $ asttable mean-stds.txt -Y --head=10
 100.000212              9.970293
 @end example
 
-From this table, you see that each simulation has produced a slightly different measured mean and measured standard deviation (@mymath{\sigma_x}) that are just fluctuating around the input mean (which was 100) and input standard deviation (@mymath{\sigma=10}).
+From this table, you see that each simulation has produced a slightly different measured mean and measured standard deviation.
+They are just fluctuating around the input mean (which was 100) and input standard deviation (which was 10).
 Let's have a look at the distribution of mean measurements:
 
 @example
@@ -29703,48 +29714,46 @@ Histogram:
 @end example
 
 @cindex Standard error of mean
-The standard deviation of the various mean measurements above shows the scatter in measuring the mean with an image of this size from this underlying distribution.
-This is therefore defined as the @emph{standard error of the mean}, or ``error'' for short (since most measurements are actually the mean of a population) and shown with @mymath{\widehat\sigma_{\bar{x}}}.
+The standard deviation you see above (approximately @mymath{0.05}) shows the scatter in measuring the mean with an image of this size and is different from the standard deviation of the Poisson distribution that the values were drawn from.
+This is therefore defined as the @emph{standard error of the mean}, or ``standard error'' for short (since most measurements are actually the mean of a population).
 
 From the example above, you see that the error is smaller than the standard deviation (smaller when you have a larger sample).
-In fact, @url{https://en.wikipedia.org/wiki/Standard_error#Derivation, it can be shown} that this ``error of the mean'' (@mymath{\sigma_{\bar{x}}}) is related to the distribution standard deviation (@mymath{\sigma}) through the following equation.
-Where @mymath{N} is the number of points used to measure the mean in one sample (@mymath{200\times200=40000} in this case).
+In fact, @url{https://en.wikipedia.org/wiki/Standard_error#Derivation, it can be shown} that this ``error of the mean'' (@mymath{\sigma_{\bar{x}}}; recall that @mymath{\bar{x}} represents the mean) is related to the distribution standard deviation (@mymath{\sigma}) through the following equation.
+Where @mymath{N} is the number of points used to measure the mean in one sample (@mymath{N=200\times200=40000} in this case).
 Note that the @mymath{10.0} below was reported as ``standard deviation'' in the first run of @code{aststatistics} on @file{1.fits} above):
 
-@c The 10.0 depends on the 'aststatistics 1.fits' command above.
-@dispmath{\sigma_{\bar{x}}=\frac{\sigma}{\sqrt{N}} \quad\quad {\rm or} \quad\quad \widehat\sigma_{\bar{x}}\approx\frac{\sigma_x}{\sqrt{N}} = \frac{10.0}{200} = 0.05}
+@dispmath{\sigma_{\bar{x}}\approx\frac{\sigma}{\sqrt{N}} = \frac{10.0}{200} = 0.05}
 
-@noindent
-Taking the considerations above into account, we should clearly distinguish the following concepts when talking about the standard deviation or error:
+Therefore the standard error of the mean is directly related to the number of pixels you used to measure the mean
+You can test this by changing the @code{200}s in the commands above to smaller or larger values.
+As you make larger and larger images, you will be able to measure the mean much more precisely (the standard error of the mean will go to zero).
+But no matter how many pixels you use, the standard deviation will always be the same.
 
+Within MakeCatalog, the options related to dispersion/error in the measurements have the following conventions:
 @table @asis
-@item Standard deviation of population
-This is the standard deviation of the underlying distribution (10 in the example above), and shown by @mymath{\sigma}.
-This is something you can never measure, and is just the ideal value.
+@item @option{--*std}
+For example @option{--std} or @option{--sigclip-std}.
+These return the standard deviation of the values within a label.
+If the underlying object (in the noise) is flat, then this will be the @option{\sigma} that is mentioned above.
+However, no object in astronomy in flat!
+So this option should be used with extreme care!
+It only makes sense in special contexts like measuring the radial profile where we assume that the values at a certain radius have the same flux (see @ref{Generate radial profile}).
 
-@item Standard deviation of mean
-Ideal error of measuring the mean (assuming we know @mymath{\sigma}).
+@item @option{--*error}
+For example @option{--mag-error}, @option{--mean-error} or @option{--sum-error}.
+These options should be used when when pixel values are different.
+When the pixels do not have the same value (for example different parts of one galaxy), their standard deviation is meaningless.
+To measure the total error in such cases, we need to know the standard deviation of each pixel separately.
+Therefore, for these columns, MakeCatalog needs a separate dataset that contains the underlying sky standard deviation for those pixels.
+That dataset should have the same size (number and dimension of pixels) as the values dataset.
+You can use @ref{NoiseChisel} to generate such an image.
 
-@item Standard deviation of sample (i.e., @emph{Standard deviation})
-Measured Standard deviation from a sampling of the ideal distribution.
-This is the second column of @file{mean-stds.txt} above and is shown with @mymath{\sigma_x} above.
-In astronomical literature, this is simply referred to as the ``standard deviation''.
-
-In other words, the standard deviation is computed on the input itself and MakeCatalog just needs a ``values'' file.
-For example, when measuring the standard deviation of an astronomical object using MakeCatalog it is computed directly from the input values.
-
-@item Standard error (i.e., @emph{error})
-Measurable scatter of measuring the mean (@mymath{\widehat\sigma_{\bar{x}}}) that can be estimated from the size of the sample and the measured standard deviation (@mymath{\sigma_x}).
-In astronomical literature, this is simply referred to as the ``error''.
-
-In other words, when asking for an ``error'' measurement with MakeCatalog, a separate standard deviation dataset should be always provided.
-This dataset should take into account all sources of scatter.
-For example, during the reduction of an image, the standard deviation dataset should take into account the dispersion of each pixel that comes from the bias, dark, flat fielding, etc.
-If this image is not available, it is possible to use the  @code{SKY_STD} extension from NoiseChisel as an estimation.
-For more see @ref{NoiseChisel output}.
+If the underlying profile and sky standard deviations is flat, then @option{--sum-error} will be the standard deviation that we discussed in this section and @option{--mean-error} will be the standard error.
+When the values are different, the combined error is calculated by adding the variances (second power of the standard deviation) of each pixel, added with its value.
+When the values are smaller than one a correction is applied (that is defined in Section 3.3 of Akhlaghi and Ichikawa @url{https://arxiv.org/abs/1505.01664, 2015}).
 @end table
 
-@node Magnitude measurement error of each detection, Surface brightness error of each detection, Standard deviation vs error, Quantifying measurement limits
+@node Magnitude measurement error of each detection, Surface brightness error of each detection, Standard deviation vs Standard error, Quantifying measurement limits
 @subsubsection Magnitude measurement error of each detection
 The raw error in measuring the magnitude is only meaningful when the object's magnitude is brighter than the upper-limit magnitude (see below).
 As discussed in @ref{Brightness flux magnitude}, the magnitude (@mymath{M}) of an object with brightness @mymath{B} and zero point magnitude @mymath{z} can be written as:
@@ -30415,6 +30424,7 @@ Within an image, pixels have both a position and a value.
 In the sections above all the measurements involved position (see @ref{Position measurements in pixels} or @ref{Position measurements in WCS}).
 The measurements in this section only deal with pixel values and ignore the pixel positions completely.
 In other words, for the options of this section each labeled region within the input is just a group of values (and their associated error values if necessary), and they let you do various types of measurements on the resulting distribution of values.
+For more on the difference between the @option{--*error} or @option{--*std} columns see @ref{Standard deviation vs Standard error}.
 
 @table @option
 @item --sum
@@ -30426,8 +30436,14 @@ So the sum of all the clump-sums in the clump catalog of one object will be smal
 If no usable pixels are present over the clump or object (for example, they are all blank), the returned value will be NaN (note that zero is meaningful).
 
 @item --sum-error
-The error in measuring the sum of values of a label (objects or clumps).
+The standard deviation of the sum of values of a label (objects or clumps).
 The value is calculated by using the values image (for signal above the sky level) and the sky standard deviation image (extension @option{--stdhdu} of file given to @option{--instd}); which you can derive for any image using @ref{NoiseChisel}.
+This column is internally used to measure the signal-to-noise (@option{--sn}).
+
+For objects this is calculated by adding the sky variance (second power of the sky standard deviation image) of each pixel in the label, with the value of the pixel if the value is not negative (error only increases).
+This is done to account for brighter pixels which have higher noise in the Poisson distribution (its side effect is that the error will always be slightly over-estimated due to the positive values close to the noise).
+A correction may be applied if the sky standard deviation is negative; see Section 3.3 of Akhlaghi & Ichikawa @url{https://arxiv.org/abs/1505.01664, 2015}.
+For clumps, the variance of the rivers (which are subtracted from the value of pixels in calclulating the sum) are also added to generate the final standard deviation.
 
 The returned value will be NaN when the label covers only NaN pixels in the values image, or a pixel is NaN in the @option{--instd} image, but non-NaN in the values image.
 The latter situation usually happens when there is a bug in the previous steps of your analysis.
@@ -30449,6 +30465,10 @@ If no usable pixels are present over the clump or object (for example, they are 
 @item --mean
 The mean sky subtracted value of pixels within the object or clump.
 For clumps, the average river flux is subtracted from the sky subtracted mean.
+
+@item --mean-error
+The error in measuring the mean; using both the values file and the sky standard deviation image.
+In case the given standard deviation or variance image already contains the contributions from the pixel values (it is not just the sky standard deviation), use @option{--novalinerror}).
 
 @item --std
 The standard deviation of the pixels within the object or clump.
@@ -30957,7 +30977,7 @@ For the full list of available measurements, see @ref{MakeCatalog measurements}.
 
 The ``values'' dataset is used for measurements like brightness/magnitude, or flux-weighted positions.
 If it is a real image, by default it is assumed to be already Sky-subtracted prior to running MakeCatalog.
-If it is not, you use the @option{--subtractsky} option to, so MakeCatalog reads and subtracts the Sky dataset before any processing.
+If it is not, you should use the @option{--subtractsky} option so MakeCatalog reads and subtracts the Sky dataset before any processing.
 To obtain the Sky value, you can use the @option{--sky} option of @ref{Statistics}, but the best recommended method is @ref{NoiseChisel}, see @ref{Sky value}.
 
 MakeCatalog can also do measurements on sub-structures of detections.
@@ -31044,7 +31064,11 @@ Therefore if the input standard deviation (or variance) image also contains the 
 The HDU of the Sky value standard deviation image.
 
 @item --variance
-The dataset given to @option{--instd} (and @option{--stdhdu} has the Sky variance of every pixel, not the Sky standard deviation.
+The value/file given to @option{--instd} (and @option{--stdhdu} has the Sky variance of every pixel, not the Sky standard deviation.
+
+@item --novalinerror
+The value/file given to @option{--instd} is not just due to the sky (noise), but also contains the contribution of the signal to each pixel's standard deviation or variance.
+If this option is given, the pixel values will be ignored when measuring the @option{--*-error} columns.
 
 @item --forcereadstd
 Read the input STD image even if it is not required by any of the requested columns.

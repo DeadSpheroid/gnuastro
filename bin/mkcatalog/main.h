@@ -262,6 +262,7 @@ struct mkcatalogparams
   uint8_t         noclumpsort;  /* Don't sort the clumps catalog.       */
   float             zeropoint;  /* Zero-point magnitude of object.      */
   uint8_t            variance;  /* Input STD file is actually variance. */
+  uint8_t        novalinerror;  /* Ignore values when estimating errors.*/
   uint8_t        forcereadstd;  /* Read STD even if not needed.         */
   uint8_t         subtractsky;  /* ==1: subtract the Sky from values.   */
   float           sfmagnsigma;  /* Surface brightness multiple of sigma.*/

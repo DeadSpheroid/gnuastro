@@ -1260,7 +1260,7 @@ columns_define_alloc(struct mkcatalogparams *p)
         case UI_KEY_SUMERROR:
           name           = "SUM_ERROR";
           unit           = MKCATALOG_NO_UNIT;
-          ocomment       = "Error (1-sigma) in measuring sum.";
+          ocomment       = "Standard deviation (error) of in measuring sum.";
           ccomment       = ocomment;
           otype          = GAL_TYPE_FLOAT32;
           ctype          = GAL_TYPE_FLOAT32;
@@ -1316,6 +1316,23 @@ columns_define_alloc(struct mkcatalogparams *p)
           oiflag[ OCOL_SUM     ] = ciflag[ CCOL_SUM     ] = 1;
                                    ciflag[ CCOL_RIV_NUM ] = 1;
                                    ciflag[ CCOL_RIV_SUM ] = 1;
+          break;
+
+        case UI_KEY_MEANERROR:
+          name           = "MEAN_ERROR";
+          unit           = MKCATALOG_NO_UNIT;
+          ocomment       = "Error of mean of sky subtracted values";
+          ccomment       = ocomment;
+          otype          = GAL_TYPE_FLOAT32;
+          ctype          = GAL_TYPE_FLOAT32;
+          disp_fmt       = GAL_TABLE_DISPLAY_FMT_GENERAL;
+          disp_width     = 10;
+          disp_precision = 5;
+          oiflag[ OCOL_NUM         ] = ciflag[ CCOL_NUM         ] = 1;
+          oiflag[ OCOL_SUM_VAR     ] = ciflag[ CCOL_SUM_VAR     ] = 1;
+          oiflag[ OCOL_SUM_VAR_NUM ] = ciflag[ CCOL_SUM_VAR_NUM ] = 1;
+                                       ciflag[ CCOL_RIV_NUM     ] = 1;
+                                       ciflag[ CCOL_RIV_SUM_VAR ] = 1;
           break;
 
         case UI_KEY_STD:
@@ -2365,7 +2382,7 @@ columns_define_alloc(struct mkcatalogparams *p)
    to find variance and number of pixels used to find brightness are the
    same). */
 static double
-columns_sum_error(struct mkcatalogparams *p, double *row, int o0c1)
+columns_sum_std(struct mkcatalogparams *p, double *row, int o0c1)
 {
   size_t numind = o0c1 ? CCOL_NUM         : OCOL_NUM;
   double V = row[ o0c1 ? CCOL_SUM_VAR     : OCOL_SUM_VAR ];
@@ -2397,7 +2414,7 @@ columns_sn(struct mkcatalogparams *p, double *row, int o0c1)
                : 0.0 );
 
   /* Return the derived value. */
-  return (I-O) / columns_sum_error(p, row, o0c1);
+  return (I-O) / columns_sum_std(p, row, o0c1);
 }
 
 
@@ -2932,7 +2949,7 @@ columns_fill(struct mkcatalog_passparams *pp)
           break;
 
         case UI_KEY_SUMERROR:
-          ((float *)colarr)[oind] = columns_sum_error(p, oi, 0);
+          ((float *)colarr)[oind] = columns_sum_std(p, oi, 0);
           break;
 
         case UI_KEY_CLUMPSSUM:
@@ -2945,6 +2962,15 @@ columns_fill(struct mkcatalog_passparams *pp)
           ((float *)colarr)[oind] = ( oi[ OCOL_NUM ]>0.0f
                                       ? oi[ OCOL_SUM ] / oi[ OCOL_NUM ]
                                       : NAN );
+          break;
+
+        /* In 'columns_sum_std', we take the square root of the sum of
+           variances. So here, we just need to divide by the total number
+           of elements used: since the mean is the sum/number and number is
+           fixed, so e(mean)=e(sum)/number. */
+        case UI_KEY_MEANERROR:
+          ((float *)colarr)[oind] = ( columns_sum_std(p, oi, 0)
+                                      / oi[OCOL_NUM] );
           break;
 
         case UI_KEY_STD:
@@ -3331,7 +3357,7 @@ columns_fill(struct mkcatalog_passparams *pp)
             break;
 
           case UI_KEY_SUMERROR:
-            ((float *)colarr)[cind] = columns_sum_error(p, ci, 1);
+            ((float *)colarr)[cind] = columns_sum_std(p, ci, 1);
             break;
 
           case UI_KEY_SUMNORIVER:
@@ -3342,6 +3368,12 @@ columns_fill(struct mkcatalog_passparams *pp)
           case UI_KEY_MEAN:
             ((float *)colarr)[cind] = ( columns_clump_sum(ci)
                                         /ci[CCOL_NUM] );
+            break;
+
+          case UI_KEY_MEANERROR:
+            ((float *)colarr)[cind] = ( columns_sum_std(p, ci, 1)
+                                        / (  oi[CCOL_NUM]
+                                           + oi[CCOL_RIV_NUM] ) );
             break;
 
           case UI_KEY_STD:
