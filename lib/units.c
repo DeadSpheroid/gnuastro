@@ -515,38 +515,23 @@ gal_units_jy_to_mag(double jy)
 
 
 /* Converting Janskys ($f(\nu)$ or flux in units of frequency) to
-   $f(\lambda)$ (or wavelength flux density). In the equations below, we'll
-   write $\nu$ as 'n' and '\lambda' as 'l'. The speed of light is written
-   as 'c'.
-
-   Basics:
-
-   1. c = 2.99792458e+08 m/s = 2.99792458e+18 A*Hz
-
-   2. One Jansky is defined as 10^{-23} erg/s/cm^2/Hz; see
-      https://en.wikipedia.org/wiki/Jansky
-
-   3. The speed of light connects the wavelength and frequency of photons:
-      c=l*n. So n=c/l and taking the derivative: dn=(c/(l*l))*dl or
-      dn/dl=c/(l*l). Inserting physical values and units:
-
-        dn/dl = (2.99792458e+18 A*Hz)/(l*l A^2) = 2.99792458e+18/(l^2) Hz/A.
-
-   4. To convert a function of A into a function of B, where A and B are
-      also related to each other, we have the following equation: f(A) =
-      dB/dA * f(B).
-
-   5. Using 2 (definition of Jansky as f(n)) and 3 in 4, we get:
-
-      f(l) = 2.99792458e+18/(l^2) Hz/A * 10^{-23} erg/s/cm^2/Hz
-           = 2.99792458e-5/(l^2) erg/s/cm^2/A
-*/
+   $f(\lambda)$ (or wavelength flux density). See the description of this
+   operator in the book for its derivation.*/
 double
 gal_units_jy_to_wavelength_flux_density(double jy, double angstrom)
 {
   return jy * 2.99792458e-05 / (angstrom*angstrom);
 }
 
+
+
+
+
+double
+gal_units_wavelength_flux_density_to_jy(double wfd, double angstrom)
+{
+  return wfd * (angstrom*angstrom) / 2.99792458e-05;
+}
 
 
 

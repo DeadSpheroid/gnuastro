@@ -21915,7 +21915,7 @@ Convert Janskys to AB magnitude, see @ref{Brightness flux magnitude}.
 @cindex Wavelength flux density
 @cindex Flux density (wavelength)
 Convert Janskys to wavelength flux density (in units of @mymath{erg/cm^2/s/\AA}) at a certain wavelength (given in units of Angstroms).
-Recall that Jansky is also a unit of flux density, but it is in units of frequency (@mymath{erg/cm^2/s/Hz}).
+Recall that Jansky is also a unit of spectral flux density, but it is in units of frequency (@mymath{erg/cm^2/s/Hz}).
 
 For example at the wavelength of 5556, Vega's frequency flux density is 3500 Janskys.
 To convert this to wavelength flux density, you can use this command:
@@ -21931,6 +21931,27 @@ For example, if you want the wavelength flux density of a source with magnitude 
 $ astarithmetic 21 mag-to-jy 6600 \
                 jy-to-wavelength-flux-density
 @end example
+
+The conversion is done based on this derivation: the speed of light (@mymath{c}) can be written as:
+
+@dispmath{c=2.99792458\times10^8 m/s = 2.99792458\times10^{18} \AA Hz}
+
+The speed of light connects the wavelength (@mymath{\lambda}) and frequency (@mymath{\nu}) of photons: @mymath{c=\nu\lambda}.
+Therefore, @mymath{\nu=c/\lambda} and taking the derivative: @mymath{d\nu=(c/\lambda^2)d\lambda} or @mymath{d\nu/d\lambda=c/\lambda^2}. Inserting physical values and units:
+
+@dispmath{d\nu/d\lambda = \frac{2.99792458\times10^{18} \AA Hz}{\lambda^2\AA^2} = \frac{2.99792458\times10^{18}}{\lambda^2} Hz/A}
+
+Recall that to convert a function of @mymath{\nu} into a function of @mymath{\lambda}, where @mymath{\nu} and @mymath{\lambda} are also related to each other, we have the following equation: @mymath{f(\lambda) = \frac{d\nu}{d\lambda} f(\nu)}.
+Here, @mymath{f(\nu)} is the value in Janskys (@mymath{J\times10^{-23}erg/s/cm^2/Hz}; see @ref{Brightness flux magnitude}).
+Replacing @mymath{d\nu/d\lambda} from above we get:
+
+@dispmath{F_\lambda=\frac{2.99792458\times10^8}{\lambda^2}Hz/A \times J\times10^{-23}erg/s/cm^2/Hz}
+
+@dispmath{F_\lambda=J\times\frac{2.99792458\times10^{-5}}{\lambda^2} erg/s/cm^2/\AA}
+
+@item wavelength-flux-density-to-jy
+Convert wavelength flux density (in units of @mymath{erg/cm^2/s/\AA}) to Janskys at a certain wavelength (given in units of Angstroms).
+For details and usage examples, see the description of @code{jy-to-wavelength-flux-density} (the inverse of this function).
 
 @item au-to-pc
 @cindex Parsecs
@@ -29350,93 +29371,116 @@ It might even be so intertwined with its processing, that adding new columns mig
 @node Brightness flux magnitude, Quantifying measurement limits, Detection and catalog production, MakeCatalog
 @subsection Brightness, Flux, Magnitude and Surface brightness
 
-@cindex ADU
-@cindex Gain
-@cindex Counts
-Astronomical data pixels are usually in units of counts@footnote{Counts are also known as analog to digital units (ADU).} or electrons or either one divided by seconds.
-To convert from the counts to electrons, you will need to know the instrument gain.
-In any case, they can be directly converted to energy or energy/time using the basic hardware (telescope, camera and filter) information (that is summarized in the @emph{zero point}, and we will discuss below).
-We will continue the discussion assuming the pixels are in units of energy/time.
-
-@table @asis
 @cindex Flux
 @cindex Luminosity
 @cindex Brightness
-@item Brightness
-The @emph{brightness} of an object is defined as its measured energy in units of time.
-If our detector pixels directly measured the energy from the astronomical object@footnote{In practice, the measured pixels don't just count the astronomical object's energy: imaging detectors insert a certain bias level before the exposure, they amplify the photo-electrons, there are optical artifacts like flat-fielding, and finally, there is the background light.}, then the brightness would be the total sum of pixel values (energy) associated to the object, divided by the exposure time.
+@cindex Quantum efficiency
+The @emph{brightness} of an object is defined as its @emph{measured} power (energy in units of time).
+In astrophysics cgi units are commonly used so brightness is reported in units of @mymath{erg/s}.
+In an image, the brightness of a nearby galaxy for example will be distributed over many pixels.
+Therefore, the brightness of an object in the image, is the total sum of the values in the pixels (proxy for the energy collected in that pixel) associated to the object, divided by the exposure time.
+
+Since it is @emph{measured}, brightness is not an inhrenet property of the object: at different distances, the same object will have different brightness measures.
+Brightness is also affected by many other factors, which we can summarize as @emph{artifacts}.
+Here are some examples (among many others):
+@itemize
+@item
+The brightness of other background/foreground sources in the same line of sight may be added to it.
+@item
+Photons may be absorbed or scattered on their way to the detector (which reduce its brightness).
+@item
+The distortion or point spread function of the optical system may change its shape.
+@item
+Electronic issues in the detector may cause different measurements of the same object in different pixels.
+@end itemize
+Through various data reduction and data analysis methods that are implemented on the raw observations, we (try to!) remove all these artifacts to have the ``pure'' brighntess of each object in the image.
+But dealing with the artifacts is beyond the scope of this section, so let's assume the reduction and analysis were done perfectly and we don't have artifacts.
+
+@cindex Luminosity
 The @emph{flux} of an object is defined in units of energy/time/collecting-area.
-For an astronomical target, the flux is therefore defined as its brightness divided by the area used to collect the light from the source; or the telescope aperture (for example, in units of @mymath{cm^2}).
+The collecting area is the telescope aperture (usually in units of @mymath{cm^2}).
+Therefore, flux is usually written in astrophysics literature as @mymath{erg/s/cm^2}.
 Knowing the flux (@mymath{f}) and distance to the object (@mymath{r}), we can define its @emph{luminosity}: @mymath{L=4{\pi}r^2f}.
+Therefore, while flux and luminosity are intrinsic properties of the object, the brightness we measure depends on our detecting tools (hardware and software).
 
-Therefore, while flux and luminosity are intrinsic properties of the object, brightness depends on our detecting tools (hardware and software).
-In low-level observational astronomy data analysis, we are usually more concerned with measuring the brightness, because it is the thing we directly measure from the image pixels and create in catalogs.
-On the other hand, luminosity is used in higher-level analysis (after image contents are measured as catalogs to deduce physical interpretations, because high-level things like distance/redshift need to be calculated).
-At this stage, it is just important avoid confusion between luminosity and brightness because both have the same units of energy per seconds.
+@cindex Jansky (Jy)
+@cindex Spectral Flux Density
+@cindex Frequency Flux Density
+@cindex Wavelength Flux Density
+@cindex Flux density (spectral)
+An important fact that we have ignored until now is the wavelength (or frequency) range that the incoming brightness is measured in.
+Like other objects in nature, astronomical objects do not emit or reflect the same flux at all wavelengths.
+On the other hand, our detector techologies are different for different wavelength ranges.
+Therefore, even if we wanted to, there is no way to measure the ``total'' (at all wavelengths) brightness of an object with a single tool.
+It is therefore important to account for the wavelength (or frequency) range of the light that we are measuring.
+For that we have @emph{spectral flux density}, which is defined in either of these units (based on context): @mymath{erg/s/cm^2/Hz} (frequency-based) @mymath{erg/s/cm^2/\AA} (wavelength-based).
 
+A ``Jansky'' is an existing unit of frequency-based spectral flux density (commonly used in radio astronomy), such that @mymath{1Jy=10^{-23}erg/s/cm^2/Hz}.
+Janskys can be converted to wavelength flux density using the @code{jy-to-wavelength-flux-density} operator of Gnuastro's Arithmetic program, see the derivation under this operator's description in @ref{Unit conversion operators}.
+
+Having clarified, the basic physical concepts above, let's review the terminology that is used in optical astronomy to refer to them.
+The reason optical astronomers don't use modern physical terminology is that optical astronomy precedes modern physical concepts by thousands of years.
+
+@table @asis
 @item Magnitude
 @cindex Magnitudes from flux
 @cindex Flux to magnitude conversion
 @cindex Astronomical Magnitude system
-Images of astronomical objects span over a very large range of brightness: the Sun (as the brightest object) is roughly @mymath{2.5^{60}=10^{24}} times brighter than the fainter galaxies we can currently detect in the deepest images.
-Therefore discussing brightness directly will involve a large range of values which is inconvenient.
-So astronomers have chosen to use a logarithmic scale for the brightness of astronomical objects.
+The spectral flux density of astronomical objects span over a very large range: the Sun (as the brightest object) is roughly @mymath{10^{24}} times brighter than the fainter galaxies we can currently detect in our deepest images.
+Therefore discussing spectral flux density directly will involve a large range of values which can be inconvenient and hard to visualize/understand/discuss.
+Optical astronomers have chosen to use a logarithmic scale for the spectral flux density of astronomical objects.
 
 @cindex Hipparchus of Nicaea
-But the logarithm can only be usable with a dimensionless value that is always positive.
-Fortunately brightness is always positive (at least in theory@footnote{In practice, for very faint objects, if the background brightness is over-subtracted, we may end up with a negative ``brightness'' or sum of pixels in a real object.}).
-To remove the dimensions, we divide the brightness of the object (@mymath{B}) by a reference brightness (@mymath{B_r}).
-We then define a logarithmic scale as @mymath{magnitude} through the relation below.
+But the logarithm can only be usable with a value which is always positive and has no units.
+Fortunately brightness is always positive.
+To remove the units, we divide the spectral flux density of the object (@mymath{F}) by a reference spectral flux density (@mymath{F_r}).
+We then define a logarithmic scale through the relation below and call it the @emph{magnitude}.
 The @mymath{-2.5} factor in the definition of magnitudes is a legacy of the our ancient colleagues and in particular Hipparchus of Nicaea (190-120 BC).
 
-@dispmath{m-m_r=-2.5\log_{10} \left( B \over B_r \right)}
+@dispmath{m-m_r=-2.5\log_{10} \left( F \over F_r \right)}
 
 @noindent
 @mymath{m} is defined as the magnitude of the object and @mymath{m_r} is the pre-defined magnitude of the reference brightness.
 For estimating the error in measuring a magnitude, see @ref{Quantifying measurement limits}.
 
+The equation above is ultimately a relative relation.
+To tie it to physical units, astronomers use the concept of a zero point which is discussed in the next item.
+
 @item Zero point
 @cindex Zero point magnitude
 @cindex Magnitude zero point
-A unique situation in the magnitude equation above occurs when the reference brightness is unity (@mymath{B_r=1}).
-This brightness will thus summarize all the hardware-specific parameters discussed above (like the conversion of pixel values to physical units) into one number.
-That reference magnitude is commonly known as the @emph{Zero point} magnitude because when @mymath{B=B_r=1}, the right side of the magnitude definition above will be zero.
-Using the zero point magnitude (@mymath{Z}), we can write the magnitude relation above in a more simpler format:
+A unique situation in the magnitude equation above occurs when the reference spectral flux density is unity (@mymath{F_r=1}).
+In other words, the increase in brightness that produces to an increment in the detector's native measurement units (usually referred to as ``analog to digital units'', or ADUs, also known as ``counts'').
+The word ``increment'' was intentionally used because ADUs are discrete and measured as integer counts.
+In other words, a increase in spectral flux density that is below @mymath{F_r} will not be measured by the device.
+The reference magnitde (@mymath{m_r}) that corresponds to @mymath{F_r} is known as the @emph{Zero point} magnitude of that image.
 
-@dispmath{m = -2.5\log_{10}(B) + Z}
+The increase in brightness (from an astrophysical source) that produces an increment in ADUs depends on all hardware and observational parameters that the image was taken in.
+These include the quantum efficiency of the dector, the detector's coating, the transmission of the optical path, the filter transmission curve, the atmospheric absorption (for ground-based images; for example thin high-altitude clouds or at low altitudes) and etc.
+The zero point therefore allows us to summarize all these ``observational'' (non-astrophysical) factors into a single number and compare different observations from different instruments at different times (critical to do science).
 
-@cindex Jansky (Jy)
+Using the zero point magnitude (@mymath{m_r=Z}), we can write the magnitude relation above in a simpler format (recall that @mymath{F_r=1}):
+
+@dispmath{m = -2.5\log_{10}(F) + Z}
+
 @cindex AB magnitude
 @cindex Magnitude, AB
-Gnuastro has an installed script to estimate the zero point of any image, see @ref{Zero point estimation} (it contains practical tutorials to help you get started fast).
-Having the zero point of an image, you can convert its pixel values to physical units like microJanskys (or @mymath{\mu{}Jy}).
-This enables direct pixel-based comparisons with images from other instruments@footnote{Comparing data from different instruments assumes instrument and observation signatures are properly corrected, things like the flat-field or the Sky absorption.
-It is also valid for pixel values, assuming that factors that can change the morphology (like the @ref{PSF}) are the same.}.
-Jansky is a commonly used unit for measuring spectral flux density and one Jansky is equivalent to @mymath{10^{-26} W/m^2/Hz} (watts per square meter per hertz).
+The zero point is found through comparison of measurements with pre-defined standards (in other words, it is a calibration of the pixel values).
+Gnuastro has an installed script with a complete tutorial to estimate the zero point of any image, see @ref{Zero point estimation}.
 
-This conversion can be done with the fact that in the AB magnitude standard@footnote{@url{https://en.wikipedia.org/wiki/AB_magnitude}}, @mymath{3631Jy} corresponds to the zero-th magnitude, therefore @mymath{B\equiv3631\times10^{6}\mu{Jy}} and @mymath{m\equiv0}.
-We can therefore estimate the brightness (@mymath{B_z}, in @mymath{\mu{Jy}}) corresponding to the image zero point (@mymath{Z}) using this equation:
+Having the zero point of an image, you can convert its pixel values to the same physical units as the reference that the zero point was measured on.
+Historically, the reference was defined to be measurements of the star Vega (with the same instrument and same environment), producing the @emph{vega magnitude} sysytem where the star Vega had a magnitude of zero (similar to the catalog of Hipparchus of Nicaea).
+However, this caused many problems because Vega itself has its unique spectral features which are not in other stars and it is a variable star when measured precisely.
 
-@dispmath{m - Z = -2.5\log_{10}(B/B_z)}
-@dispmath{0 - Z = -2.5\log_{10}({3631\times10^{6}\over B_z})}
-@dispmath{B_z = 3631\times10^{\left(6 - {Z \over 2.5} \right)} \mu{Jy}}
+Therefore, based on previous efforts, in 1983 Oke & Gunn @url{https://ui.adsabs.harvard.edu/abs/1983ApJ...266..713O,proposed} the AB (absolute) magnitude system from accurate spectroscopy of Vega.
+To avoid confusion with the ``absolute magnitude'' of a source (at a fixed distance), this magnitude system is always written as AB magnitude.
+The equation below was defined such that a star with a flat spectra around @mymath{5480\AA} have a similar magnitude in the AB and Vega-based systems, where @mymath{F_\nu} is the frequency-based spectral flux density (in units of @mymath{erg/s/cm^2/Hz}):
 
-@cindex SDSS
-Because the image zero point corresponds to a pixel value of @mymath{1}, the @mymath{B_z} value calculated above also corresponds to a pixel value of @mymath{1}.
-Therefore you simply have to multiply your image by @mymath{B_z} to convert it to @mymath{\mu{Jy}}.
-Do not forget that this only applies when your zero point was also estimated in the AB magnitude system.
-On the command-line, you can estimate this value for a certain zero point with AWK, then multiply it to all the pixels in the image with @ref{Arithmetic}.
-For example, let's assume you are using an SDSS image with a zero point of 22.5:
+@dispmath{m_{AB} = -2.5\log_{10}(F_\nu) + 48.60}
 
-@example
-bz=$(echo 22.5 | awk '@{print 3631 * 10^(6-$1/2.5)@}')
-astarithmetic sdss.fits $bz x --output=sdss-in-muJy.fits
-@end example
-
-@noindent
-But in Gnuastro, it gets even easier: Arithmetic has an operator called @code{counts-to-jy}.
-This will directly convert your image pixels (in units of counts) to Janskys though a provided AB Magnitude-based zero point like below.
-See @ref{Arithmetic operators} for more.
+Reversing this equation and using Janskys, an object with a magnitude of zero (@mymath{m_{AB}=0}) has a spectral flux density of @mymath{3631Jy}.
+Once the AB magnitude zero point of an image is found, you can directly convert any measurement on it from instrument ``counts'' (ADUs) to Janskys.
+In Gnuastro, the Arithmetic program has an operator called @code{counts-to-jy} which will do this though a given AB Magnitude-based zero point like below (SDSS data have a fixed zero point of 22.5 in the AB magnitude system):
 
 @example
 $ astarithmetic sdss.fits 22.5 counts-to-jy
@@ -29444,33 +29488,24 @@ $ astarithmetic sdss.fits 22.5 counts-to-jy
 
 @cartouche
 @noindent
-@strong{Be careful with the exposure time:} as described at the start of this section, we are assuming your data are in units of counts/sec.
-As a result, the counts you get from the command above, are only for one second of exposure!
-Please see the discussion below in ``Magnitude to counts'' for more.
+@strong{Verify the zero point usage in from new databases:} observational factors like the exposure time, the gain (how many electrons correspond to one ADU), telescope aperture, filter transmission curve and other factors are usually taken into account in the reduction pipeline that produces high-level science products to provide a zero point that directly converts pixel values (in what ever units) to Janskys.
+But some reduction pipelines may not account for some these for special reasons: for example not account for the gain or exposure time.
+To avoid annoying strange results, when using a new database, verify that the zero points they provide directly converts pixel values to Janskys (is an AB magnitude zero point), or not.
+If not, you can follow steps described below.
+This information is usually in the documentation of the database.
 @end cartouche
 
-@item Magnitude to counts (accounting for exposure time)
-@cindex Exposure time
-Until now, we had assumed that the data are in units of counts/sec.
-As a result, the equations given above (in the ``Zero point'' item to convert magnitudes to pixel counts), give the count level for the reference (1 second) exposure.
-But we rarely take 1 second exposures!
-It is therefore very important to take the exposure time into account in scenarios like simulating observations with varying exposure times (where you need to know how many counts the object of a certain magnitude will add to a certain image with a certain exposure time).
+Let's look at one example where the given zero point has not accounted for the exposure time (in other words it is only for a fixed exposure time: @mymath{Z_E}), but the pixel values (@mymath{p}) have been corrected for the exposure time.
+One solution would be to first multiply the pixels by the exposure time, use that zero point and delete the temporary file.
+But a more optimal way (in terms of storage, execution and clean code) would be to correct the zero point.
+Let's take @mymath{t} to show time in units of seconds and @mymath{p_E} to be the pixel value that would be measured after the the fixed exposure time (in other words @mymath{p_E=p\times t}).
+We then have the following:
 
-To clarify the concept, let's define @mymath{C} as the @emph{counted} electrons (which has a linear relation with the photon energy entering the CCD pixel).
-In this case, if an object of brightness @mymath{B} is observed for @mymath{t} seconds, it will accumulate @mymath{C=B\times t} counts@footnote{Recall that counts another name for ADUs, which already includes the CCD gain.}.
-Therefore, the generic magnitude equation above can be written as:
-@dispmath{m = -2.5\log_{10}(B) + Z = -2.5\log_{10}(C/t) + Z}
-@noindent
-From this, we can derive @mymath{C(t)} in relation to @mymath{C(1)}, or counts from a 1 second exposure, using this relation:
-@dispmath{C(t) = t\times10^{(m-Z)/2.5} = t\times C(1)}
-In other words, you should simply multiply the counts for one second with the number of observed seconds.
+@dispmath{m = -2.5\log_{10}(p_E) + Z_E = -2.5\log_{10}(p\times t) + Z_E}
 
-Another approach is to shift the time-dependence of the counts into the zero point (after all exposure time is also a hardware issue).
-Let's derive the equation below:
-@dispmath{m = -2.5\log_{10}(C/t) + Z = -2.5\log_{10}(C) + 2.5\log_{10}(t) + Z}
-Therefore, defining an exposure-time-dependent zero point as @mymath{Z(t)}, we can directly correlate a certain object's magnitude with counts after an exposure of @mymath{t} seconds:
-@dispmath{m = -2.5\log_{10}(C) + Z(t) \quad\rm{where}\quad Z(t)=Z + 2.5\log_{10}(t)}
-This solution is useful in programs like @ref{MakeCatalog} or @ref{MakeProfiles}, when you cannot (or do not want to: because of the extra storage/speed costs) manipulate the values image (for example, divide it by the exposure time to use a counts/sec zero point).
+From the properties of logarithms, we can then derive the correct zero point (@mymath{Z}) to use directly (without touching the original pixels):
+
+@dispmath{m = -2.5\log_{10}(p) + Z \quad\rm{where}\quad Z = Z_E - 2.5\log_{10}(t)}
 
 @item Surface brightness
 @cindex Steradian
@@ -29478,15 +29513,15 @@ This solution is useful in programs like @ref{MakeCatalog} or @ref{MakeProfiles}
 @cindex Celestial sphere
 @cindex Surface brightness
 @cindex SI (International System of Units)
-Another important concept is the distribution of an object's brightness over its area.
+An important concept is the distribution of an object's brightness over its area.
 For this, we define the @emph{surface brightness} to be the magnitude of an object's brightness divided by its solid angle over the celestial sphere (or coverage in the sky, commonly in units of arcsec@mymath{^2}).
 The solid angle is expressed in units of arcsec@mymath{^2} because astronomical targets are usually much smaller than one steradian.
 Recall that the steradian is the dimension-less SI unit of a solid angle and 1 steradian covers @mymath{1/4\pi} (almost @mymath{8\%}) of the full celestial sphere.
 
 Surface brightness is therefore most commonly expressed in units of mag/arcsec@mymath{^2}.
-For example, when the brightness is measured over an area of A arcsec@mymath{^2}, then the surface brightness becomes:
+For example, when the spectral flux density is measured over an area of A arcsec@mymath{^2}, then the surface brightness becomes:
 
-@dispmath{S = -2.5\log_{10}(B/A) + Z = -2.5\log_{10}(B) + 2.5\log_{10}(A) + Z}
+@dispmath{S = -2.5\log_{10}(F/A) + Z = -2.5\log_{10}(F) + 2.5\log_{10}(A) + Z}
 
 @noindent
 In other words, the surface brightness (in units of mag/arcsec@mymath{^2}) is related to the object's magnitude (@mymath{m}) and area (@mymath{A}, in units of arcsec@mymath{^2}) through this equation:
@@ -29495,22 +29530,13 @@ In other words, the surface brightness (in units of mag/arcsec@mymath{^2}) is re
 
 A common mistake is to follow the mag/arcsec@mymath{^2} unit literally, and divide the object's magnitude by its area.
 But this is wrong because magnitude is a logarithmic scale while area is linear.
-It is the brightness that should be divided by the solid angle because both have linear scales.
+It is the spectral flux density that should be divided by the solid angle because both have linear scales.
 The magnitude of that ratio is then defined to be the surface brightness.
 
 One usual application of this is to convert an image's pixel values to surface brightness, when you know its zero point.
-This can be done with the two simple commands below.
-First, we derive the pixel area (in arcsec@mymath{^2}) then we use Arithmetic to convert the pixels into surface brightness, see below for the details.
-
-@example
-$ zeropoint=22.5
-$ pixarea=$(astfits image.fits --pixelareaarcsec2)
-$ astarithmetic image.fits $zeropoint $pixarea counts-to-sb \
-                --output=image-sb.fits
-@end example
-
-See @ref{Reverse polish notation} for more on Arithmetic's notation and @ref{Arithmetic operators} for a description of each operator.
-And see @ref{FITS images in a publication} for a fully working tutorial on how to optimally convert a FITS image to a PDF image for usage in a publication using the surface brightness conversion shown above.
+Besides applications in catalogs and the resulting scientific analysis, converting pixels to surface brightness is usually a good way to display a FITS file in a publication!
+See @ref{FITS images in a publication} for a fully working tutorial on how to do this.
+@end table
 
 @cartouche
 @noindent
@@ -29518,11 +29544,9 @@ And see @ref{FITS images in a publication} for a fully working tutorial on how t
 Convolution is also a process of finding the weighted mean of pixel values.
 During these processes, many arithmetic operations are done on the original pixel values, for example, addition or multiplication.
 However, @mymath{log_{10}(a+b)\ne log_{10}(a)+log_{10}(b)}.
-Therefore after calculating a magnitude or surface brightness image, do not apply any such operations on it!
-If you need to warp or convolve the image, do it @emph{before} the conversion.
+Therefore if you generate color, magnitude or surface brightness images (where pixels are in units of mangnitudes), do not apply any such operations on them!
+If you need to warp or convolve the image, do it @emph{before} the conversion to magnitude-based units.
 @end cartouche
-@end table
-
 
 
 

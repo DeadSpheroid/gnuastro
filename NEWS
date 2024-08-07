@@ -15,6 +15,11 @@ See the end of the file for license conditions.
     azimuthal ranges (all other pixels are ignored). Suggested and
     implemented by Ignacio Ruiz Cejudo.
 
+*** Library
+
+  - gal_units_wavelength_flux_density_to_jy: convert given wavelength flux
+    density (erg/s/cm^2/A) to Janskys.
+
 ** Removed features
 ** Changed features
 ** Bugs fixed
@@ -114,14 +119,15 @@ See the end of the file for license conditions.
     example in the book for more.
 
 *** Library
-- gal_statistics_concentration: measure the concentration of values around
-  the median; see the book for the details.
 
-- gal_units_jy_to_wavelength_flux_density: convert Janskys to wavelength
-  flux density.
+  - gal_statistics_concentration: measure the concentration of values
+    around the median; see the book for the details.
 
-- gal_units_zeropoint_change: change the zero point of the input data set
-  to an output zero point.
+  - gal_units_jy_to_wavelength_flux_density: convert Janskys to wavelength
+    flux density.
+
+  - gal_units_zeropoint_change: change the zero point of the input data set
+    to an output zero point.
 
 ** Removed features
 ** Changed features

@@ -3098,6 +3098,9 @@ arithmetic_function_binary_flt(int operator, int flags, gal_data_t *il,
     case GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY:
       BINFUNC_F_OPERATOR_SET( gal_units_jy_to_wavelength_flux_density,
                               +0 ); break;
+    case GAL_ARITHMETIC_OP_WAVELENGTH_FLUX_DENSITY_TO_JY:
+      BINFUNC_F_OPERATOR_SET( gal_units_wavelength_flux_density_to_jy,
+                              +0 ); break;
     case GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY:
       BINFUNC_F_OPERATOR_SET( gal_units_counts_to_nanomaggy, +0 ); break;
     case GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS:
@@ -4114,6 +4117,9 @@ gal_arithmetic_set_operator(char *string, size_t *num_operands)
   else if (!strcmp(string, "jy-to-wavelength-flux-density"))
     { op=GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY;
       *num_operands=2;  }
+  else if (!strcmp(string, "wavelength-flux-density-to-jy"))
+    { op=GAL_ARITHMETIC_OP_WAVELENGTH_FLUX_DENSITY_TO_JY;
+      *num_operands=2;  }
 
   /* Celestial coordinate conversions. */
   else if (!strcmp(string, "eq-b1950-to-eq-j2000"))
@@ -4463,6 +4469,8 @@ gal_arithmetic_operator_string(int operator)
     case GAL_ARITHMETIC_OP_JY_TO_MAG:       return "jy-to-mag";
     case GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY:
       return "jy-to-wavelength-flux-density";
+    case GAL_ARITHMETIC_OP_WAVELENGTH_FLUX_DENSITY_TO_JY:
+      return "wavelength-flux-density-to-jy";
     case GAL_ARITHMETIC_OP_AU_TO_PC:        return "au-to-pc";
     case GAL_ARITHMETIC_OP_PC_TO_AU:        return "pc-to-au";
     case GAL_ARITHMETIC_OP_LY_TO_PC:        return "ly-to-pc";
@@ -4757,6 +4765,7 @@ gal_arithmetic(int operator, size_t numthreads, int flags, ...)
     case GAL_ARITHMETIC_OP_NANOMAGGY_TO_COUNTS:
     case GAL_ARITHMETIC_OP_COUNTS_TO_NANOMAGGY:
     case GAL_ARITHMETIC_OP_JY_TO_WAVELENGTH_FLUX_DENSITY:
+    case GAL_ARITHMETIC_OP_WAVELENGTH_FLUX_DENSITY_TO_JY:
       d1 = va_arg(va, gal_data_t *);
       d2 = va_arg(va, gal_data_t *);
       out=arithmetic_function_binary_flt(operator, flags, d1, d2);
@@ -4776,7 +4785,6 @@ gal_arithmetic(int operator, size_t numthreads, int flags, ...)
       d2 = va_arg(va, gal_data_t *);
       d3 = va_arg(va, gal_data_t *);
       out=arithmetic_counts_to_from_sb(operator, flags, d1, d2, d3);
-
       break;
 
     /* Statistical operators that return one value. */
