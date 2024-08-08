@@ -29371,55 +29371,52 @@ It might even be so intertwined with its processing, that adding new columns mig
 @node Brightness flux magnitude, Quantifying measurement limits, Detection and catalog production, MakeCatalog
 @subsection Brightness, Flux, Magnitude and Surface brightness
 
-@cindex Flux
-@cindex Luminosity
+After taking an image with your smartphone camera (or a large telescope), the value in each pixel of the output file is a proxy for the amount of @emph{energy} that accumulated in it (while it was exposed to light).
+In astrophysics, the centimetre–gram–second (cgi) units are commonly used so energy is commonly reported in units of @mymath{erg}.
+In an image, the energy of a galaxy for example will be distributed over many pixels.
+Therefore, the collected energy of an object in the image is the total sum of the values in the pixels associated to the object.
+
+To be able to compare our scientific data with other data, optical astronomers have a unique terminology based on the concept of ``Magnitude''s.
+But before getting to those, let's review the following basic physical concepts first:
+
+@table @asis
+@item Brightness (@mymath{erg/s})
 @cindex Brightness
-@cindex Quantum efficiency
-The @emph{brightness} of an object is defined as its @emph{measured} power (energy in units of time).
-In astrophysics cgi units are commonly used so brightness is reported in units of @mymath{erg/s}.
-In an image, the brightness of a nearby galaxy for example will be distributed over many pixels.
-Therefore, the brightness of an object in the image, is the total sum of the values in the pixels (proxy for the energy collected in that pixel) associated to the object, divided by the exposure time.
+To be able to compare with data taken with different exposure times, we define the @emph{brightness} which is the measured power (energy divided by time).
 
-Since it is @emph{measured}, brightness is not an inhrenet property of the object: at different distances, the same object will have different brightness measures.
-Brightness is also affected by many other factors, which we can summarize as @emph{artifacts}.
-Here are some examples (among many others):
-@itemize
-@item
-The brightness of other background/foreground sources in the same line of sight may be added to it.
-@item
-Photons may be absorbed or scattered on their way to the detector (which reduce its brightness).
-@item
-The distortion or point spread function of the optical system may change its shape.
-@item
-Electronic issues in the detector may cause different measurements of the same object in different pixels.
-@end itemize
-Through various data reduction and data analysis methods that are implemented on the raw observations, we (try to!) remove all these artifacts to have the ``pure'' brighntess of each object in the image.
-But dealing with the artifacts is beyond the scope of this section, so let's assume the reduction and analysis were done perfectly and we don't have artifacts.
+@item Flux (@mymath{erg/s/cm^2})
+@cindex Flux
+To be able to compare with data from different telescope collecting areas, we define the @emph{flux} which is defined in units of brightness per collecting-area.
+This area is historically reported in units of @mymath{cm^2}.
 
 @cindex Luminosity
-The @emph{flux} of an object is defined in units of energy/time/collecting-area.
-The collecting area is the telescope aperture (usually in units of @mymath{cm^2}).
-Therefore, flux is usually written in astrophysics literature as @mymath{erg/s/cm^2}.
 Knowing the flux (@mymath{f}) and distance to the object (@mymath{r}), we can define its @emph{luminosity}: @mymath{L=4{\pi}r^2f}.
-Therefore, while flux and luminosity are intrinsic properties of the object, the brightness we measure depends on our detecting tools (hardware and software).
+This is the total power, in @mymath{erg/s}, the object emits in all directions.
+Luminosity has the same units as brighntess, but as shown above its intepretations is very different: unlike brightness (a measured property), luminosity is an inherent property of the object that is calculated from the combination of multiple measurements (flux and distance).
+Our focus in this section is on direct measurements of electromagnetic energy, not position-related measurements, so we do not use or describe luminosity any more in this section and have not allocated a separate item in this list for it.
 
-@cindex Jansky (Jy)
+@item Spectral flux density (@mymath{erg/s/cm^2/Hz} or @mymath{erg/s/cm^2/\AA})
 @cindex Spectral Flux Density
 @cindex Frequency Flux Density
 @cindex Wavelength Flux Density
 @cindex Flux density (spectral)
-An important fact that we have ignored until now is the wavelength (or frequency) range that the incoming brightness is measured in.
+To take into account the spectral coverage of our data, we define the @emph{spectral flux density}, which is defined in either of these units (based on context): @mymath{erg/s/cm^2/Hz} (frequency-based) @mymath{erg/s/cm^2/\AA} (wavelength-based).
+
 Like other objects in nature, astronomical objects do not emit or reflect the same flux at all wavelengths.
 On the other hand, our detector techologies are different for different wavelength ranges.
 Therefore, even if we wanted to, there is no way to measure the ``total'' (at all wavelengths) brightness of an object with a single tool.
-It is therefore important to account for the wavelength (or frequency) range of the light that we are measuring.
-For that we have @emph{spectral flux density}, which is defined in either of these units (based on context): @mymath{erg/s/cm^2/Hz} (frequency-based) @mymath{erg/s/cm^2/\AA} (wavelength-based).
+To be able to analyze objects with different spectral features, it is therefore important to account for the wavelength (or frequency) range of the photons that we measured through the spectral flux density.
 
-A ``Jansky'' is an existing unit of frequency-based spectral flux density (commonly used in radio astronomy), such that @mymath{1Jy=10^{-23}erg/s/cm^2/Hz}.
+@item Jansky (@mymath{10^{-23}erg/s/cm^2/Hz})
+@cindex Jansky (Jy)
+A ``Jansky'' is a certain value of frequency flux density (commonly used in radio astronomy).
 Janskys can be converted to wavelength flux density using the @code{jy-to-wavelength-flux-density} operator of Gnuastro's Arithmetic program, see the derivation under this operator's description in @ref{Unit conversion operators}.
+@end table
 
-Having clarified, the basic physical concepts above, let's review the terminology that is used in optical astronomy to refer to them.
+Having clarified, the basic physical concepts above, let's review the terminology that is used in optical astronomy.
 The reason optical astronomers don't use modern physical terminology is that optical astronomy precedes modern physical concepts by thousands of years.
+As a result, once the modern physical concepts where mature enough, optical astronomers found the correct conversion factors to better define their own terminology (and easily use previous results) instead of abandoning them.
+Other fields of astronomy (for example X-ray or radio) were discovered in the last century when modern physical concepts had already matured and were being extensively used, so for those fields, the concepts above are enough.
 
 @table @asis
 @item Magnitude
@@ -29427,20 +29424,19 @@ The reason optical astronomers don't use modern physical terminology is that opt
 @cindex Flux to magnitude conversion
 @cindex Astronomical Magnitude system
 The spectral flux density of astronomical objects span over a very large range: the Sun (as the brightest object) is roughly @mymath{10^{24}} times brighter than the fainter galaxies we can currently detect in our deepest images.
-Therefore discussing spectral flux density directly will involve a large range of values which can be inconvenient and hard to visualize/understand/discuss.
-Optical astronomers have chosen to use a logarithmic scale for the spectral flux density of astronomical objects.
+Therefore the scale that was originally used from the ancient times to measure the incoming light (written by Hipparchus of Nicaea; 190-120 BC) can be nicely parametrized as a logarithmic function of the spectral flux density.
 
 @cindex Hipparchus of Nicaea
 But the logarithm can only be usable with a value which is always positive and has no units.
 Fortunately brightness is always positive.
 To remove the units, we divide the spectral flux density of the object (@mymath{F}) by a reference spectral flux density (@mymath{F_r}).
 We then define a logarithmic scale through the relation below and call it the @emph{magnitude}.
-The @mymath{-2.5} factor in the definition of magnitudes is a legacy of the our ancient colleagues and in particular Hipparchus of Nicaea (190-120 BC).
+The @mymath{-2.5} factor is also a legacy of our ancient origins: was necessary to match the used magnitude system of Hipparchus which was used extensively in the centuries after.
 
 @dispmath{m-m_r=-2.5\log_{10} \left( F \over F_r \right)}
 
 @noindent
-@mymath{m} is defined as the magnitude of the object and @mymath{m_r} is the pre-defined magnitude of the reference brightness.
+@mymath{m} is defined as the magnitude of the object and @mymath{m_r} is the pre-defined magnitude of the reference spectral flux density.
 For estimating the error in measuring a magnitude, see @ref{Quantifying measurement limits}.
 
 The equation above is ultimately a relative relation.
@@ -29450,16 +29446,17 @@ To tie it to physical units, astronomers use the concept of a zero point which i
 @cindex Zero point magnitude
 @cindex Magnitude zero point
 A unique situation in the magnitude equation above occurs when the reference spectral flux density is unity (@mymath{F_r=1}).
-In other words, the increase in brightness that produces to an increment in the detector's native measurement units (usually referred to as ``analog to digital units'', or ADUs, also known as ``counts'').
-The word ``increment'' was intentionally used because ADUs are discrete and measured as integer counts.
+In other words, the increase in spectral flux density that produces to an increment in the detector's native measurement units (usually referred to as ``analog to digital units'', or ADUs, also known as ``counts'').
+
+The word ``increment'' above is used intentionally: because ADUs are discrete and measured as integer counts.
 In other words, a increase in spectral flux density that is below @mymath{F_r} will not be measured by the device.
 The reference magnitde (@mymath{m_r}) that corresponds to @mymath{F_r} is known as the @emph{Zero point} magnitude of that image.
 
-The increase in brightness (from an astrophysical source) that produces an increment in ADUs depends on all hardware and observational parameters that the image was taken in.
-These include the quantum efficiency of the dector, the detector's coating, the transmission of the optical path, the filter transmission curve, the atmospheric absorption (for ground-based images; for example thin high-altitude clouds or at low altitudes) and etc.
-The zero point therefore allows us to summarize all these ``observational'' (non-astrophysical) factors into a single number and compare different observations from different instruments at different times (critical to do science).
+The increase in spectral flux density (from an astrophysical source) that produces an increment in ADUs depends on all hardware and observational parameters that the image was taken in.
+These include the quantum efficiency of the dector, the detector's coating, the filter transmission curve, the transmission of the optical path, the atmospheric absorption (for ground-based images; for example observations at different altitudes from the horizon where the thickness of the atmosphere is different) and etc.
 
-Using the zero point magnitude (@mymath{m_r=Z}), we can write the magnitude relation above in a simpler format (recall that @mymath{F_r=1}):
+The zero point therefore allows us to summarize all these ``observational'' (non-astrophysical) factors into a single number and compare different observations from different instruments at different times (critical to do science).
+Defining the zero point magnitude as @mymath{m_r=Z} in the magnitude equation, we can write it in simpler format (recall that @mymath{F_r=1}):
 
 @dispmath{m = -2.5\log_{10}(F) + Z}
 
@@ -29467,14 +29464,13 @@ Using the zero point magnitude (@mymath{m_r=Z}), we can write the magnitude rela
 @cindex Magnitude, AB
 The zero point is found through comparison of measurements with pre-defined standards (in other words, it is a calibration of the pixel values).
 Gnuastro has an installed script with a complete tutorial to estimate the zero point of any image, see @ref{Zero point estimation}.
-
-Having the zero point of an image, you can convert its pixel values to the same physical units as the reference that the zero point was measured on.
-Historically, the reference was defined to be measurements of the star Vega (with the same instrument and same environment), producing the @emph{vega magnitude} sysytem where the star Vega had a magnitude of zero (similar to the catalog of Hipparchus of Nicaea).
+Historically, the reference was defined to be measurements of the star Vega, producing the @emph{vega magnitude} system.
+In this system, the star Vega had a magnitude of zero (similar to the catalog of Hipparchus of Nicaea).
 However, this caused many problems because Vega itself has its unique spectral features which are not in other stars and it is a variable star when measured precisely.
 
 Therefore, based on previous efforts, in 1983 Oke & Gunn @url{https://ui.adsabs.harvard.edu/abs/1983ApJ...266..713O,proposed} the AB (absolute) magnitude system from accurate spectroscopy of Vega.
 To avoid confusion with the ``absolute magnitude'' of a source (at a fixed distance), this magnitude system is always written as AB magnitude.
-The equation below was defined such that a star with a flat spectra around @mymath{5480\AA} have a similar magnitude in the AB and Vega-based systems, where @mymath{F_\nu} is the frequency-based spectral flux density (in units of @mymath{erg/s/cm^2/Hz}):
+The AB magnitude zero point (when the input is frequency flux density; @mymath{F_\nu} with units of @mymath{erg/s/cm^2/Hz}) was defined such that a star with a flat spectra around @mymath{5480\AA} have a similar magnitude in the AB and Vega-based systems:
 
 @dispmath{m_{AB} = -2.5\log_{10}(F_\nu) + 48.60}
 
@@ -29489,14 +29485,13 @@ $ astarithmetic sdss.fits 22.5 counts-to-jy
 @cartouche
 @noindent
 @strong{Verify the zero point usage in from new databases:} observational factors like the exposure time, the gain (how many electrons correspond to one ADU), telescope aperture, filter transmission curve and other factors are usually taken into account in the reduction pipeline that produces high-level science products to provide a zero point that directly converts pixel values (in what ever units) to Janskys.
-But some reduction pipelines may not account for some these for special reasons: for example not account for the gain or exposure time.
-To avoid annoying strange results, when using a new database, verify that the zero points they provide directly converts pixel values to Janskys (is an AB magnitude zero point), or not.
-If not, you can follow steps described below.
-This information is usually in the documentation of the database.
+But some reduction pipelines may not account for some of these for special reasons: for example not account for the gain or exposure time.
+To avoid annoying strange results, when using a new database, verify (in the documentation of the database) that the zero points they provide directly converts pixel values to Janskys (is an AB magnitude zero point), or not.
+If they not, you need to apply corrections your self.
 @end cartouche
 
 Let's look at one example where the given zero point has not accounted for the exposure time (in other words it is only for a fixed exposure time: @mymath{Z_E}), but the pixel values (@mymath{p}) have been corrected for the exposure time.
-One solution would be to first multiply the pixels by the exposure time, use that zero point and delete the temporary file.
+One solution would be to first multiply the pixels by the exposure time, use that zero point to get your desired measurement, and delete the temporary file.
 But a more optimal way (in terms of storage, execution and clean code) would be to correct the zero point.
 Let's take @mymath{t} to show time in units of seconds and @mymath{p_E} to be the pixel value that would be measured after the the fixed exposure time (in other words @mymath{p_E=p\times t}).
 We then have the following:
@@ -29513,13 +29508,16 @@ From the properties of logarithms, we can then derive the correct zero point (@m
 @cindex Celestial sphere
 @cindex Surface brightness
 @cindex SI (International System of Units)
-An important concept is the distribution of an object's brightness over its area.
+The definition of magnitude above was for the total spectral flux density coming from an object (recall how we mentioned at the start of this section that the total energy of an object is calculated by summing all its pixels).
+The total flux is (mostly!) independent of the angular size of your pixels, so we didn't need to account for the pixel area.
+But when you want to study extended structures where the total magnitude is not desired (for example the sub-structure of a galaxy, or the brightness of the background sky), you need to report values that are independent of the area that total spectral flux density was measured on.
+
 For this, we define the @emph{surface brightness} to be the magnitude of an object's brightness divided by its solid angle over the celestial sphere (or coverage in the sky, commonly in units of arcsec@mymath{^2}).
 The solid angle is expressed in units of arcsec@mymath{^2} because astronomical targets are usually much smaller than one steradian.
 Recall that the steradian is the dimension-less SI unit of a solid angle and 1 steradian covers @mymath{1/4\pi} (almost @mymath{8\%}) of the full celestial sphere.
 
 Surface brightness is therefore most commonly expressed in units of mag/arcsec@mymath{^2}.
-For example, when the spectral flux density is measured over an area of A arcsec@mymath{^2}, then the surface brightness becomes:
+For example, when the spectral flux density is measured over an area of A arcsec@mymath{^2}, the surface brightness is calculated by:
 
 @dispmath{S = -2.5\log_{10}(F/A) + Z = -2.5\log_{10}(F) + 2.5\log_{10}(A) + Z}
 
@@ -29533,14 +29531,13 @@ But this is wrong because magnitude is a logarithmic scale while area is linear.
 It is the spectral flux density that should be divided by the solid angle because both have linear scales.
 The magnitude of that ratio is then defined to be the surface brightness.
 
-One usual application of this is to convert an image's pixel values to surface brightness, when you know its zero point.
 Besides applications in catalogs and the resulting scientific analysis, converting pixels to surface brightness is usually a good way to display a FITS file in a publication!
 See @ref{FITS images in a publication} for a fully working tutorial on how to do this.
 @end table
 
 @cartouche
 @noindent
-@strong{Do not warp or convolve magnitude or surface brightness images:} Warping an image involves calculating new pixel values (of the new pixel grid) from the old pixel values.
+@strong{Do not warp or convolve magnitude or surface brightness images:} Warping an image involves calculating new pixel values (of the new pixel grid) from the input grid's pixel values.
 Convolution is also a process of finding the weighted mean of pixel values.
 During these processes, many arithmetic operations are done on the original pixel values, for example, addition or multiplication.
 However, @mymath{log_{10}(a+b)\ne log_{10}(a)+log_{10}(b)}.
