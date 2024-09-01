@@ -162,9 +162,10 @@ dist_man_MANS = $(MAYBE_ARITHMETIC_MAN) \
   $(MAYBE_STATISTICS_MAN) \
   $(MAYBE_TABLE_MAN) \
   $(MAYBE_WARP_MAN) \
-  man/astscript-pointing-simulate.1 \
+  man/astscript-color-faint-gray.1 \
   man/astscript-ds9-region.1 \
   man/astscript-fits-view.1 \
+  man/astscript-pointing-simulate.1 \
   man/astscript-psf-scale-factor.1 \
   man/astscript-psf-select-stars.1 \
   man/astscript-psf-stamp.1 \
