@@ -1,5 +1,6 @@
 Alphabetically ordered list to acknowledge in the next release.
 
+Alejandro Camazón Pinilla
 Alejandro Lumbreras-Calle
 Antonio Diaz Diaz
 Hok Kan (Ronald) Tsang

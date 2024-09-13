@@ -397,19 +397,18 @@ oneprofile_pix_by_pix(struct mkonthread *mkp)
     case PROFILE_GAUSSIAN:
       while(sQ)
         {
-          /* In case you want to see the status of the twosided ordered
-             queue, increasing and decreasing side by side, uncomment this
-             line. Note that there will be a lot of lines printed! */
-          /*print_tossll(lQ, sQ);*/
-
           /* Pop a pixel from the queue, convert its index into coordinates
              and use them to estimate the elliptical radius of the
-             pixel. If the pixel is outside the truncation radius, ignore
-             it. */
+             pixel. */
           p=gal_list_dosizet_pop_smallest(&lQ, &sQ, &circ_r);
           oneprofile_set_coord(mkp, p);
           oneprofile_r_el(mkp);
-          if(mkp->r > truncr) continue;
+
+          /* If the pixel is outside the truncation radius, ignore it. But
+             not if this is the first pixel that is being placed: when
+             truncation radius can be smaller than one pixel, see
+             https://savannah.gnu.org/bugs/index.php?66216*/
+          if(lQ && mkp->r > truncr) continue;
 
           /* Set the range for this pixel. */
           for(i=0;i<ndim;++i)
