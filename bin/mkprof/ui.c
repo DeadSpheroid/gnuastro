@@ -2069,15 +2069,16 @@ static void
 ui_print_intro(struct mkprofparams *p)
 {
   char *jobname;
+  size_t nt=p->cp.numthreads;
 
-  if(p->cp.quiet) return;
-
+  /* Program name and version as well as starting time. */
   printf(PROGRAM_NAME" "PACKAGE_VERSION" started on %s",
          ctime(&p->rawtime));
 
+  /* Information about profiles to be built */
   if(p->kernel)
     {
-      if( asprintf(&jobname, "Building one %s kernel",
+      if( asprintf(&jobname, "Building one %s kernel profile",
                    ui_profile_name_write(p->kernel->status))<0 )
         error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
     }
@@ -2090,6 +2091,7 @@ ui_print_intro(struct mkprofparams *p)
   gal_timing_report(NULL, jobname, 1);
   free(jobname);
 
+  /* Name of background image. */
   if(p->backname)
     {
       if(p->nomerged)
@@ -2108,24 +2110,35 @@ ui_print_intro(struct mkprofparams *p)
       free(jobname);
     }
 
+  /* RNG type info. */
   if( asprintf(&jobname, "Random number generator (RNG) type: %s",
                gsl_rng_name(p->rng))<0 )
     error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
   gal_timing_report(NULL, jobname, 1);
   free(jobname);
 
-  if( asprintf(&jobname, "Basic RNG seed: %lu", p->rng_seed)<0 )
+  /* RNG seed info */
+  if( asprintf(&jobname, "RNG seed: %lu", p->rng_seed)<0 )
     error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
   gal_timing_report(NULL, jobname, 1);
   free(jobname);
 
-  if(p->kernel==NULL)
+  /* If a catalog was given (not called with '--kernel': which is always
+     only a single profile), report the the number of threads. */
+  if(p->num>nt)
     {
-      if( asprintf(&jobname, "Using %zu threads.", p->cp.numthreads)<0 )
+      if( asprintf(&jobname, "Using %zu threads (multiple profiles "
+                   "assigned to each thread)", nt) < 0 )
         error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
-      gal_timing_report(NULL, jobname, 1);
-      free(jobname);
     }
+  else
+    {
+      if( asprintf(&jobname, "Using %zu of %zu threads "
+                   "(one thread per profile)", p->num, nt) < 0 )
+        error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
+    }
+  gal_timing_report(NULL, jobname, 1);
+  free(jobname);
 }
 
 
@@ -2188,7 +2201,7 @@ ui_read_check_inputs_setup(int argc, char *argv[], struct mkprofparams *p)
 
 
   /* Print introductory information. */
-  ui_print_intro(p);
+  if(p->cp.quiet==0) ui_print_intro(p);
 }
 
 

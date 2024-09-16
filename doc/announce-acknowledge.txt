@@ -3,6 +3,7 @@ Alphabetically ordered list to acknowledge in the next release.
 Alejandro Camazón Pinilla
 Alejandro Lumbreras-Calle
 Antonio Diaz Diaz
+Carlos Marrero de La Rosa
 Hok Kan (Ronald) Tsang
 Phil Wyett
 Ole Streicher
