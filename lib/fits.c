@@ -1738,7 +1738,7 @@ gal_fits_key_list_add_software_versions(gal_fits_list_key_t **keylist)
     error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
 #endif
   gal_checkset_allocate_copy("CFITSIO", &kname);
-  gal_checkset_allocate_copy("Version of used CFITSIO.", &comment);
+  gal_checkset_allocate_copy("Version of CFITSIO used.", &comment);
   gal_fits_key_list_add(keylist, GAL_TYPE_STRING, kname, 1,
                         cfitsioversion, 1, comment, 1, NULL, 0);
 
@@ -1750,7 +1750,7 @@ gal_fits_key_list_add_software_versions(gal_fits_list_key_t **keylist)
   wcslibversion_const=wcslib_version(wcslibvers);
   gal_checkset_allocate_copy(wcslibversion_const, &wcslibversion);
   gal_checkset_allocate_copy("WCSLIB", &kname);
-  gal_checkset_allocate_copy("Version of used WCSLIB.", &comment);
+  gal_checkset_allocate_copy("Version of WCSLIB used.", &comment);
   gal_fits_key_list_add(keylist, GAL_TYPE_STRING, kname, 1,
                         wcslibversion, 1, comment, 1, NULL, 0);
 #endif
@@ -1758,7 +1758,7 @@ gal_fits_key_list_add_software_versions(gal_fits_list_key_t **keylist)
   /* Write the GSL version. */
   gal_checkset_allocate_copy("GSL", &kname);
   gal_checkset_allocate_copy(GSL_VERSION, &gslversion);
-  gal_checkset_allocate_copy("Version of used GNU Scientific Library.",
+  gal_checkset_allocate_copy("Version of GNU Scientific Library used.",
                              &comment);
   gal_fits_key_list_add(keylist, GAL_TYPE_STRING, kname, 1,
                         gslversion, 1, comment, 1, NULL, 0);
@@ -1766,7 +1766,7 @@ gal_fits_key_list_add_software_versions(gal_fits_list_key_t **keylist)
   /* Write the Gnuastro's version. */
   gal_checkset_allocate_copy("GNUASTRO", &kname);
   gal_checkset_allocate_copy(PACKAGE_VERSION, &gnuastroversion);
-  gal_checkset_allocate_copy("Version of used GNU Astronomy Utilities.",
+  gal_checkset_allocate_copy("Version of GNU Astronomy Utilities used.",
                              &comment);
   gal_fits_key_list_add(keylist, GAL_TYPE_STRING, kname, 1,
                         gnuastroversion, 1, comment, 1, NULL, 0);
