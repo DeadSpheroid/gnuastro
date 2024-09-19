@@ -13593,6 +13593,38 @@ But this may be disabled with the following (or a similar) lines in @code{/etc/I
 
 To fix this problem, simply comment such lines (by placing a @code{<!--} before each statement/line and @code{-->} at the end of that statement/line).
 
+@item
+@command{$ make dist}: @emph{Complains about "Numeric user ID too large" and aborts.} This is a problem related to the way that GNU Automake calls GNU Tar on some operating systems.
+For more information see bug 65578@footnote{@url{https://savannah.gnu.org/bugs/index.php?65578}}.
+Until this bug is fixed, you can build the tarball by following the steps below:
+
+@example
+## Generate the build directory; ready to be packaged.
+$ ./developer-build -a -c -d -C
+
+## Go to the build directory:
+$ cd build
+@end example
+
+Open and edit the @file{Makefile} to add @code{--format=posix} to the definition of the @code{am__tar}.
+So, the line
+
+@example
+am__tar = $$@{TAR-tar@} chof - "$$tardir"
+@end example
+
+becomes
+
+@example
+am__tar = $$@{TAR-tar@} --format=posix chof - "$$tardir"
+@end example
+
+Finally, create the tarball:
+@example
+$ make dist
+@end example
+
+
 @end itemize
 
 @noindent
