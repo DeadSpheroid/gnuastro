@@ -334,7 +334,7 @@ Detecting lines and extracting spectra in 3D data
 * 3D measurements and spectra::  Measuring 3d properties including spectra.
 * Extracting a single spectrum and plotting it::  Extracting a single vector row.
 * Cubes with logarithmic third dimension::  When the wavelength/frequency is logarithmic.
-* Pseudo narrow-band images::   Collapsing the third dimension into a 2D image.
+* Synthetic narrow-band images::   Collapsing the third dimension into a 2D image.
 
 Color images with full dynamic range
 
@@ -2059,7 +2059,7 @@ Because all conditions are under control in a simulated/mock environment/dataset
 But they need to be as realistic as possible, so this tutorial is dedicated to this important step of an analysis (simulations).
 
 There are other tutorials also, on things that are commonly necessary in astronomical research:
-In @ref{Detecting lines and extracting spectra in 3D data}, we use MUSE cubes (an IFU dataset) to show how you can subtract the continuum, detect emission-line features, extract spectra and build pseudo narrow-band images.
+In @ref{Detecting lines and extracting spectra in 3D data}, we use MUSE cubes (an IFU dataset) to show how you can subtract the continuum, detect emission-line features, extract spectra and build synthetic narrow-band images.
 In @ref{Color channels in same pixel grid} we demonstrate how you can warp multiple images into a single pixel grid (often necessary with multi-wavelength data), and build a single color image.
 In @ref{Moire pattern in stacking and its correction} we show how you can avoid the unwanted Moir@'e pattern which happens when warping separate exposures to build a stacked/co-add deeper image.
 In @ref{Zero point of an image} we review the process of estimating the zero point of an image using a reference image or catalog.
@@ -7938,7 +7938,7 @@ $ wget http://akhlaghi.org/data/a370-crop.fits    # Downloads 287 MB
 
 In the sections below, we will first review how you can visually inspect a 3D data cube in DS9 and interactively see the spectra of any region.
 We will then subtract the continuum emission, detect the emission-lines within this cube and extract their spectra.
-We will finish with creating pseudo narrow-band images optimized for some of the emission lines.
+We will finish with creating synthetic narrow-band images optimized for some of the emission lines.
 
 @menu
 * Viewing spectra and redshifted lines::  Interactively see the spectra of an object
@@ -7948,7 +7948,7 @@ We will finish with creating pseudo narrow-band images optimized for some of the
 * 3D measurements and spectra::  Measuring 3d properties including spectra.
 * Extracting a single spectrum and plotting it::  Extracting a single vector row.
 * Cubes with logarithmic third dimension::  When the wavelength/frequency is logarithmic.
-* Pseudo narrow-band images::   Collapsing the third dimension into a 2D image.
+* Synthetic narrow-band images::   Collapsing the third dimension into a 2D image.
 @end menu
 
 @node Viewing spectra and redshifted lines, Sky lines in optical IFUs, Detecting lines and extracting spectra in 3D data, Detecting lines and extracting spectra in 3D data
@@ -8620,7 +8620,7 @@ Of course, the table in @file{spectrum-obj-198.fits} can be plotted using any ot
 In the next section (@ref{Cubes with logarithmic third dimension}), we'll review the necessary modifications to the recipes in this section for cubes where the third dimension is logarithmic, not linear (as in MUSE cubes).
 Finally, in @ref{Cubes with logarithmic third dimension}, you'll see how you can make narrow-band images of your desired target around your desired emission line.
 
-@node Cubes with logarithmic third dimension, Pseudo narrow-band images, Extracting a single spectrum and plotting it, Detecting lines and extracting spectra in 3D data
+@node Cubes with logarithmic third dimension, Synthetic narrow-band images, Extracting a single spectrum and plotting it, Detecting lines and extracting spectra in 3D data
 @subsection Cubes with logarithmic third dimension
 In @ref{Extracting a single spectrum and plotting it}, a single object's spectrum was extracted from the catalog and plotted.
 Extracting the wavelength of each slice was easy there because MUSE data cubes provide a linear third dimension.
@@ -8646,12 +8646,12 @@ $ asttable cat.fits --head=1 -csum-in-slice --transpose \
                                e p pow '$lr' x s'
 @end example
 
-@node Pseudo narrow-band images,  , Cubes with logarithmic third dimension, Detecting lines and extracting spectra in 3D data
-@subsection Pseudo narrow-band images
+@node Synthetic narrow-band images,  , Cubes with logarithmic third dimension, Detecting lines and extracting spectra in 3D data
+@subsection Synthetic narrow-band images
 
 In @ref{Continuum subtraction} we subtracted/separated the continuum from the emission/absorption lines of our galaxy in the MUSE cube.
 Let's visualize the morphology of the galaxy at some of the spectral lines to see how it looks.
-To do this, we will create pseudo narrow-band 2D images by collapsing the cube along the third dimension within a certain wavelength range that is optimized for that flux.
+To do this, we will create synthetic narrow-band 2D images by collapsing the cube along the third dimension within a certain wavelength range that is optimized for that flux.
 
 Let's find the wavelength range that corresponds to H-alpha emission we studied in @ref{Extracting a single spectrum and plotting it}.
 Fortunately MakeCatalog can calculate the minimum and maximum position of each label along each dimension like the command below.
@@ -8684,7 +8684,7 @@ $ astscript-fits-view crop-no-continuum.fits
 @end example
 
 Go through the slices and you will only see this particular region of the full cube.
-We can now collapse the third dimension of this image into a 2D pseudo-narrow band image with Arithmetic's @ref{Dimensionality changing operators}:
+We can now collapse the third dimension of this image into a 2D synthetic-narrow band image with Arithmetic's @ref{Dimensionality changing operators}:
 
 @example
 $ astarithmetic crop-no-continuum.fits 3 collapse-sum \
@@ -8694,7 +8694,7 @@ $ astscript-fits-view collapsed-all.fits
 @end example
 
 During the collapse, used all the pixels in each slice.
-This is not good for the faint outskirts in the peak of the emission line: the noise of the slices with less signal decreases the over-all signal-to-noise ratio in the pseudo-narrow band image.
+This is not good for the faint outskirts in the peak of the emission line: the noise of the slices with less signal decreases the over-all signal-to-noise ratio in the synthetic-narrow band image.
 So let's set all the pixels that aren't labeled with this object as NaN, then collapse.
 To do that, we first need to crop the @code{OBJECT} cube in @file{seg.fits}.
 With the second command, please have a look to confirm how the labels change as a function of wavelength.
@@ -8796,7 +8796,7 @@ In the ``Layers'' menu, select ``Add Position Control''.
 You will see that at the bottom half, a new scatter plot information is displayed.
 @item
 Click on the scroll-down menu in front of ``Table'' and select @file{2: collapsed-obj-rad.fits}.
-Afterwards, you will see the optimized pseudo-narrow-band image radial profile as blue points.
+Afterwards, you will see the optimized synthetic-narrow-band image radial profile as blue points.
 @end enumerate
 
 @node Color images with full dynamic range, Zero point of an image, Detecting lines and extracting spectra in 3D data, Tutorials
@@ -14604,7 +14604,7 @@ $ echo $my_std
 This @command{eval}-based solution has been tested in in GNU Bash, Dash and Zsh and it works nicely in them (is ``portable'').
 This is because the constructs used here are pretty low-level (and widely available).
 
-For examples usages of this technique, see the following sections: @ref{Extracting a single spectrum and plotting it} and @ref{Pseudo narrow-band images}.
+For examples usages of this technique, see the following sections: @ref{Extracting a single spectrum and plotting it} and @ref{Synthetic narrow-band images}.
 
 @node Truncating start of long string FITS keyword values,  , Separate shell variables for multiple outputs, Shell tips
 @subsubsection Truncating start of long string FITS keyword values
@@ -22793,7 +22793,7 @@ Therefore, when the WCS is important for later processing, be sure that the inpu
 @cindex Narrow-band image
 @cindex IFU: Integral Field Unit
 @cindex Integral field unit (IFU)
-One common application of this operator is the creation of pseudo broad-band or narrow-band 2D images from 3D data cubes.
+One common application of this operator is the creation of synthetic broad-band or narrow-band 2D images from 3D data cubes.
 For example, integral field unit (IFU) data products that have two spatial dimensions (first two FITS dimensions) and one spectral dimension (third FITS dimension).
 The command below will collapse the whole third dimension into a 2D array the size of the first two dimensions, and then convert the output to single-precision floating point (as discussed above).
 
