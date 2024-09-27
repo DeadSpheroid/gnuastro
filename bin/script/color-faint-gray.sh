@@ -888,7 +888,7 @@ else
         else
           i_back_kernel="$tmpdir/back_kernel.fits"
           astmkprof --kernel=gaussian,$graykernelfwhm,3 \
-                    --oversample=1 --output=$i_gray_kernel $quiet
+                    --oversample=1 --output=$i_back_kernel $quiet
           astconvolve $i_back --hdu=$khdu --kernel=$i_back_kernel \
                       --domain=spatial --output=$i_back_convolved $quiet
         fi
