@@ -39,6 +39,8 @@ See the end of the file for license conditions.
     (smaller than a pixel even after accounting for the truncation
     factor). Reported by Alejandro Camazón Pinilla.
 
+  - bug #66280: Convolve's check images not in same directory as output.
+
 
 
 

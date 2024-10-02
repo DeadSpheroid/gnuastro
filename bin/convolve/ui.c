@@ -660,22 +660,27 @@ ui_preparations(struct convolveparams *p)
     }
 
 
-  /* Set the output name if the user hasn't set it. */
+
+  /* Set the output name if the user hasn't set it. When the output name is
+     given (possibly with directory information), the check images will
+     also be put in that same directory.*/
   if(cp->output==NULL)
     cp->output=gal_checkset_automatic_output(cp, p->filename, outsuffix);
+  else
+    cp->keepinputdir=1;
   gal_checkset_writable_remove(cp->output, p->filename, 0, cp->dontdelete);
   if(p->checkfreqsteps)
     {
-      p->freqstepsname=gal_checkset_automatic_output(cp, p->filename,
+      p->freqstepsname=gal_checkset_automatic_output(cp, cp->output,
                                                      "_freqsteps.fits");
-      gal_checkset_writable_remove(p->freqstepsname, p->filename, 0,
+      gal_checkset_writable_remove(p->freqstepsname, cp->output, 0,
                                    cp->dontdelete);
     }
   if(cp->tl.checktiles)
     {
-      cp->tl.tilecheckname=gal_checkset_automatic_output(cp, p->filename,
+      cp->tl.tilecheckname=gal_checkset_automatic_output(cp, cp->output,
                                                          "_tiled.fits");
-      gal_checkset_writable_remove(cp->tl.tilecheckname, p->filename, 0,
+      gal_checkset_writable_remove(cp->tl.tilecheckname, cp->output, 0,
                                    cp->dontdelete);
     }
 }

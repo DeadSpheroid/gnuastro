@@ -25491,25 +25491,9 @@ Noise has large frequencies which can make the result less reliable for the high
 So all the frequencies which have a spectrum smaller than the value given to the @option{minsharpspec} option in the sharper input image are set to zero and not divided.
 This will cause the wings of the final kernel to be flatter than they would ideally be which will make the convolved image result unreliable if it is too high.
 
-Some notes to on how to prepare your two input PSFs.
-Note that these (and several other issues that relate to an accurate estimation of the PSF) are practically described in the following tutorial: @ref{Building the extended PSF}.
-
-@itemize
-@item
-Choose a bright (unsaturated) star and use a region box (with Crop for example, see @ref{Crop}) that is sufficiently above the noise.
-
-@item
-Mask all background sources that may be nearby (you can use Segment's clumps, see @ref{Segment}).
-
-@item
-Use Warp (see @ref{Warp}) to warp the pixel grid so the star's center is exactly on the center of the central pixel in the cropped image.
-This will certainly slightly degrade the result, however, it is necessary.
-If there are multiple good stars, you can shift all of them, then normalize them (so the sum of each star's pixels is one) and then take their average to decrease this effect.
-
-@item
-The shifting might move the center of the star by one pixel in any direction, so crop the central pixel of the warped image to have a clean image for the deconvolution.
-@end itemize
-
+There is a complete tutorial in Gnuastro on how to build the (extended) PSF: @ref{Building the extended PSF}.
+Since the very extended PSF wings can be subtracted before matching (as described in that tutorial), for PSF-matching, you may not need the full extended PSF.
+It it is good to validate how large the PSF to match should be, based on the size of the sources you want to study: if it is a large nearby galaxy, you need a larger PSF, but if it is high redshift galxies, only the inner part of the tutorial above is enough.
 
 @item -c
 @itemx --minsharpspec
