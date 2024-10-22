@@ -37299,10 +37299,10 @@ If it was found, this macro is given a value of @code{1}, otherwise, it will hav
 
 
 
-@node Multithreaded programming, Library data types, Configuration information, Gnuastro library
-@subsection Multithreaded programming (@file{threads.h})
+@node Multithreaded CPU programming, Library data types, Configuration information, Gnuastro library
+@subsection Multithreaded CPU programming (@file{threads.h})
 
-@cindex Multithreaded programming
+@cindex Multithreaded CPU programming
 In recent years, newer CPUs do not have significantly higher frequencies any
 more. However, CPUs are being manufactured with more cores, enabling more
 than one operation (thread) at each instant. This can be very useful to
@@ -37357,7 +37357,7 @@ more.
 * Gnuastro's thread related functions::  Functions for managing threads.
 @end menu
 
-@node Implementation of pthread_barrier, Gnuastro's thread related functions, Multithreaded programming, Multithreaded programming
+@node Implementation of pthread_barrier, Gnuastro's thread related functions, Multithreaded CPU programming, Multithreaded CPU programming
 @subsubsection Implementation of @code{pthread_barrier}
 @cindex POSIX threads
 @cindex pthread_barrier
@@ -37415,7 +37415,7 @@ strange and apparently random errors that are extremely hard to debug.
 @end cartouche
 @end deftypefun
 
-@node Gnuastro's thread related functions,  , Implementation of pthread_barrier, Multithreaded programming
+@node Gnuastro's thread related functions, OpenCL in Gnuastro, Implementation of pthread_barrier, Multithreaded CPU programming
 @subsubsection Gnuastro's thread related functions
 
 @cindex POSIX Threads
@@ -37524,7 +37524,225 @@ For some real examples, please see the example program in @file{tests/lib/multit
 
 @end deftypefun
 
-@node Library data types, Pointers, Multithreaded programming, Gnuastro library
+@node Nultithreaded GPU programming, Multithreaded CPU programming, Library data types, Gnuastro library
+@subsection Multithreaded GPU programming (@file{cl-utils.h})
+
+@node Gnuastro and OpenCL
+@subsubsection Gnuastro and OpenCL
+Gnuastro can also build with OpenCL for multithreaded operations, owing to its cross platform capabilities.
+OpenCL(Open Computing Language) is an open-source, low-level API that provides a uniform programming environment for writing portable code. It's used to develop applications that can run on devices with different architectures.
+It's important to note that OpenCL is a set of open source standards, that are then implemented by hardware manufacturers.
+The power of OpenCL is made available in Gnuastro through the @file{cl-utils.h} module of the library, which provides functions for everything ranging from data transfer to executing kernels.
+Please note that, in OpenCL, the @code{host} is always a CPU, while the @code{device} is any OpenCL capable device, be it a GPU, CPU, FPGA, et cetra.
+
+@node OpenCL Basics
+@subsubsection OpenCL Basics
+OpenCL presents a uniform view of every hardware, no matter the architecture. When using OpenCL in your programs, there are 3 main things to keep track of:
+
+@enumerate
+@item
+@strong{OpenCL Context}: A global context, which allows access to the OpenCL API.
+
+@item
+@strong{OpenCL Platform}: A specific OpenCL implementation, out of all the implementations within a context.
+
+@item
+@strong{OpenCL Device}: An OpenCL capable device, out of all the devices within a platform.
+@end enumerate
+
+These must be initialised at the start of every OpenCL program through the following function:
+@deftypefun void gal_cl_init (cl_device_type device_type, cl_context @code{*context}, cl_platform_id @code{*platform_id}, @code{cl_device_id *device_id})
+Initialise the @code{cl_context}, @code{cl_platform_id}, @code{cl_device_id} for further use, with a specified @code{cl_device_type}.
+@end deftypefun
+
+Additionally, when interacting with the OpenCL API, we often make use of a construct known as a command queue.
+The command queue is associated with a single device, and provides an interface for us to issue commands to that device, such as copy data, execute code, et cetra.
+
+@deftypefun cl_command_queue gal_cl_create_command_queue (cl_context context, cl_device_id device_id)
+Create a new command queue associated with device @code{device_id}.
+@end deftypefun
+
+@deftypefun void gal_cl_finish_queue(cl_command_queue command_queue)
+Blocks the caller and returns only after every command issued is completed. Useful as a synchronization point.
+@end deftypefun
+
+@deftypefun void gal_cl_free_queue(cl_command_queue command_queue)
+Destroys and free's the memory associated with a command queue.
+@end deftypefun
+
+@node OpenCL Data Transfer
+@subsubsection OpenCL Data Transfer
+OpenCL offers two main ways of transferring data between host and device.
+@enumerate
+@item
+@strong{OpenCL Buffers}:
+OpenCL Buffers are essentially arrays and can be transferred back and forth with ease using the OpenCL API.
+Within Gnuastro, we have the following functions for manipulating buffers.
+@deftypefun cl_mem gal_cl_create_buffer_from_array (void @code{*array}, size_t size, cl_context context, cl_device_info device_type)
+Create a buffer associated with context specified by @code{context}, optionally initialising it using a provided @code{array}
+@end deftypefun
+
+@deftypefun void gal_cl_write_to_device (cl_mem @code{*buffer}, void @code{*mapped_ptr}, cl_command_queue command_queue)
+Writes data pointed to by @code{mapped_ptr}, to the buffer on the device.
+@end deftypefun
+
+@deftypefun @code{void *} gal_cl_read_to_host (cl_mem buffer, size_t size, cl_command_queue command_queue)
+Reads data from the buffer on the device, to the host, returning a pointer to it.
+@end deftypefun
+
+The last two functions are asynchronous, and therefore the user should make use of the @code{gal_cl_finish_queue()} before using the data.
+Otherwise, the behaviour is undefined.
+
+One of the main downsides of using Buffers, is the inability to pass structures to the device. This is solved by the next section.
+
+@item
+@strong{OpenCL SVM}:
+OpenCL SVM(Shared Virtual Memory) is a feature introduced in newer version of OpenCL, that allows programs running on the host and device to share the same virtual address space.
+Conventionally, since Host and Device Memory are separate(think CPU RAM and GPU VRAM), a pointer on the CPU is invalid on the GPU, and vice versa.
+This leads to all sorts of complexities while writing code for the GPU and while there exist workarounds, SVM provieds a simple solution.
+
+Internally, OpenCL SVM has an interface identical to @code{malloc()} and @code{free()}.
+While each hardware manufacturer has their own implementation of OpenCL, for Nvidia, SVM is implemented through something called @code{Managed Memory}.
+
+Any memory allocated in this way, is marked in a special way, and when a pointer to that memory is dereferenced on a device, the Nvidia Driver handles it differently.
+First, the driver checks to see which device that particular page of OpenCL SVM is currently present on.
+Then, if it is not present on the current device, that page of memory is @strong{moved} not copied, over to the device that requested it.
+
+Within Gnuastro, a user can utilise SVM through:
+
+@deftypefun @code{void *} gal_cl_alloc_svm(size_t size, cl_context context)
+Allocate @code{size} bytes of OpenCL SVM memory, tied to a context and return a pointer to it.
+@end deftypefun
+
+@deftypefun void gal_cl_read_svm_to_cpu (cl_context context, cl_command_queue command_queue, void @code{*svm_ptr}, size_t size)
+Read @code{size} bytes of OpenCL SVM Memory to the pointer @code{svm_ptr}.
+@end deftypefun
+
+@deftypefun void gal_cl_write_svm_to_gpu (cl_context context, cl_command_queue command_queue, void @code{*svm_ptr})
+Write the memory pointed to by @code{svm_ptr} to the device.
+@end deftypefun
+@end enumerate
+
+@node OpenCL Kernels
+@subsubsection OpenCL Kernels
+Programs that run on the GPU are known as kernels, and OpenCL kernels are typically suffixed by @code{.cl}.
+OpenCL Kernels are written using OpenCL C which is a variant of C99.
+There are a few important things to note while writing kernels:
+@enumerate
+@item
+Address Space Qualifiers like @code{__global}, @code{__local}, @code{__private} indicate where a particular variable is currently stored.
+
+@item
+The entry point for an OpenCL kernel is a function prefixed with @code{__kernel}.
+
+@item
+Dynamic Memory Allocation is not possible within the kernel, so make sure to allocate whatever you need beforehand!
+
+@item
+Thread id's can be accessed using @code{get_global_id()} and @code{get_local_id()}.
+
+OpenCL kernels are compiled at the run time of the host program, and in Gnuastro we have the following function to assist with this:
+
+@deftypefun cl_kernel gal_cl_kernel_create (char @code{*kernel_name}, char @code{*function_name}, char @code{*compiler_opts}, cl_device_id device_id, cl_context context, cl_command_queue command_queue)
+Compiles and creates a @code{cl_kernel} object from a .cl file pointed to by @code{kernel_name}. The compiler used is inferred from the @code{context} and @code{device_id}.
+@end deftypefun
+@end enumerate
+
+@node CL Threads Spinoff
+@subsubsection CL Threads Spinoff
+Once you have your compiled kernel and all the data transferred, then you need to execute the kernel.
+To keep a consistent interface, the Gnuastro library has a new threads spin off function, similar to the @code{gal_threads_spinoff()}.
+
+@deftp {Type (C @code{struct})} clprm
+A container of various parameters used for spawning OpenCL threads.
+
+@example
+typedef struct clprm
+@{
+  char          *kernel_path; /* Path to kernel.cl file */
+  char          *kernel_name; /* Name of __kernel function */
+  char        *compiler_opts; /* Additional compiler options */
+  cl_device_id     device_id; /* Device to be targeted */
+  cl_context         context; /* Context of OpenCL in use */
+  int        num_kernel_args; /* Num of total kernel arguments */
+  int           num_svm_args; /* Num of SVM args */
+  void         **kernel_args; /* Array of pointers to args */
+  size_t  *kernel_args_sizes; /* Sizes of non SVM args */
+  int     num_extra_svm_args; /* Number of implicit SVM args */
+  void      **extra_svm_args; /* Array of pointers to args */
+  int               work_dim; /* Work dimension of job - 1,2,3 */
+  size_t   *global_work_size; /* Array of global sizes */
+  size_t    *local_work_size; /* Array of local sizes */
+@} clprm;
+@end example
+@end deftp
+
+@noindent
+The list below contains a description for each @code{gal_data_t} element.
+
+@table @code
+@item char *kernel_path
+The filepath to the kernel to be loaded and executed.
+This file conventionally has the @code{.cl} extension.
+
+@item char *kernel_name
+The name of the function prefixed with @code{__kernel}.
+This is the entry point for the OpenCL kernel.
+
+@item char *compiler_opts
+The compiler options passed to the OpenCL Compiler.
+@example
+@code{char *compiler_opts = "-cl-opt-disable -DMACRO=defn";}
+@end example
+
+@item cl_device_id device_id
+The OpenCL device on which the kernel is being executed.
+
+@item cl_context context
+The OpenCL context in use.
+
+@item int num_kernel_args
+The total number of kernel arguments(arguments to the @code{__kernel} function).
+
+@item int num_svm_args
+The total number of SVM arguments.
+
+@item void **kernel_args
+An array of pointers to the kernel arguments to be passed to the kernel function on execution.
+For convenience, all the SVM pointers should be grouped at the start.
+
+@item size_t *kernel_args_sizes
+The sizes of each of the non SVM arguments.
+
+@item int num_extra_svm_args
+The total number of implicit SVM arguments.
+Implicit SVM arguments are those that are not passed to the kernel arguments directly, but still referenced inside the kernel.
+For example, a pointer to a SVM struct may be passed to the kernel directly, but an SVM pointer within the struct is implicitly passed.
+
+@item void **extra_svm_args
+The array of pointers to implicit SVM arguments.
+
+@item int workdim
+The work dimension of the job, which is the number of dimensions used in a thread index.
+The value must be 1, 2 or 3.
+For example, a 1 workdim job has indices like 0,1,2,3,...
+A 2 workdim job has indices like (0,0), (0,1), (1,0), (1,1),...
+A 3 workdim job has indices like (0,0,0), (0,0,1), (0,0,2),...
+
+@item size_t *global_work_size
+The array of sizes along each dimension globally. Must have the same number of elements as @code{workdim}.
+
+@item size_t *local_work_size
+The array of sizes along each dimension locally. Must have the same number of elements as @code{workdim}.
+
+@end table
+
+
+@deftypefun double gal_cl_threads_spinoff (clprm @code{*sprm})
+Launches an OpenCL kernel based on the parameters specified in @code(*sprm).
+@end deftypefun
+
+@node Library data types, Pointers, Multithreaded CPU programming, Gnuastro library
 @subsection Library data types (@file{type.h})
 
 Data in astronomy can have many types, numeric (numbers) and strings
@@ -44003,22 +44221,13 @@ Because of the complete introduction that was presented there, we will directly 
 As of this version, only spatial domain convolution is available in Gnuastro's libraries.
 We have not had the time to liberate the frequency domain function convolution and deconvolution functions that are available in the Convolve program@footnote{Hence any help would be greatly appreciated.}.
 
-@deftypefun {gal_data_t *} gal_convolve_spatial (gal_data_t @code{*tiles}, gal_data_t @code{*kernel}, size_t @code{numthreads}, int @code{edgecorrection}, int @code{convoverch}, int @code{conv_on_blank})
-Convolve the given @code{tiles} dataset (possibly a list of tiles, see @ref{List of gal_data_t} and @ref{Tessellation library}) with @code{kernel} on @code{numthreads} threads.
+@deftypefun @code{gal_data_t *} gal_convolve_spatial (gal_data_t @code{*input}, gal_data_t @code{*kernel}, size_t numthreads, size_t @code{*channels}, int noedgecorrection, int convoverch, int conv_on_blank)
+Convolve the given @code{input} dataset with @code{kernel} on @code{numthreads} threads.
 When @code{edgecorrection} is non-zero, it will correct for the edge dimming effects as discussed in @ref{Edges in the spatial domain}.
 When @code{conv_on_blank} is non-zero, this function will also attempt convolution over the blank pixels (and therefore give values to the blank pixels that are near non-blank pixels).
 
-@code{tiles} can be a single/complete dataset, but in that case the speed will be very slow.
-Therefore, for larger images, it is recommended to give a list of tiles covering a dataset.
-To create a tessellation that fully covers an input image, you may use @code{gal_tile_full}, or @code{gal_tile_full_two_layers} to also define channels over your input dataset.
-These functions are discussed in @ref{Tile grid}.
-You may then pass the list of tiles to this function.
-This is the recommended way to call this function because spatial domain convolution is slow and breaking the job into many small tiles and working on simultaneously on several threads can greatly speed up the processing.
-
-If the tiles are defined within a channel (a larger tile), by default convolution will be done within the channel, so pixels on the edge of a channel will not be affected by their neighbors that are in another channel.
-See @ref{Tessellation} for the necessity of channels in astronomical data analysis.
-This behavior may be disabled when @code{convoverch} is non-zero.
-In this case, it will ignore channel borders (if they exist) and mix all pixels that cover the kernel within the dataset.
+@code{channels} contains the number of channels along each dimension of the input dataset. If this is not NULL, then convolution will not mix pixels from different channels.
+That is, a pixel on the edge of one channel will not be affected by pixels in neighbouring channels. See @ref{Tessellation} for more.
 @end deftypefun
 
 @deftypefun void gal_convolve_spatial_correct_ch_edge (gal_data_t @code{*tiles}, gal_data_t @code{*kernel}, size_t @code{numthreads}, int @code{edgecorrection}, int @code{conv_on_blank}, gal_data_t @code{*tocorrect})
@@ -45307,7 +45516,7 @@ main(void)
 
 
 
-@node Library demo - multi-threaded operation, Library demo - reading and writing table columns, Library demo - inspecting neighbors, Library demo programs
+@node Library demo - multi-threaded operation, Library demo - OpenCL in Gnuastro, Library demo - inspecting neighbors, Library demo programs
 @subsection Library demo - multi-threaded operation
 
 The following simple program shows how to use Gnuastro to simplify spinning off threads and distributing different jobs between the threads.
@@ -45466,9 +45675,178 @@ main(void)
 @}
 @end example
 
+@node Library demo - OpenCL in Gnuastro, Library demo - reading and writing table columns, Library demo - multi-threaded operation, Library demo programs
+@subsection Library demo - OpenCL in Gnuastro
+
+The following simple program shows you how to use OpenCL within your own Gnuastro programs making use of the OpenCL module provided by Gnuastro.
+The relevant OpenCL functions can be found in @ref{OpenCL in Gnuastro}.
+This example goes through everything: initialisation, data transfer, kernel execution, for a simple program that adds the pixel values of two fits images.
+While this example is minimalistic, the real world examples of gal_cl_threads_spinoff() can be found in the Gnuastro source code by using
+@example
+$ grep -r gal_cl_threads_spinoff ./
+@end example
+
+@noindent
+Before running, make sure to change the file path for the kernel in @code{kernel_path}.
+This program can be run normally as any other program with @code{astbuildprog}.
+
+@example
+@ astbuildprog example.c path/to/image1.fits path/to/image2.fits
+@end example
+
+@example
+@verbatim
+
+#define CL_TARGET_OPENCL_VERSION 300
+#include <gnuastro/data.h>
+#include <gnuastro/cl-utils.h>
+#include <gnuastro/fits.h>
+
+int main(int argc, char **argv)
+{
+  if(argc != 3) {
+    printf("Error, invalid arguments\n");
+    exit(1);
+  }
+  // Read input images
+  gal_data_t *input_image1 = gal_fits_img_read_to_type (
+      argv[1], "1", GAL_TYPE_FLOAT32, -1, -1, "");
+
+  gal_data_t *input_image2 = gal_fits_img_read_to_type (
+      argv[2], "1", GAL_TYPE_FLOAT32, -1, -1, "");
+
+  // Allocate empty dataset for output
+  gal_data_t *output_image = gal_data_alloc (
+      NULL, GAL_TYPE_FLOAT32, input_image1->ndim, input_image1->dsize,
+      input_image1->wcs, 0, input_image1->minmapsize, input_image1->quietmmap,
+      NULL, input_image1->unit, NULL);
+
+  // Initialise OpenCL variables
+  cl_context context;
+  cl_platform_id platform_id;
+  cl_device_id device_id;
+
+  // Target a GPU using CL_DEVICE_TYPE_GPU
+  gal_cl_init (CL_DEVICE_TYPE_GPU, &context, &platform_id, &device_id);
+  cl_command_queue command_queue
+      = gal_cl_create_command_queue (context, device_id);
+
+  // Copy data to gpu
+  gal_data_t *input_image1_gpu
+      = gal_cl_copy_data_to_gpu (context, command_queue, input_image1);
+  gal_data_t *input_image2_gpu
+      = gal_cl_copy_data_to_gpu (context, command_queue, input_image2);
+  gal_data_t *output_image_gpu
+      = gal_cl_copy_data_to_gpu (context, command_queue, output_image);
+
+  gal_cl_finish_queue (command_queue);
+
+  // Allocate clprm struct
+  clprm *sprm = (clprm *)malloc (sizeof (clprm));
+
+  void *kernel_args[] = { (void *)input_image1_gpu, (void *)input_image2_gpu,
+                          (void *)output_image_gpu };
+
+  // The arrays are implicitly referenced within the kernel
+  void *svm_ptrs[]
+      = { (void *)input_image1_gpu->array, (void *)input_image2_gpu->array,
+          (void *)output_image_gpu->array };
+
+  size_t numactions = input_image1->size;
+
+  // Adjust the path as needed
+  sprm->kernel_path = "./lib/kernels/add.cl";
+  sprm->kernel_name = "add";
+  sprm->compiler_opts = "";
+  sprm->device_id = device_id;
+  sprm->context = context;
+  sprm->num_kernel_args = 3;
+  sprm->num_svm_args = 3;
+  sprm->kernel_args = kernel_args;
+  sprm->num_extra_svm_args = 3;
+  sprm->extra_svm_args = svm_ptrs;
+  sprm->work_dim = 1;
+
+  // Spin off one thread for each pixel
+  sprm->global_work_size = &numactions;
+  sprm->local_work_size = NULL;
+
+  gal_cl_threads_spinoff (sprm);
+
+  // Read output data back to CPU
+  gal_cl_read_data_to_cpu(context, command_queue, output_image_gpu);
+
+  // Write output to .fits file
+  fitsfile *fptr = gal_fits_img_write_to_ptr(output_image_gpu, "added.fits", NULL, 0);
+  int status = 0;
+  fits_close_file(fptr, &status);
+
+  return 0;
+}
+@end verbatim
+@end example
+
+The following is the kernel code for @file{add.cl} used in the preceding code.
+
+@example
+@verbatim
+// Include struct definitions separately
+typedef struct  __attribute__((aligned(4))) gal_data_t
+{
+  /* Basic information on array of data. */
+  void *restrict array; /* Array keeping data elements.               */
+  uchar type;         /* Type of data (see 'gnuastro/type.h').      */
+  size_t ndim;          /* Number of dimensions in the array.         */
+  size_t *dsize;        /* Size of array along each dimension.        */
+  size_t size;          /* Total number of data-elements.             */
+  int quietmmap;        /* ==1: print a notice whem mmap'ing.         */
+  char *mmapname;       /* File name of the mmap.                     */
+  size_t minmapsize;    /* Minimum number of bytes to mmap the array. */
+
+  /* WCS information. */
+  int nwcs;           /* for WCSLIB: no. coord. representations.    */
+  struct wcsprm *wcs; /* WCS information for this dataset.          */
+
+  /* Content descriptions. */
+  uchar flag;  /* Flags: currently 8-bits are enough.        */
+  int status;    /* Context specific value for the dataset.    */
+  char *name;    /* e.g., EXTNAME, or column, or keyword.      */
+  char *unit;    /* Units of the data.                         */
+  char *comment; /* A more detailed description of the data.   */
+
+  /* For printing */
+  int disp_fmt;       /* See 'gal_table_diplay_formats'.            */
+  int disp_width;     /* Width of space to print in ASCII.          */
+  int disp_precision; /* Precision to print in ASCII.               */
+
+  void *context;
+  int svm;
+
+  /* Pointers to other data structures. */
+  struct gal_data_t *next;  /* To use it as a linked list if necessary.   */
+  struct gal_data_t *block; /* 'gal_data_t' of hosting block, see above.  */
+} gal_data_t;
+
+__kernel void
+add(__global gal_data_t *input_image1,
+    __global gal_data_t *input_image2,
+    __global gal_data_t *output_image)
+{
+    // Get the index assigned to this thread
+    int id = get_global_id(0);
+
+    float *input_array1 = (float *)input_image1->array;
+    float *input_array2 = (float *)input_image2->array;
+    float *output_array = (float *)output_image->array;
+
+    output_array[id] = input_array1[id] + input_array2[id];
+    return;
+}
+@end verbatim
+@end example
 
 
-@node Library demo - reading and writing table columns, Library demo - Warp to another image, Library demo - multi-threaded operation, Library demo programs
+@node Library demo - reading and writing table columns, Library demo - Warp to another image, Library demo - OpenCL in Gnuastro, Library demo programs
 @subsection Library demo - reading and writing table columns
 
 Tables are some of the most common inputs to, and outputs of programs.
