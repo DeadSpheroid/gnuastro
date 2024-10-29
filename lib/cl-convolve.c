@@ -4,7 +4,7 @@
 #include <error.h>
 #include <errno.h>
 #include <string.h>
-#include <gnuastro/cl-utils.h>
+#include <gnuastro/cl.h>
 #include <gnuastro/convolve.h>
 
 gal_data_t *

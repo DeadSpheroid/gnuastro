@@ -107,7 +107,7 @@ detection_initial(struct noisechiselparams *p)
       p->binary->name=NULL;
     }
 
-
+  printf("a\n");
   /* Remove any blank elements from the binary image if requested. */
   if(p->blankasforeground==0 && gal_blank_present(p->binary,0))
     {
@@ -137,7 +137,7 @@ detection_initial(struct noisechiselparams *p)
       p->binary->name=NULL;
     }
 
-
+printf("b\n");
   /* Correct the no-erode values. */
   bf=(b=p->binary->array)+p->binary->size;
   do *b = *b==THRESHOLD_NO_ERODE_VALUE ? 1 : *b; while(++b<bf);

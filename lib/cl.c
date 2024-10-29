@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <error.h>
 #include <errno.h>
-#include <gnuastro/cl-utils.h>
+#include <gnuastro/cl.h>
 
 /*********************************************************************/
 /*************             Initialization          *******************/
@@ -388,8 +388,19 @@ gal_cl_read_to_host (cl_mem buffer, size_t size,
 /*********************************************************************/
 /*************                 SVM                 *******************/
 /*********************************************************************/
+void *
+gal_cl_alloc_svm(size_t size, cl_context context)
+{
+  void *out;
+  out = clSVMAlloc(context, CL_MEM_READ_WRITE, size, 0);
+  if (out == NULL)
+    error (EXIT_FAILURE, ENOMEM, "%s: CL SVM Alloc Error: %zu bytes", __func__,
+           size);
+  return out;
+}
+
 gal_data_t *
-gal_cl_alloc_svm (size_t size_of_array, size_t size_of_dsize,
+gal_cl_alloc_data_svm (size_t size_of_array, size_t size_of_dsize,
                   cl_context context, cl_command_queue command_queue)
 {
   gal_data_t *out;
@@ -400,7 +411,7 @@ gal_cl_alloc_svm (size_t size_of_array, size_t size_of_dsize,
            "%s: CL SVM Alloc Error: %zu bytes for gal_data_t", __func__,
            sizeof *out);
 
-  gal_cl_map_svm_to_cpu (context, command_queue, (void *)out, sizeof *out);
+  gal_cl_read_svm_to_cpu (context, command_queue, (void *)out, sizeof *out);
 
   out->array
       = (void *)clSVMAlloc (context, CL_MEM_READ_WRITE, size_of_array, 0);
@@ -409,7 +420,7 @@ gal_cl_alloc_svm (size_t size_of_array, size_t size_of_dsize,
            "%s: CL SVM Alloc Error: %zu bytes for gal_data_t->array", __func__,
            size_of_array);
 
-  gal_cl_map_svm_to_cpu (context, command_queue, (void *)(out->array), size_of_array);
+  gal_cl_read_svm_to_cpu (context, command_queue, (void *)(out->array), size_of_array);
 
   out->dsize
       = (size_t *)clSVMAlloc (context, CL_MEM_READ_WRITE, size_of_dsize, 0);
@@ -418,13 +429,13 @@ gal_cl_alloc_svm (size_t size_of_array, size_t size_of_dsize,
            "%s: CL SVM Alloc Error: %zu bytes for gal_data_t->dsize", __func__,
            size_of_dsize);
 
-  gal_cl_map_svm_to_cpu (context, command_queue, (void *)(out->dsize), size_of_dsize);
+  gal_cl_read_svm_to_cpu (context, command_queue, (void *)(out->dsize), size_of_dsize);
 
   return out;
 }
 
 void
-gal_cl_map_svm_to_cpu (cl_context context, cl_command_queue command_queue,
+gal_cl_read_svm_to_cpu (cl_context context, cl_command_queue command_queue,
                 void *svm_ptr, size_t size)
 {
   cl_int ret = 0;
@@ -440,7 +451,7 @@ gal_cl_map_svm_to_cpu (cl_context context, cl_command_queue command_queue,
 }
 
 void
-gal_cl_unmap_svm_to_gpu (cl_context context, cl_command_queue command_queue,
+gal_cl_write_svm_to_gpu (cl_context context, cl_command_queue command_queue,
                   void *svm_ptr)
 {
   cl_int ret = 0;
@@ -492,9 +503,9 @@ gal_cl_write_data_to_gpu(cl_context context,
                           cl_command_queue command_queue,
                           gal_data_t *input)
 {
-  gal_cl_unmap_svm_to_gpu(context, command_queue, input->array);
-  gal_cl_unmap_svm_to_gpu(context, command_queue, input->dsize);
-  gal_cl_unmap_svm_to_gpu(context, command_queue, input);
+  gal_cl_write_svm_to_gpu(context, command_queue, input->array);
+  gal_cl_write_svm_to_gpu(context, command_queue, input->dsize);
+  gal_cl_write_svm_to_gpu(context, command_queue, input);
 }
 
 void
@@ -502,10 +513,10 @@ gal_cl_read_data_to_cpu(cl_context context,
                           cl_command_queue command_queue,
                           gal_data_t *input)
 {
-  gal_cl_map_svm_to_cpu (context, command_queue, input, sizeof (gal_data_t));
-  gal_cl_map_svm_to_cpu (context, command_queue, input->array,
+  gal_cl_read_svm_to_cpu (context, command_queue, input, sizeof (gal_data_t));
+  gal_cl_read_svm_to_cpu (context, command_queue, input->array,
                          gal_type_sizeof (input->type) * input->size);
-  gal_cl_map_svm_to_cpu (context, command_queue, input->dsize,
+  gal_cl_read_svm_to_cpu (context, command_queue, input->dsize,
                          sizeof (size_t) * input->ndim);
 }
 
@@ -514,7 +525,7 @@ gal_cl_copy_data_to_gpu(cl_context context,
                           cl_command_queue command_queue,
                           gal_data_t *input)
 {
-  gal_data_t *output = gal_cl_alloc_svm (
+  gal_data_t *output = gal_cl_alloc_data_svm (
       gal_type_sizeof (input->type) * input->size,
       input->ndim * sizeof (size_t), context,
       command_queue);

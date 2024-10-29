@@ -777,6 +777,7 @@ convolve_spatial(struct convolveparams *p)
      want to do spatial domain convolution with this Convolve program
      is edge correction. So by default we assume it and will only
      ignore it if the user asks. */
+     printf("Before gal conv spatial\n");
   out = gal_convolve_spatial (p->input, p->kernel, cp->numthreads,
                               cp->tl.numchannels, p->noedgecorrection,
                               multidim ? cp->tl.workoverch : 1, p->conv_on_blank);

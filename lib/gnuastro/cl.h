@@ -5,7 +5,6 @@
 #include <gnuastro/data.h>
 #include <CL/cl.h>
 #define MAX_SOURCE_SIZE (0x100000)
-
 #ifndef IN_GNUASTRO_BUILD
 #include <gnuastro/config.h>
 #endif
@@ -125,16 +124,19 @@ gal_cl_read_to_host (cl_mem buffer, size_t size,
 /*********************************************************************/
 /*************                 Mem                 *******************/
 /*********************************************************************/
+void *
+gal_cl_alloc_svm(size_t size, cl_context context);
+
 gal_data_t *
-gal_cl_alloc_svm (size_t size_of_array, size_t size_of_dsize,
+gal_cl_alloc_data_svm (size_t size_of_array, size_t size_of_dsize,
                   cl_context context, cl_command_queue command_queue);
 
 void
-gal_cl_map_svm_to_cpu (cl_context context, cl_command_queue command_queue, 
+gal_cl_read_svm_to_cpu (cl_context context, cl_command_queue command_queue, 
                 void *svm_ptr, size_t size);
 
 void
-gal_cl_unmap_svm_to_gpu (cl_context context, cl_command_queue command_queue,
+gal_cl_write_svm_to_gpu (cl_context context, cl_command_queue command_queue,
                   void *svm_ptr);
 
 void

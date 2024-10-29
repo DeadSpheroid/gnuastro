@@ -1183,9 +1183,11 @@ gal_tile_full_values_smooth(gal_data_t *tilevalues,
       gal_permutation_apply(tilevalues, tl->permutation);
     }
 
+  gal_data_t *input = tilevalues;
+  while(input->block != NULL) input = input->block;
   /* Do the smoothing. */
   if(tl->workoverch)
-    smoothed=gal_convolve_spatial(tilevalues, kernel, numthreads, tl->numchannels, 1, 1, 0);
+    smoothed=gal_convolve_spatial(input, kernel, numthreads, tl->numchannels, 1, 1, 0);
   else
     {
       /* Create the tile structure. */
@@ -1193,9 +1195,10 @@ gal_tile_full_values_smooth(gal_data_t *tilevalues,
       ttl.numchannels=tl->numchannels;
       gal_tile_full_sanity_check("IMPOSSIBLE", "IMP_HDU", tilevalues, &ttl);
       gal_tile_full_two_layers(tilevalues, &ttl);
-
+      gal_data_t *input2 = tilevalues;
+      while(input2->block != NULL) input2 = input2->block;
       /* Do the convolution separately on each channel. */
-      smoothed=gal_convolve_spatial(ttl.tiles, kernel, numthreads, tl->numchannels, 1, 0, 0);
+      smoothed=gal_convolve_spatial(input2, kernel, numthreads, tl->numchannels, 1, 0, 0);
 
       /* Clean up. */
       ttl.tilesize=ttl.numchannels=NULL;

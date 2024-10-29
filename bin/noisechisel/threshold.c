@@ -309,7 +309,7 @@ threshold_interp_smooth(struct noisechiselparams *p, gal_data_t **first,
       (*first)->name = (*second)->name = NULL;
       if(third) (*third)->name=NULL;
     }
-
+  printf("Before smoothening %d\n", (*first)->type);
   /* Smooth the threshold if requested. */
   if(p->smoothwidth>1)
     {
@@ -318,13 +318,13 @@ threshold_interp_smooth(struct noisechiselparams *p, gal_data_t **first,
                                       p->cp.numthreads);
       gal_data_free(*first);
       *first=tmp;
-
+      printf("After first\n");
       /* Smooth the second */
       tmp=gal_tile_full_values_smooth(*second, tl, p->smoothwidth,
                                       p->cp.numthreads);
       gal_data_free(*second);
       *second=tmp;
-
+      printf("After second\n");
       /* Smooth the third */
       if(third)
         {
@@ -333,7 +333,7 @@ threshold_interp_smooth(struct noisechiselparams *p, gal_data_t **first,
           gal_data_free(*third);
           *third=tmp;
         }
-
+      printf("After third\n");
       /* Add them to the check image. */
       if(filename)
         {
@@ -670,7 +670,7 @@ threshold_quantile_find_apply(struct noisechiselparams *p)
         }
     }
 
-
+  printf("c\n");
   /* Remove the outliers. */
   if(p->outliernumngb)
     gal_tileinternal_no_outlier_local(qprm.erode_th, qprm.noerode_th,
@@ -700,13 +700,13 @@ threshold_quantile_find_apply(struct noisechiselparams *p)
     threshold_good_error(nval, 1, cp->interpnumngb);
   gal_data_free(num);
 
-
+  printf("d\n");
   /* Interpolate and smooth the derived values. */
   threshold_interp_smooth(p, &qprm.erode_th, &qprm.noerode_th,
                           qprm.expand_th ? &qprm.expand_th : NULL,
                           p->qthreshname);
 
-
+    printf("post interpsmooth\n");
   /* We now have a threshold for all tiles, apply it. */
   threshold_apply(p, qprm.erode_th->array, qprm.noerode_th->array,
                   THRESHOLD_QUANTILES);
@@ -723,7 +723,7 @@ threshold_quantile_find_apply(struct noisechiselparams *p)
 
   /* Set the expansion quantile if necessary. */
   p->expand_thresh = qprm.expand_th ? qprm.expand_th : NULL;
-
+  printf("f\n");
 
   /* Clean up and report duration if necessary. */
   gal_data_free(qprm.erode_th);

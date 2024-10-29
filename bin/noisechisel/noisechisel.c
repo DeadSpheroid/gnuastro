@@ -56,6 +56,7 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
 static void
 noisechisel_convolve(struct noisechiselparams *p)
 {
+  printf("Started nc convolve\n");
   struct timeval t1;
   struct gal_tile_two_layer_params *tl=&p->cp.tl;
 
@@ -67,7 +68,8 @@ noisechisel_convolve(struct noisechiselparams *p)
         {
           /* Make the convolved image. */
           if(!p->cp.quiet) gettimeofday(&t1, NULL);
-          p->conv = gal_convolve_spatial(tl->tiles, p->kernel,
+          printf("Type of inp: %d, kernel: %d\n", p->input->type, p->kernel->type);
+          p->conv = gal_convolve_spatial(p->input, p->kernel,
                                          p->cp.numthreads, tl->numchannels, 1,
                                          tl->workoverch, 0);
 
@@ -83,7 +85,7 @@ noisechisel_convolve(struct noisechiselparams *p)
       else
         p->conv=p->input;
     }
-
+  printf("Post sharper kernel\n");
   /* Set a fixed name for the convolved image (since it will be used in
      many check images). */
   if(p->conv!=p->input)
@@ -106,7 +108,7 @@ noisechisel_convolve(struct noisechiselparams *p)
   if(p->widekernel)
     {
       if(!p->cp.quiet) gettimeofday(&t1, NULL);
-      p->wconv=gal_convolve_spatial(tl->tiles, p->widekernel,
+      p->wconv=gal_convolve_spatial(p->input, p->widekernel,
                                     p->cp.numthreads, tl->numchannels, 1,
                                     tl->workoverch, 0);
       gal_checkset_allocate_copy("CONVOLVED-WIDER", &p->wconv->name);
@@ -242,18 +244,20 @@ noisechisel_output(struct noisechiselparams *p)
 void
 noisechisel(struct noisechiselparams *p)
 {
+  printf("Started\n");
   /* Convolve the image. */
   noisechisel_convolve(p);
-
+  printf("There\n");
   /* Do the initial detection. */
   detection_initial(p);
-
+  printf("Where\n");
   /* Remove false detections. */
   detection(p);
 
+  printf("Reached Here\n");
   /* Find the final Sky and Sky STD values. */
   sky_and_std(p, p->skyname);
-
+  printf("Everywhere\n");
   /* Abort if the user only wanted to see until this point. */
   if(p->skyname && !p->continueaftercheck)
     ui_abort_after_check(p, p->skyname, NULL,

@@ -78,8 +78,10 @@ convolution (__global gal_data_t *input_image,
 #ifndef IN_GNUASTRO_BUILD
   int id = get_global_id (0);
 #endif
+  if(image_width == 0 || image_height == 0 || kernell_width == 0 || kernell_height == 0) exit(1);
   int row = id / image_width;
   int col = id % image_width;
+  
   float w = 0.0;
   if (row < image_height && col < image_width)
   {

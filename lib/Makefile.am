@@ -30,12 +30,9 @@ if COND_HASGNUMAKE_H
   MAYBE_GNUMAKE = libgnuastro_make.la
 endif
 if COND_HASOPENCL
-  $(info "Found OpenCL")
-  MAYBE_CL = cl-utils.c
-  MAYBE_CL_H = $(headersdir)/cl-utils.h
+  MAYBE_CL = cl.c
+  MAYBE_CL_H = $(headersdir)/cl.h
   MAYBE_CONVOLVE_CL = cl-convolve.c
-else
-  $(info "What is opencl?")
 endif
 if COND_NUMPY
   MAYBE_NUMPY_C = python.c
@@ -178,6 +175,7 @@ pkginclude_HEADERS = gnuastro/config.h \
   $(headersdir)/convolve.h \
   $(headersdir)/cosmology.h \
   $(headersdir)/data.h \
+  $(headersdir)/data-t.h \
   $(headersdir)/dimension.h \
   $(headersdir)/ds9.h \
   $(headersdir)/eps.h \

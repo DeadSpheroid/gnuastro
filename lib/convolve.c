@@ -76,15 +76,18 @@ gal_convolve_spatial (gal_data_t *input, gal_data_t *kernel, size_t numthreads,
                       size_t *channels, int noedgecorrection, int convoverch,
                       int conv_on_blank)
 {
+  printf("Entered gal conv spatial\n");
   gal_data_t *out = gal_data_alloc (
       NULL, input->type, input->ndim, input->dsize, input->wcs, 0,
       input->minmapsize, input->quietmmap, NULL, input->unit, NULL);
   params p;
   p.output = out;
   p.kernel = kernel;
-  p.input = input->block == NULL? input: input->block;
+  p.input = input;
+  printf("type inside convolve: %d\n", p.input->type);
   p.noedgecorrection = noedgecorrection;
   p.convoverch = convoverch;
+  printf("%ld %ld %ld %ld\n", input->dsize[0], input->dsize[1], kernel->dsize[0], kernel->dsize[1]);
   if(channels == NULL)
   {
     p.tile_w = 1;
@@ -92,11 +95,12 @@ gal_convolve_spatial (gal_data_t *input, gal_data_t *kernel, size_t numthreads,
   }
   else
   {
+    if(channels[0] == 1 && channels[1] == 1) p.convoverch = 1;
     p.tile_w = input->dsize[0] / channels[0];
     p.tile_h = input->dsize[1] / channels[1];
-    if(channels[0] == 1 && channels[1] == 1) p.convoverch = 1;
   }
-
+  printf("Before spinoff\n");
   gal_threads_spin_off(convolve_thread, &p, input->size, numthreads, -1, -1);
+  printf("Type in convolve: %d\n", input->type);
   return out;
 }
